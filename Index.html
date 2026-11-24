@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>KenCoin Runner 3D</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #070b14;
+      color: #f8fafc;
+    }
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Escenario 3D -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Aviso flotante (Toast) -->
+  <div id="toastBox" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-slate-900/95 border border-amber-400/50 text-amber-200 text-xs sm:text-sm font-bold shadow-xl backdrop-blur-md"></div>
+
+  <!-- Barra superior HUD -->
+  <header class="fixed top-0 inset-x-0 z-30 p-3 sm:p-4 flex items-center justify-between gap-2 pointer-events-none">
+    <div class="flex items-center gap-2 pointer-events-auto flex-wrap">
+      <div class="px-3 py-1.5 rounded-2xl bg-slate-900/85 border border-amber-400/30 backdrop-blur-md flex items-center gap-2 shadow-lg">
+        <span class="text-amber-400 font-black text-xs sm:text-sm">CKN</span>
+        <span id="bankVal" class="font-extrabold text-sm sm:text-base text-white">120</span>
+      </div>
+
+      <div class="px-2.5 py-1.5 rounded-2xl bg-slate-900/85 border border-white/10 backdrop-blur-md flex items-center gap-2 text-xs font-bold shadow-lg">
+        <span title="Vidas">❤️ <span id="hudLives">1</span></span>
+        <span class="text-white/20">|</span>
+        <span title="Patinetas">🛹 <span id="hudBoards">1</span></span>
+        <span class="text-white/20">|</span>
+        <span title="Llaves">🔑 <span id="hudKeys">1</span></span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <button id="shopTopBtn" class="px-3 py-2 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 font-bold text-xs sm:text-sm backdrop-blur-md transition active:scale-95">
+        🛒 Tienda
+      </button>
+
+      <button id="walletBtn" class="px-3 py-2 rounded-2xl bg-slate-900/85 hover:bg-slate-800 border border-emerald-400/40 backdrop-blur-md flex items-center gap-2 text-xs sm:text-sm font-bold shadow-lg transition active:scale-95">
+        <span id="walletDot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span id="walletLabel">Conectar Billetera</span>
+      </button>
+
+      <button id="soundBtn" class="w-10 h-10 rounded-2xl bg-slate-900/85 hover:bg-slate-800 border border-white/10 backdrop-blur-md flex items-center justify-center text-base shadow-lg transition active:scale-95" aria-label="Sonido">
+        🔊
+      </button>
+    </div>
+  </header>
+
+  <!-- HUD en carrera -->
+  <div id="runHud" class="hidden fixed top-16 inset-x-0 z-20 px-4 flex items-center justify-between pointer-events-none">
+    <div class="px-3.5 py-1.5 rounded-2xl bg-slate-900/75 border border-white/10 backdrop-blur-md text-xs sm:text-sm font-extrabold">
+      Puntos: <span id="scoreVal" class="text-amber-300">0</span>
+    </div>
+    <div class="px-3.5 py-1.5 rounded-2xl bg-slate-900/75 border border-white/10 backdrop-blur-md text-xs sm:text-sm font-extrabold">
+      CKN Carrera: <span id="runCoinsVal" class="text-emerald-300">0</span>
+    </div>
+    <div class="px-3.5 py-1.5 rounded-2xl bg-slate-900/75 border border-white/10 backdrop-blur-md text-xs sm:text-sm font-extrabold">
+      Récord: <span id="bestVal" class="text-sky-300">0</span>
+    </div>
+  </div>
+
+  <!-- Controles táctiles en carrera -->
+  <div id="touchControls" class="hidden fixed bottom-5 inset-x-0 z-20 px-4 flex items-center justify-end pointer-events-none">
+    <button id="btnBoard" class="pointer-events-auto px-4 h-11 rounded-2xl bg-sky-500/30 border border-sky-300/60 text-sky-100 backdrop-blur-md font-extrabold text-xs sm:text-sm shadow-lg active:scale-90">
+      🛹 Patineta (<span id="boardBtnCount">1</span>)
+    </button>
+  </div>
+
+  <!-- Lobby Principal -->
+  <section id="lobbyOverlay" class="fixed inset-0 z-20 flex flex-col justify-end p-4 sm:p-6 bg-gradient-to-t from-slate-950/90 via-slate-950/35 to-transparent">
+    <div class="max-w-xl w-full mx-auto space-y-3 mb-2">
+      <div class="flex items-end justify-between gap-2">
+        <div>
+          <span class="inline-block px-2.5 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-[11px] font-bold mb-1">
+            KENCOIN 3D
+          </span>
+          <h1 class="text-2xl sm:text-4xl font-black tracking-tight text-white">KenCoin Runner</h1>
+        </div>
+        <div class="text-right text-xs font-bold text-slate-300">
+          Personaje: <span id="lobbyCharName" class="text-amber-300">Ken Clásico</span><br />
+          Récord: <span id="lobbyBest" class="text-sky-300">0</span> pts
+        </div>
+      </div>
+
+      <!-- Accesos rápidos en Lobby -->
+      <div class="grid grid-cols-3 gap-2.5">
+        <button id="quickBoardBtn" class="p-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800/95 border border-white/10 backdrop-blur-md text-left transition active:scale-95">
+          <div class="text-xs font-extrabold text-white">🛹 Patineta x1</div>
+          <div class="text-[11px] text-slate-400">Salva 1 choque</div>
+          <div class="text-xs font-black text-amber-300 mt-1">25 CKN</div>
+        </button>
+
+        <button id="quickKeyBtn" class="p-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800/95 border border-white/10 backdrop-blur-md text-left transition active:scale-95">
+          <div class="text-xs font-extrabold text-white">🔑 Llave x1</div>
+          <div class="text-[11px] text-slate-400">Revive al instante</div>
+          <div class="text-xs font-black text-amber-300 mt-1">35 CKN</div>
+        </button>
+
+        <button id="bonusBtn" class="p-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800/95 border border-emerald-400/30 backdrop-blur-md text-left transition active:scale-95">
+          <div class="text-xs font-extrabold text-emerald-300">🎁 Bono CKN +30</div>
+          <div class="text-[11px] text-slate-400">Recarga inicial</div>
+          <div id="bonusStatus" class="text-xs font-black text-emerald-400 mt-1">Disponible</div>
+        </button>
+      </div>
+
+      <!-- Botones principales: Tienda y Jugar -->
+      <div class="grid grid-cols-3 gap-2.5 pt-1">
+        <button id="lobbyShopBtn" class="col-span-1 py-3.5 px-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-amber-400/40 text-amber-200 font-extrabold text-sm shadow-lg transition active:scale-95">
+          🛒 Tienda
+        </button>
+        <button id="startBtn" class="col-span-2 py-3.5 px-5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-base shadow-xl shadow-orange-500/20 transition active:scale-95">
+          ▶ JUGAR AHORA
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal de Tienda Completa -->
+  <div id="shopModal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="max-w-lg w-full rounded-3xl bg-slate-900 border border-white/15 p-5 shadow-2xl max-h-[88vh] overflow-y-auto space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-black text-white">🛒 Tienda KenCoin</h2>
+          <p class="text-xs text-slate-400">Saldo: <span id="shopBank" class="text-amber-300 font-bold">120 CKN</span> · <span id="shopWalletMode" class="text-emerald-300">Modo Banco</span></p>
+        </div>
+        <button id="closeShopBtn" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-slate-300">✕</button>
+      </div>
+
+      <!-- Personajes -->
+      <div class="space-y-2">
+        <div class="text-xs font-extrabold uppercase tracking-wider text-amber-300">Personajes 3D</div>
+        <div id="charactersList" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"></div>
+      </div>
+
+      <!-- Mejoras y Objetos -->
+      <div class="space-y-2">
+        <div class="text-xs font-extrabold uppercase tracking-wider text-sky-300">Patinetas, Llaves y Vidas</div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <button id="shopBuyBoard" class="p-3 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 text-left transition active:scale-95">
+            <div class="font-extrabold text-sm">🛹 Patineta</div>
+            <div class="text-[11px] text-slate-400">Escudo contra 1 choque</div>
+            <div class="text-xs font-black text-amber-300 mt-1.5">25 CKN</div>
+          </button>
+
+          <button id="shopBuyKey" class="p-3 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 text-left transition active:scale-95">
+            <div class="font-extrabold text-sm">🔑 Llave</div>
+            <div class="text-[11px] text-slate-400">Revive al caer o chocar</div>
+            <div class="text-xs font-black text-amber-300 mt-1.5">35 CKN</div>
+          </button>
+
+          <button id="shopBuyLife" class="p-3 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 text-left transition active:scale-95">
+            <div class="font-extrabold text-sm">❤️ Vida Extra</div>
+            <div class="text-[11px] text-slate-400">+1 vida de respaldo</div>
+            <div class="text-xs font-black text-amber-300 mt-1.5">45 CKN</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Fin de Carrera / Revivir -->
+  <div id="gameOverModal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="max-w-sm w-full rounded-3xl bg-slate-900 border border-white/15 p-6 text-center space-y-4 shadow-2xl">
+      <h2 id="overTitle" class="text-2xl font-black text-white">¡Choque en pista!</h2>
+      <p id="overSubtitle" class="text-sm text-slate-300">Has conseguido <span id="overCoins" class="text-amber-300 font-bold">0</span> CKN en esta carrera.</p>
+
+      <div class="grid grid-cols-2 gap-2.5 text-xs bg-slate-950/60 p-3 rounded-2xl border border-white/10">
+        <div>Puntaje: <strong id="overScore" class="text-white">0</strong></div>
+        <div>Llaves: <strong id="overKeys" class="text-amber-300">0</strong></div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <button id="reviveKeyBtn" class="w-full py-3 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-sm transition active:scale-95">
+          🔑 Revivir con Llave (<span id="reviveKeysCount">1</span>)
+        </button>
+        <button id="retryBtn" class="w-full py-3 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm transition active:scale-95">
+          ↻ Volver a Correr
+        </button>
+        <button id="goLobbyBtn" class="w-full py-2.5 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition active:scale-95">
+          Volver al Lobby
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CHARACTERS = [
+      { id: "classic", name: "Ken Clásico", color: 0x38bdf8, accent: 0xfbbf24, price: 0 },
+      { id: "cyber", name: "Ken Cyber", color: 0xa855f7, accent: 0x22d3ee, price: 60 },
+      { id: "gold", name: "Ken Dorado", color: 0xf59e0b, accent: 0xfef08a, price: 120 }
+    ];
+
+    const state = {
+      bank: 120,
+      best: 0,
+      lives: 1,
+      boards: 1,
+      keys: 1,
+      ownedChars: ["classic"],
+      selectedChar: "classic",
+      walletConnected: false,
+      walletAddress: "",
+      bonusClaimed: false,
+      isMuted: false
+    };
+
+    let mode = "lobby"; // "lobby" | "playing" | "gameover"
+    let runScore = 0;
+    let runCoins = 0;
+    let runSpeed = 16;
+    let boardActiveTimer = 0;
+    let invincibleTimer = 0;
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const box = document.getElementById("toastBox");
+      if (!box) return;
+      box.textContent = msg;
+      box.classList.remove("hidden");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        box.classList.add("hidden");
+      }, 2200);
+    }
+
+    let audioCtx = null;
+    function playTone(freq, duration, type = "sine", gainVal = 0.14, delay = 0) {
+      if (state.isMuted) return;
+      try {
+        if (!audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) audioCtx = new AC();
+        }
+        if (!audioCtx) return;
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const now = audioCtx.currentTime + delay;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(gainVal, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + duration);
+      } catch (e) {}
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem("kencoin_runner_clean_v1", JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem("kencoin_runner_clean_v1");
+        if (!raw) return;
+        const p = JSON.parse(raw);
+        if (typeof p.bank === "number") state.bank = p.bank;
+        if (typeof p.best === "number") state.best = p.best;
+        if (typeof p.lives === "number") state.lives = p.lives;
+        if (typeof p.boards === "number") state.boards = p.boards;
+        if (typeof p.keys === "number") state.keys = p.keys;
+        if (Array.isArray(p.ownedChars) && p.ownedChars.length > 0) state.ownedChars = p.ownedChars;
+        if (typeof p.selectedChar === "string") state.selectedChar = p.selectedChar;
+        if (typeof p.walletConnected === "boolean") state.walletConnected = p.walletConnected;
+        if (typeof p.walletAddress === "string") state.walletAddress = p.walletAddress;
+        if (typeof p.bonusClaimed === "boolean") state.bonusClaimed = p.bonusClaimed;
+        if (typeof p.isMuted === "boolean") state.isMuted = p.isMuted;
+      } catch (e) {}
+    }
+
+    async function authorizePurchase(label) {
+      if (!state.walletConnected) {
+        return true;
+      }
+      if (window.ethereum && state.walletAddress && !state.walletAddress.startsWith("0x7F3b")) {
+        try {
+          await window.ethereum.request({
+            method: "eth_sendTransaction",
+            params: [{
+              from: state.walletAddress,
+              to: state.walletAddress,
+              value: "0x0"
+            }]
+          });
+          showToast("Firmado en billetera: " + label);
+          return true;
+        } catch (err) {
+          showToast("Transacción cancelada en billetera");
+          return false;
+        }
+      }
+      showToast("Aprobado vía billetera: " + label);
+      return true;
+    }
+
+    function getCurrentCharacter() {
+      return CHARACTERS.find((c) => c.id === state.selectedChar) || CHARACTERS[0];
+    }
+
+    function renderShopCharacters() {
+      const container = document.getElementById("charactersList");
+      if (!container) return;
+      container.innerHTML = "";
+      CHARACTERS.forEach((char) => {
+        const owned = state.ownedChars.includes(char.id);
+        const equipped = state.selectedChar === char.id;
+        const btn = document.createElement("button");
+        btn.className =
+          "p-3 rounded-2xl border text-left transition active:scale-95 " +
+          (equipped
+            ? "bg-amber-500/20 border-amber-400"
+            : "bg-slate-800/90 hover:bg-slate-800 border-white/10");
+        btn.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 rounded-full inline-block" style="background:#${char.color.toString(16).padStart(6, "0")}"></span>
+            <span class="font-extrabold text-sm text-white">${char.name}</span>
+          </div>
+          <div class="text-xs font-bold mt-1.5 ${equipped ? "text-amber-300" : owned ? "text-emerald-300" : "text-amber-300"}">
+            ${equipped ? "✓ Equipado" : owned ? "Equipar" : char.price + " CKN"}
+          </div>
+        `;
+        btn.addEventListener("click", async () => {
+          if (equipped) return;
+          if (owned) {
+            state.selectedChar = char.id;
+            applyCharacterAppearance();
+            saveState();
+            syncUI();
+            showToast("Equipaste a " + char.name);
+            return;
+          }
+          if (state.bank < char.price) {
+            showToast("Necesitas " + char.price + " CKN");
+            return;
+          }
+          const ok = await authorizePurchase(char.name);
+          if (!ok) return;
+          state.bank -= char.price;
+          state.ownedChars.push(char.id);
+          state.selectedChar = char.id;
+          applyCharacterAppearance();
+          saveState();
+          syncUI();
+          playTone(659.25, 0.15, "triangle", 0.18, 0);
+          showToast("¡Desbloqueaste y equipaste " + char.name + "!");
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    function syncUI() {
+      const char = getCurrentCharacter();
+      document.getElementById("bankVal").textContent = state.bank;
+      document.getElementById("shopBank").textContent = state.bank + " CKN";
+      document.getElementById("hudLives").textContent = state.lives;
+      document.getElementById("hudBoards").textContent = state.boards;
+      document.getElementById("hudKeys").textContent = state.keys;
+      document.getElementById("boardBtnCount").textContent = state.boards;
+      document.getElementById("bestVal").textContent = state.best;
+      document.getElementById("lobbyBest").textContent = state.best;
+      document.getElementById("lobbyCharName").textContent = char.name;
+      document.getElementById("scoreVal").textContent = Math.floor(runScore);
+      document.getElementById("runCoinsVal").textContent = runCoins;
+      document.getElementById("soundBtn").textContent = state.isMuted ? "🔇" : "🔊";
+
+      const dot = document.getElementById("walletDot");
+      const label = document.getElementById("walletLabel");
+      const walletMode = document.getElementById("shopWalletMode");
+      if (state.walletConnected) {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-400";
+        label.textContent = state.walletAddress
+          ? state.walletAddress.slice(0, 6) + "..." + state.walletAddress.slice(-4)
+          : "0x7F3b...9C4A";
+        walletMode.textContent = "Billetera Conectada";
+      } else {
+        dot.className = "w-2 h-2 rounded-full bg-amber-400";
+        label.textContent = "Conectar Billetera";
+        walletMode.textContent = "Modo Saldo CKN";
+      }
+
+      const bonusStatus = document.getElementById("bonusStatus");
+      if (state.bonusClaimed) {
+        bonusStatus.textContent = "Reclamado";
+        bonusStatus.className = "text-xs font-bold text-slate-400 mt-1";
+      } else {
+        bonusStatus.textContent = "Disponible";
+        bonusStatus.className = "text-xs font-black text-emerald-400 mt-1";
+      }
+
+      renderShopCharacters();
+    }
+
+    // --- Escena 3D con Three.js ---
+    const canvas = document.getElementById("gameCanvas");
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1e3a8a);
+    scene.fog = new THREE.FogExp2(0x1d4ed8, 0.012);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 160);
+    camera.position.set(0, 5.2, 8.5);
+    camera.lookAt(0, 1.4, -8);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.35);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.5);
+    dirLight.position.set(6, 16, 10);
+    scene.add(dirLight);
+    const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.7);
+    fillLight.position.set(-8, 8, 5);
+    scene.add(fillLight);
+
+    // Pista de 3 carriles
+    const LANES = [-2.6, 0, 2.6];
+    const trackGeo = new THREE.BoxGeometry(9.6, 0.4, 150);
+    const trackMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.45, metalness: 0.25 });
+    const trackMesh = new THREE.Mesh(trackGeo, trackMat);
+    trackMesh.position.set(0, -0.2, -58);
+    scene.add(trackMesh);
+
+    const lineMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc });
+    [-1.3, 1.3].forEach((lx) => {
+      const line = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.04, 150), lineMat);
+      line.position.set(lx, 0.01, -58);
+      scene.add(line);
+    });
+
+    // Jugador 3D articulado con animación de correr
+    const playerGroup = new THREE.Group();
+    const rigGroup = new THREE.Group();
+    playerGroup.add(rigGroup);
+
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.35, metalness: 0.2 });
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.4 });
+    const limbMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
+    const boardMat = new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x0284c7, emissiveIntensity: 0.65 });
+
+    const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.92, 1.1, 0.55), bodyMat);
+    bodyMesh.position.y = 1.35;
+    rigGroup.add(bodyMesh);
+
+    const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.72, 0.72), headMat);
+    headMesh.position.y = 2.3;
+    rigGroup.add(headMesh);
+
+    // Brazos pivotados desde el hombro
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.62, 1.82, 0);
+    const leftArmMesh = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.82, 0.28), limbMat);
+    leftArmMesh.position.y = -0.35;
+    leftArmPivot.add(leftArmMesh);
+    rigGroup.add(leftArmPivot);
+
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.62, 1.82, 0);
+    const rightArmMesh = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.82, 0.28), limbMat);
+    rightArmMesh.position.y = -0.35;
+    rightArmPivot.add(rightArmMesh);
+    rigGroup.add(rightArmPivot);
+
+    // Piernas pivotadas desde la cadera
+    const leftLegPivot = new THREE.Group();
+    leftLegPivot.position.set(-0.24, 0.82, 0);
+    const leftLegMesh = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.82, 0.32), limbMat);
+    leftLegMesh.position.y = -0.4;
+    leftLegPivot.add(leftLegMesh);
+    rigGroup.add(leftLegPivot);
+
+    const rightLegPivot = new THREE.Group();
+    rightLegPivot.position.set(0.24, 0.82, 0);
+    const rightLegMesh = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.82, 0.32), limbMat);
+    rightLegMesh.position.y = -0.4;
+    rightLegPivot.add(rightLegMesh);
+    rigGroup.add(rightLegPivot);
+
+    const boardMesh = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.14, 2.2), boardMat);
+    boardMesh.position.y = 0.14;
+    boardMesh.visible = false;
+    playerGroup.add(boardMesh);
+
+    scene.add(playerGroup);
+
+    function applyCharacterAppearance() {
+      const char = getCurrentCharacter();
+      bodyMat.color.setHex(char.color);
+      headMat.color.setHex(char.accent);
+    }
+
+    let currentLane = 1;
+    let playerY = 0;
+    let velY = 0;
+    let isGrounded = true;
+    let isSliding = false;
+    let slideTimer = 0;
+    let spawnTimer = 0;
+
+    const obstacles = [];
+    const coins = [];
+    const ramps = [];
+
+    const obsGeo = new THREE.BoxGeometry(1.65, 1.5, 1.35);
+    const obsMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e, roughness: 0.4, metalness: 0.15 });
+
+    // Obstáculo alto tipo puente/arco (deja espacio abajo para deslizarse)
+    const highArchGroupGeo = new THREE.BoxGeometry(1.85, 0.95, 1.25);
+    const highObsMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.35, metalness: 0.2 });
+    const postMat = new THREE.MeshStandardMaterial({ color: 0xea580c, roughness: 0.4, metalness: 0.2 });
+
+    // Escalera real formada por múltiples peldaños ascendentes
+    const stepGeo = new THREE.BoxGeometry(1.85, 0.28, 0.95);
+    const stepMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.3, metalness: 0.3 });
+
+    const coinGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.16, 18);
+    coinGeo.rotateX(Math.PI / 2);
+    const coinMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xd97706, emissiveIntensity: 0.35 });
+
+    function createStaircaseMesh(laneIndex) {
+      const stairGroup = new THREE.Group();
+      const numSteps = 6;
+      const topHeight = numSteps * 0.26;
+      for (let s = 0; s < numSteps; s++) {
+        const stepH = (s + 1) * 0.26;
+        const stepMesh = new THREE.Mesh(stepGeo, stepMat);
+        stepMesh.scale.y = (s + 1) * 0.95;
+        stepMesh.position.set(0, stepH / 2, 2.5 - s * 1.0);
+        stairGroup.add(stepMesh);
+      }
+      // Plataforma/pasarela superior para seguir caminando tras subir la escalera
+      const deckGeo = new THREE.BoxGeometry(1.9, 0.26, 7.5);
+      const deckMat = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, roughness: 0.3, metalness: 0.3 });
+      const deckMesh = new THREE.Mesh(deckGeo, deckMat);
+      deckMesh.position.set(0, topHeight - 0.13, -6.5);
+      stairGroup.add(deckMesh);
+
+      stairGroup.position.set(LANES[laneIndex], 0, -72);
+      return stairGroup;
+    }
+
+    function createHighObstacleMesh(laneIndex) {
+      const group = new THREE.Group();
+      const topBar = new THREE.Mesh(highArchGroupGeo, highObsMat);
+      topBar.position.set(0, 1.65, 0);
+      group.add(topBar);
+
+      const leftPost = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.2, 0.22), postMat);
+      leftPost.position.set(-0.8, 0.6, 0);
+      group.add(leftPost);
+
+      const rightPost = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.2, 0.22), postMat);
+      rightPost.position.set(0.8, 0.6, 0);
+      group.add(rightPost);
+
+      group.position.set(LANES[laneIndex], 0, -72);
+      return group;
+    }
+
+    function clearEntities() {
+      obstacles.forEach((o) => scene.remove(o.mesh));
+      obstacles.length = 0;
+      coins.forEach((c) => scene.remove(c.mesh));
+      coins.length = 0;
+      ramps.forEach((r) => scene.remove(r.mesh));
+      ramps.length = 0;
+    }
+
+    function spawnRow() {
+      const lanes = [0, 1, 2];
+      const kindRoll = Math.random();
+
+      if (kindRoll < 0.38) {
+        // Escalera de peldaños + pasarela elevada en un carril
+        const rampLane = lanes[Math.floor(Math.random() * lanes.length)];
+        const stairMesh = createStaircaseMesh(rampLane);
+        scene.add(stairMesh);
+        ramps.push({ mesh: stairMesh, lane: rampLane, topY: 1.56, deckHalfLen: 5.5 });
+
+        const coinMesh = new THREE.Mesh(coinGeo, coinMat);
+        coinMesh.position.set(LANES[rampLane], 2.15, -72);
+        scene.add(coinMesh);
+        coins.push({ mesh: coinMesh, lane: rampLane, collected: false });
+
+        const deckCoinMesh = new THREE.Mesh(coinGeo, coinMat);
+        deckCoinMesh.position.set(LANES[rampLane], 2.15, -78.5);
+        scene.add(deckCoinMesh);
+        coins.push({ mesh: deckCoinMesh, lane: rampLane, collected: false });
+      } else if (kindRoll < 0.72) {
+        // Obstáculo alto con espacio inferior para deslizarse
+        const highLane = lanes[Math.floor(Math.random() * lanes.length)];
+        const highMesh = createHighObstacleMesh(highLane);
+        scene.add(highMesh);
+        obstacles.push({ mesh: highMesh, lane: highLane, requiresSlide: true });
+
+        const freeLanes = lanes.filter((l) => l !== highLane);
+        const coinLane = freeLanes[Math.floor(Math.random() * freeLanes.length)];
+        const coinMesh = new THREE.Mesh(coinGeo, coinMat);
+        coinMesh.position.set(LANES[coinLane], 1.0, -72);
+        scene.add(coinMesh);
+        coins.push({ mesh: coinMesh, lane: coinLane, collected: false });
+      } else {
+        // Obstáculo normal en pista
+        const obsLane = lanes[Math.floor(Math.random() * lanes.length)];
+        const obsMesh = new THREE.Mesh(obsGeo, obsMat);
+        obsMesh.position.set(LANES[obsLane], 0.75, -72);
+        scene.add(obsMesh);
+        obstacles.push({ mesh: obsMesh, lane: obsLane, requiresSlide: false });
+
+        const freeLanes = lanes.filter((l) => l !== obsLane);
+        const coinLane = freeLanes[Math.floor(Math.random() * freeLanes.length)];
+        const coinMesh = new THREE.Mesh(coinGeo, coinMat);
+        coinMesh.position.set(LANES[coinLane], 1.0, -72);
+        scene.add(coinMesh);
+        coins.push({ mesh: coinMesh, lane: coinLane, collected: false });
+      }
+    }
+
+    function jumpPlayer() {
+      if (mode !== "playing") return;
+      if (isGrounded) {
+        isSliding = false;
+        slideTimer = 0;
+        velY = 12.2;
+        isGrounded = false;
+        playTone(440, 0.12, "sine", 0.14, 0);
+      }
+    }
+
+    function slidePlayer() {
+      if (mode !== "playing") return;
+      if (!isGrounded) {
+        velY = -18;
+      }
+      isSliding = true;
+      slideTimer = 0.65;
+      playTone(260, 0.11, "triangle", 0.12, 0);
+    }
+
+    function moveLane(delta) {
+      if (mode !== "playing") return;
+      currentLane = Math.max(0, Math.min(2, currentLane + delta));
+      playTone(330, 0.07, "triangle", 0.09, 0);
+    }
+
+    function activateBoard() {
+      if (mode !== "playing") return;
+      if (boardActiveTimer > 0) {
+        showToast("¡Patineta ya activa!");
+        return;
+      }
+      if (state.boards <= 0) {
+        showToast("No tienes patinetas. Cómpralas en la Tienda");
+        return;
+      }
+      state.boards -= 1;
+      boardActiveTimer = 8.0;
+      boardMesh.visible = true;
+      saveState();
+      syncUI();
+      playTone(523.25, 0.16, "triangle", 0.18, 0);
+      showToast("🛹 ¡Patineta activada (8s)!");
+    }
+
+    function startGame() {
+      clearEntities();
+      currentLane = 1;
+      playerY = 0;
+      velY = 0;
+      isGrounded = true;
+      isSliding = false;
+      slideTimer = 0;
+      boardActiveTimer = 0;
+      invincibleTimer = 1.0;
+      boardMesh.visible = false;
+      runScore = 0;
+      runCoins = 0;
+      runSpeed = 16;
+      spawnTimer = 0.2;
+      mode = "playing";
+
+      document.getElementById("lobbyOverlay").classList.add("hidden");
+      document.getElementById("gameOverModal").classList.add("hidden");
+      document.getElementById("runHud").classList.remove("hidden");
+      document.getElementById("touchControls").classList.remove("hidden");
+      syncUI();
+    }
+
+    function finishGame() {
+      mode = "gameover";
+      boardMesh.visible = false;
+      state.bank += runCoins;
+      if (Math.floor(runScore) > state.best) {
+        state.best = Math.floor(runScore);
+      }
+      saveState();
+      syncUI();
+
+      document.getElementById("touchControls").classList.add("hidden");
+      document.getElementById("overCoins").textContent = runCoins;
+      document.getElementById("overScore").textContent = Math.floor(runScore);
+      document.getElementById("overKeys").textContent = state.keys;
+      document.getElementById("reviveKeysCount").textContent = state.keys;
+      document.getElementById("gameOverModal").classList.remove("hidden");
+      playTone(196, 0.28, "sawtooth", 0.16, 0);
+    }
+
+    function handleCollision() {
+      if (invincibleTimer > 0) return;
+
+      if (boardActiveTimer > 0) {
+        boardActiveTimer = 0;
+        boardMesh.visible = false;
+        invincibleTimer = 1.2;
+        showToast("🛹 ¡Tu patineta absorbió el choque!");
+        playTone(587.33, 0.14, "triangle", 0.16, 0);
+        return;
+      }
+
+      if (state.lives > 1) {
+        state.lives -= 1;
+        invincibleTimer = 1.5;
+        saveState();
+        syncUI();
+        showToast("❤️ ¡Usaste 1 Vida Extra!");
+        playTone(440, 0.15, "triangle", 0.16, 0);
+        return;
+      }
+
+      finishGame();
+    }
+
+    // --- Eventos de interfaz ---
+    document.getElementById("startBtn").addEventListener("click", startGame);
+    document.getElementById("retryBtn").addEventListener("click", startGame);
+    document.getElementById("goLobbyBtn").addEventListener("click", () => {
+      mode = "lobby";
+      clearEntities();
+      document.getElementById("gameOverModal").classList.add("hidden");
+      document.getElementById("runHud").classList.add("hidden");
+      document.getElementById("touchControls").classList.add("hidden");
+      document.getElementById("lobbyOverlay").classList.remove("hidden");
+      syncUI();
+    });
+
+    document.getElementById("reviveKeyBtn").addEventListener("click", () => {
+      if (state.keys <= 0) {
+        showToast("No tienes llaves. Compra una en la Tienda");
+        return;
+      }
+      state.keys -= 1;
+      invincibleTimer = 2.0;
+      obstacles.forEach((o) => {
+        if (o.mesh.position.z > -14) o.mesh.position.z = -65;
+      });
+      mode = "playing";
+      saveState();
+      syncUI();
+      document.getElementById("gameOverModal").classList.add("hidden");
+      document.getElementById("touchControls").classList.remove("hidden");
+      playTone(659.25, 0.18, "triangle", 0.18, 0);
+      showToast("🔑 ¡Reviviste con tu llave!");
+    });
+
+    const openShop = () => {
+      syncUI();
+      document.getElementById("shopModal").classList.remove("hidden");
+    };
+    const closeShop = () => {
+      document.getElementById("shopModal").classList.add("hidden");
+    };
+    document.getElementById("shopTopBtn").addEventListener("click", openShop);
+    document.getElementById("lobbyShopBtn").addEventListener("click", openShop);
+    document.getElementById("closeShopBtn").addEventListener("click", closeShop);
+
+    async function buyBoard() {
+      if (state.bank < 25) return showToast("Necesitas 25 CKN");
+      const ok = await authorizePurchase("Patineta x1");
+      if (!ok) return;
+      state.bank -= 25;
+      state.boards += 1;
+      saveState();
+      syncUI();
+      playTone(587.33, 0.14, "triangle", 0.16, 0);
+      showToast("Compraste 1 Patineta");
+    }
+
+    async function buyKey() {
+      if (state.bank < 35) return showToast("Necesitas 35 CKN");
+      const ok = await authorizePurchase("Llave x1");
+      if (!ok) return;
+      state.bank -= 35;
+      state.keys += 1;
+      saveState();
+      syncUI();
+      playTone(659.25, 0.14, "triangle", 0.16, 0);
+      showToast("🔑 Compraste 1 Llave");
+    }
+
+    async function buyLife() {
+      if (state.bank < 45) return showToast("Necesitas 45 CKN");
+      const ok = await authorizePurchase("Vida Extra");
+      if (!ok) return;
+      state.bank -= 45;
+      state.lives += 1;
+      saveState();
+      syncUI();
+      playTone(523.25, 0.14, "triangle", 0.16, 0);
+      showToast("❤️ Compraste 1 Vida Extra");
+    }
+
+    document.getElementById("quickBoardBtn").addEventListener("click", buyBoard);
+    document.getElementById("shopBuyBoard").addEventListener("click", buyBoard);
+    document.getElementById("quickKeyBtn").addEventListener("click", buyKey);
+    document.getElementById("shopBuyKey").addEventListener("click", buyKey);
+    document.getElementById("shopBuyLife").addEventListener("click", buyLife);
+
+    document.getElementById("bonusBtn").addEventListener("click", () => {
+      if (state.bonusClaimed) {
+        showToast("Ya reclamaste el bono inicial");
+        return;
+      }
+      state.bank += 30;
+      state.bonusClaimed = true;
+      saveState();
+      syncUI();
+      playTone(783.99, 0.18, "triangle", 0.18, 0);
+      showToast("🎁 ¡Recibiste +30 CKN!");
+    });
+
+    document.getElementById("walletBtn").addEventListener("click", async () => {
+      if (!state.walletConnected) {
+        if (window.ethereum) {
+          try {
+            const accs = await window.ethereum.request({ method: "eth_requestAccounts" });
+            if (accs && accs.length > 0) {
+              state.walletAddress = accs[0];
+              state.walletConnected = true;
+              saveState();
+              syncUI();
+              showToast("Billetera conectada: " + accs[0].slice(0, 6) + "..." + accs[0].slice(-4));
+              return;
+            }
+          } catch (e) {
+            showToast("Conexión cancelada");
+            return;
+          }
+        }
+        state.walletAddress = "0x7F3b...9C4A";
+        state.walletConnected = true;
+        saveState();
+        syncUI();
+        showToast("Billetera conectada (0x7F3b...9C4A)");
+      } else {
+        state.walletConnected = false;
+        state.walletAddress = "";
+        saveState();
+        syncUI();
+        showToast("Billetera desconectada");
+      }
+    });
+
+    document.getElementById("soundBtn").addEventListener("click", () => {
+      state.isMuted = !state.isMuted;
+      saveState();
+      syncUI();
+      showToast(state.isMuted ? "Sonido desactivado" : "Sonido activado");
+    });
+
+    // Teclado y botones táctiles
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") moveLane(-1);
+      if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") moveLane(1);
+      if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " ") jumpPlayer();
+      if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") slidePlayer();
+      if (e.key === "b" || e.key === "B") activateBoard();
+    });
+
+    document.getElementById("btnBoard").addEventListener("click", activateBoard);
+
+    // Gestos táctiles de deslizar o tocar sobre el canvas
+    let touchStartX = 0;
+    let touchStartY = 0;
+    canvas.addEventListener("touchstart", (e) => {
+      if (!e.touches || e.touches.length === 0) return;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    canvas.addEventListener("touchend", (e) => {
+      if (mode !== "playing" || !e.changedTouches || e.changedTouches.length === 0) return;
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 22) {
+        moveLane(dx > 0 ? 1 : -1);
+      } else if (dy > 22) {
+        slidePlayer();
+      } else if (dy < -22 || (Math.abs(dx) < 18 && Math.abs(dy) < 18)) {
+        jumpPlayer();
+      }
+    }, { passive: true });
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // --- Bucle de animación ---
+    let lastTime = performance.now();
+    let runCycle = 0;
+    function animate(now) {
+      requestAnimationFrame(animate);
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+
+      // Movimiento lateral suave e inclinación al cambiar de carril
+      const targetX = LANES[currentLane];
+      const dxLane = targetX - playerGroup.position.x;
+      playerGroup.position.x += dxLane * Math.min(1, dt * 16);
+      rigGroup.rotation.z = -dxLane * 0.14;
+
+      if (mode === "lobby") {
+        runCycle += dt * 6;
+        rigGroup.position.y = Math.abs(Math.sin(runCycle)) * 0.08;
+        leftLegPivot.rotation.x = Math.sin(runCycle) * 0.55;
+        rightLegPivot.rotation.x = -Math.sin(runCycle) * 0.55;
+        leftArmPivot.rotation.x = -Math.sin(runCycle) * 0.5;
+        rightArmPivot.rotation.x = Math.sin(runCycle) * 0.5;
+        playerGroup.rotation.y = Math.sin(now * 0.002) * 0.3;
+      } else if (mode === "playing") {
+        playerGroup.rotation.y = 0;
+        runSpeed = Math.min(32, runSpeed + dt * 0.45);
+        runScore += dt * runSpeed * 1.4;
+
+        if (invincibleTimer > 0) invincibleTimer = Math.max(0, invincibleTimer - dt);
+        if (boardActiveTimer > 0) {
+          boardActiveTimer = Math.max(0, boardActiveTimer - dt);
+          if (boardActiveTimer === 0) boardMesh.visible = false;
+        }
+
+        if (isSliding) {
+          slideTimer = Math.max(0, slideTimer - dt);
+          if (slideTimer === 0) isSliding = false;
+        }
+
+        // Calcular altura progresiva al subir por la escalera y caminar por su pasarela
+        let groundHeight = 0;
+        for (let i = ramps.length - 1; i >= 0; i--) {
+          const r = ramps[i];
+          r.mesh.position.z += runSpeed * dt;
+          if (r.lane === currentLane) {
+            const z = r.mesh.position.z;
+            // En coordenadas de escena:
+            // Escalera local z en [+2.5 .. -2.5] -> escena z en [z + 2.5 .. z - 2.5]
+            // Pasarela local z en [-2.5 .. -10.25] -> escena z en [z - 2.5 .. z - 10.25]
+            const stairFrontZ = z + 2.5;
+            const stairTopZ = z - 2.5;
+            const deckEndZ = z - 10.25;
+
+            if (stairFrontZ >= 0 && stairTopZ <= 0) {
+              const progress = Math.max(0, Math.min(1, stairFrontZ / 5.0));
+              const stairY = progress * r.topY;
+              if (playerY <= stairY + 1.0) {
+                groundHeight = Math.max(groundHeight, stairY);
+              }
+            } else if (stairTopZ > 0 && deckEndZ <= 0) {
+              if (playerY <= r.topY + 1.0 || Math.abs(playerY - r.topY) < 0.5) {
+                groundHeight = Math.max(groundHeight, r.topY);
+              }
+            }
+          }
+          if (r.mesh.position.z - 10.25 > 12) {
+            scene.remove(r.mesh);
+            ramps.splice(i, 1);
+          }
+        }
+
+        if (!isGrounded || playerY > groundHeight + 0.02) {
+          playerY += velY * dt;
+          velY -= 32 * dt;
+          if (playerY <= groundHeight) {
+            playerY = groundHeight;
+            velY = 0;
+            isGrounded = true;
+          }
+        } else {
+          playerY = groundHeight;
+          isGrounded = true;
+        }
+        playerGroup.position.y = playerY;
+        rigGroup.scale.y = isSliding ? 0.52 : 1.0;
+
+        // Animación de carrera (o pose en patineta)
+        if (boardActiveTimer > 0) {
+          leftLegPivot.rotation.x = -0.2;
+          rightLegPivot.rotation.x = 0.2;
+          leftArmPivot.rotation.x = -0.35;
+          rightArmPivot.rotation.x = 0.35;
+          rigGroup.position.y = 0.08;
+        } else if (isGrounded) {
+          runCycle += dt * (runSpeed * 0.85);
+          rigGroup.position.y = Math.abs(Math.sin(runCycle)) * 0.14;
+          leftLegPivot.rotation.x = Math.sin(runCycle) * 0.85;
+          rightLegPivot.rotation.x = -Math.sin(runCycle) * 0.85;
+          leftArmPivot.rotation.x = -Math.sin(runCycle) * 0.75;
+          rightArmPivot.rotation.x = Math.sin(runCycle) * 0.75;
+        } else {
+          rigGroup.position.y = 0;
+          leftLegPivot.rotation.x = -0.55;
+          rightLegPivot.rotation.x = 0.45;
+          leftArmPivot.rotation.x = -0.7;
+          rightArmPivot.rotation.x = -0.7;
+        }
+
+        spawnTimer -= dt;
+        if (spawnTimer <= 0) {
+          spawnRow();
+          spawnTimer = Math.max(0.55, 16 / runSpeed * 0.95);
+        }
+
+        // Actualizar monedas
+        for (let i = coins.length - 1; i >= 0; i--) {
+          const c = coins[i];
+          c.mesh.position.z += runSpeed * dt;
+          c.mesh.rotation.y += dt * 4;
+          const distZ = Math.abs(c.mesh.position.z);
+          if (!c.collected && c.lane === currentLane && distZ < 1.1 && Math.abs(playerY - 1.0) < 1.35) {
+            c.collected = true;
+            runCoins += 1;
+            runScore += 25;
+            playTone(880, 0.1, "sine", 0.14, 0);
+            scene.remove(c.mesh);
+            coins.splice(i, 1);
+            continue;
+          }
+          if (c.mesh.position.z > 8) {
+            scene.remove(c.mesh);
+            coins.splice(i, 1);
+          }
+        }
+
+        // Actualizar obstáculos
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const o = obstacles[i];
+          o.mesh.position.z += runSpeed * dt;
+          const distZ = Math.abs(o.mesh.position.z);
+          if (o.lane === currentLane && distZ < 1.05) {
+            const hitHigh = o.requiresSlide && !isSliding && (playerY + (isSliding ? 0.9 : 1.8)) > 1.2;
+            const hitLow = !o.requiresSlide && playerY < 1.25;
+            if (hitHigh || hitLow) {
+              scene.remove(o.mesh);
+              obstacles.splice(i, 1);
+              handleCollision();
+              if (mode !== "playing") break;
+              continue;
+            }
+          }
+          if (o.mesh.position.z > 8) {
+            scene.remove(o.mesh);
+            obstacles.splice(i, 1);
+          }
+        }
+
+        document.getElementById("scoreVal").textContent = Math.floor(runScore);
+        document.getElementById("runCoinsVal").textContent = runCoins;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    loadState();
+    applyCharacterAppearance();
+    syncUI();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
