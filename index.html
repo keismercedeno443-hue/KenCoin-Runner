@@ -6,13 +6,8 @@
   <title>KenCoin Runner 3D</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
-    * {
-      font-family: 'Inter', sans-serif;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&display=swap');
     html, body {
       margin: 0;
       padding: 0;
@@ -20,43 +15,47 @@
       height: 100%;
       overflow: hidden;
       background: #070b14;
-      color: #f8fafc;
+      font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
     }
     #gameCanvas {
       display: block;
       width: 100%;
       height: 100%;
-      touch-action: none;
     }
   </style>
 </head>
-<body>
-  <!-- Escenario 3D -->
+<body class="text-white antialiased">
   <canvas id="gameCanvas"></canvas>
 
-  <!-- Aviso flotante (Toast) -->
-  <div id="toastBox" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-slate-900/95 border border-amber-400/50 text-amber-200 text-xs sm:text-sm font-bold shadow-xl backdrop-blur-md"></div>
-
-  <!-- Barra superior HUD -->
-  <header class="fixed top-0 inset-x-0 z-30 p-3 sm:p-4 flex items-center justify-between gap-2 pointer-events-none">
-    <div class="flex items-center gap-2 pointer-events-auto flex-wrap">
-      <div class="px-3 py-1.5 rounded-2xl bg-slate-900/85 border border-amber-400/30 backdrop-blur-md flex items-center gap-2 shadow-lg">
-        <span class="text-amber-400 font-black text-xs sm:text-sm">CKN</span>
-        <span id="bankVal" class="font-extrabold text-sm sm:text-base text-white">120</span>
+  <header class="fixed top-3 inset-x-0 z-30 px-3 sm:px-6 flex items-start justify-between gap-2 pointer-events-none">
+    <div class="flex flex-col gap-1.5 pointer-events-auto">
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="px-3 py-1.5 rounded-2xl bg-slate-900/85 border border-amber-400/30 backdrop-blur-md flex items-center gap-2 shadow-lg">
+          <span class="text-xs font-extrabold tracking-wider text-amber-300">CKN</span>
+          <span id="cknBalanceVal" class="text-sm font-black text-white">0</span>
+        </div>
+        <div class="px-3 py-1.5 rounded-2xl bg-slate-900/85 border border-yellow-400/30 backdrop-blur-md flex items-center gap-1.5 shadow-lg">
+          <span class="w-4 h-4 rounded-full bg-yellow-400 text-slate-950 text-[10px] font-black inline-flex items-center justify-center">¢</span>
+          <span id="coinsBalanceVal" class="text-sm font-black text-yellow-300">0</span>
+        </div>
       </div>
 
-      <div class="px-2.5 py-1.5 rounded-2xl bg-slate-900/85 border border-white/10 backdrop-blur-md flex items-center gap-2 text-xs font-bold shadow-lg">
-        <span title="Vidas">❤️ <span id="hudLives">1</span></span>
-        <span class="text-white/20">|</span>
-        <span title="Patinetas">🛹 <span id="hudBoards">1</span></span>
-        <span class="text-white/20">|</span>
-        <span title="Llaves">🔑 <span id="hudKeys">1</span></span>
+      <div class="px-3 py-1 rounded-xl bg-slate-900/80 border border-white/10 backdrop-blur-md flex items-center gap-2.5 text-xs font-bold shadow">
+        <span class="text-rose-400">♥ <span id="livesVal">1</span></span>
+        <span class="text-slate-600">|</span>
+        <span class="text-sky-300">🛹 <span id="boardsVal">0</span></span>
+        <span class="text-slate-600">|</span>
+        <span class="text-amber-300">🔑 <span id="keysVal">0</span></span>
       </div>
     </div>
 
-    <div class="flex items-center gap-2 pointer-events-auto">
-      <button id="shopTopBtn" class="px-3 py-2 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 font-bold text-xs sm:text-sm backdrop-blur-md transition active:scale-95">
-        🛒 Tienda
+    <div class="flex items-center gap-2 pointer-events-auto flex-wrap justify-end">
+      <button id="openShopBtn" class="px-3.5 py-2 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 backdrop-blur-md flex flex-col items-center leading-tight shadow-lg transition active:scale-95">
+        <span class="text-sm">🛒</span>
+        <span class="text-[11px] font-extrabold text-amber-200">Tienda</span>
       </button>
 
       <button id="walletBtn" class="px-3 py-2 rounded-2xl bg-slate-900/85 hover:bg-slate-800 border border-emerald-400/40 backdrop-blur-md flex items-center gap-2 text-xs sm:text-sm font-bold shadow-lg transition active:scale-95">
@@ -64,226 +63,611 @@
         <span id="walletLabel">Conectar Billetera</span>
       </button>
 
-      <button id="soundBtn" class="w-10 h-10 rounded-2xl bg-slate-900/85 hover:bg-slate-800 border border-white/10 backdrop-blur-md flex items-center justify-center text-base shadow-lg transition active:scale-95" aria-label="Sonido">
-        🔊
+      <button id="settingsBtn" class="w-10 h-10 rounded-2xl bg-slate-900/85 hover:bg-slate-800 border border-white/10 backdrop-blur-md flex items-center justify-center text-base shadow-lg transition active:scale-95" aria-label="Configuración">
+        ⚙️
+      </button>
+      <button id="pauseBtn" class="hidden w-10 h-10 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 backdrop-blur-md flex items-center justify-center text-base font-black text-amber-200 shadow-lg transition active:scale-95" aria-label="Pausar">
+        ⏸
       </button>
     </div>
   </header>
 
-  <!-- HUD en carrera -->
-  <div id="runHud" class="hidden fixed top-16 inset-x-0 z-20 px-4 flex items-center justify-between pointer-events-none">
-    <div class="px-3.5 py-1.5 rounded-2xl bg-slate-900/75 border border-white/10 backdrop-blur-md text-xs sm:text-sm font-extrabold">
-      Puntos: <span id="scoreVal" class="text-amber-300">0</span>
-    </div>
-    <div class="px-3.5 py-1.5 rounded-2xl bg-slate-900/75 border border-white/10 backdrop-blur-md text-xs sm:text-sm font-extrabold">
-      CKN Carrera: <span id="runCoinsVal" class="text-emerald-300">0</span>
-    </div>
-    <div class="px-3.5 py-1.5 rounded-2xl bg-slate-900/75 border border-white/10 backdrop-blur-md text-xs sm:text-sm font-extrabold">
-      Récord: <span id="bestVal" class="text-sky-300">0</span>
+  <div id="pauseModal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="max-w-sm w-full rounded-3xl bg-slate-900 border border-white/15 p-6 text-center shadow-2xl space-y-4">
+      <div class="space-y-1">
+        <h2 class="text-2xl font-black text-white">⏸ Juego en Pausa</h2>
+        <p class="text-xs text-slate-400">
+          Puntos: <strong id="pauseScoreVal" class="text-amber-300">0</strong> · Distancia: <strong id="pauseDistVal" class="text-cyan-300">0m</strong>
+        </p>
+      </div>
+
+      <div class="space-y-2.5">
+        <button id="resumeBtn" class="w-full py-3 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm shadow-lg transition active:scale-95">
+          ▶ Continuar Carrera
+        </button>
+        <button id="pauseSettingsBtn" class="w-full py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-white/15 font-extrabold text-sm transition active:scale-95">
+          ⚙️ Configuración
+        </button>
+        <button id="restartFromPauseBtn" class="w-full py-3 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-sm shadow-lg transition active:scale-95">
+          ↻ Reiniciar Carrera
+        </button>
+        <button id="exitToLobbyBtn" class="w-full py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-rose-300 border border-rose-400/30 font-extrabold text-sm transition active:scale-95">
+          🚪 Salir al Lobby
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- Controles táctiles en carrera -->
-  <div id="touchControls" class="hidden fixed bottom-5 inset-x-0 z-20 px-4 flex items-center justify-end pointer-events-none">
-    <button id="btnBoard" class="pointer-events-auto px-4 h-11 rounded-2xl bg-sky-500/30 border border-sky-300/60 text-sky-100 backdrop-blur-md font-extrabold text-xs sm:text-sm shadow-lg active:scale-90">
-      🛹 Patineta (<span id="boardBtnCount">1</span>)
-    </button>
-  </div>
-
-  <!-- Lobby Principal -->
-  <section id="lobbyOverlay" class="fixed inset-0 z-20 flex flex-col justify-end p-4 sm:p-6 bg-gradient-to-t from-slate-950/90 via-slate-950/35 to-transparent">
-    <div class="max-w-xl w-full mx-auto space-y-3 mb-2">
-      <div class="flex items-end justify-between gap-2">
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="max-w-sm w-full rounded-3xl bg-slate-900 border border-white/15 p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between gap-2">
         <div>
-          <span class="inline-block px-2.5 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-[11px] font-bold mb-1">
-            KENCOIN 3D
-          </span>
-          <h1 class="text-2xl sm:text-4xl font-black tracking-tight text-white">KenCoin Runner</h1>
+          <h2 class="text-lg font-black text-white">⚙️ Configuración</h2>
+          <p class="text-xs text-slate-400">Controla la música y los efectos por separado</p>
         </div>
-        <div class="text-right text-xs font-bold text-slate-300">
-          Personaje: <span id="lobbyCharName" class="text-amber-300">Ken Clásico</span><br />
-          Récord: <span id="lobbyBest" class="text-sky-300">0</span> pts
+        <button id="closeSettingsBtn" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-slate-300">✕</button>
+      </div>
+
+      <div class="space-y-2.5">
+        <button id="toggleMusicBtn" class="w-full p-3.5 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 flex items-center justify-between text-left transition active:scale-95">
+          <div>
+            <div class="text-sm font-extrabold text-white">🎵 Música de fondo</div>
+          <div class="text-[11px] text-slate-400">Lobby tranquilo · Carrera movida</div>
         </div>
-      </div>
+        <span id="musicStateBadge" class="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">Activada</span>
+      </button>
 
-      <!-- Accesos rápidos en Lobby -->
-      <div class="grid grid-cols-3 gap-2.5">
-        <button id="quickBoardBtn" class="p-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800/95 border border-white/10 backdrop-blur-md text-left transition active:scale-95">
-          <div class="text-xs font-extrabold text-white">🛹 Patineta x1</div>
-          <div class="text-[11px] text-slate-400">Salva 1 choque</div>
-          <div class="text-xs font-black text-amber-300 mt-1">25 CKN</div>
-        </button>
-
-        <button id="quickKeyBtn" class="p-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800/95 border border-white/10 backdrop-blur-md text-left transition active:scale-95">
-          <div class="text-xs font-extrabold text-white">🔑 Llave x1</div>
-          <div class="text-[11px] text-slate-400">Revive al instante</div>
-          <div class="text-xs font-black text-amber-300 mt-1">35 CKN</div>
-        </button>
-
-        <button id="bonusBtn" class="p-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800/95 border border-emerald-400/30 backdrop-blur-md text-left transition active:scale-95">
-          <div class="text-xs font-extrabold text-emerald-300">🎁 Bono CKN +30</div>
-          <div class="text-[11px] text-slate-400">Recarga inicial</div>
-          <div id="bonusStatus" class="text-xs font-black text-emerald-400 mt-1">Disponible</div>
-        </button>
-      </div>
-
-      <!-- Botones principales: Tienda y Jugar -->
-      <div class="grid grid-cols-3 gap-2.5 pt-1">
-        <button id="lobbyShopBtn" class="col-span-1 py-3.5 px-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-amber-400/40 text-amber-200 font-extrabold text-sm shadow-lg transition active:scale-95">
-          🛒 Tienda
-        </button>
-        <button id="startBtn" class="col-span-2 py-3.5 px-5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-base shadow-xl shadow-orange-500/20 transition active:scale-95">
-          ▶ JUGAR AHORA
-        </button>
-      </div>
-    </div>
-  </section>
-
-  <!-- Modal de Tienda Completa -->
-  <div id="shopModal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-    <div class="max-w-lg w-full rounded-3xl bg-slate-900 border border-white/15 p-5 shadow-2xl max-h-[88vh] overflow-y-auto space-y-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-xl font-black text-white">🛒 Tienda KenCoin</h2>
-          <p class="text-xs text-slate-400">Saldo: <span id="shopBank" class="text-amber-300 font-bold">120 CKN</span> · <span id="shopWalletMode" class="text-emerald-300">Modo Banco</span></p>
-        </div>
-        <button id="closeShopBtn" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-slate-300">✕</button>
-      </div>
-
-      <!-- Personajes -->
-      <div class="space-y-2">
-        <div class="text-xs font-extrabold uppercase tracking-wider text-amber-300">Personajes 3D</div>
-        <div id="charactersList" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"></div>
-      </div>
-
-      <!-- Mejoras y Objetos -->
-      <div class="space-y-2">
-        <div class="text-xs font-extrabold uppercase tracking-wider text-sky-300">Patinetas, Llaves y Vidas</div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          <button id="shopBuyBoard" class="p-3 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 text-left transition active:scale-95">
-            <div class="font-extrabold text-sm">🛹 Patineta</div>
-            <div class="text-[11px] text-slate-400">Escudo contra 1 choque</div>
-            <div class="text-xs font-black text-amber-300 mt-1.5">25 CKN</div>
+      <div class="p-3.5 rounded-2xl bg-slate-800/75 border border-white/10 space-y-2">
+        <div class="text-xs font-extrabold text-slate-200">🎛️ Estilo de música en carrera</div>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" data-music-style="house" class="musicStyleBtn py-2 px-2.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs transition active:scale-95">
+            House Energético
           </button>
-
-          <button id="shopBuyKey" class="p-3 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 text-left transition active:scale-95">
-            <div class="font-extrabold text-sm">🔑 Llave</div>
-            <div class="text-[11px] text-slate-400">Revive al caer o chocar</div>
-            <div class="text-xs font-black text-amber-300 mt-1.5">35 CKN</div>
+          <button type="button" data-music-style="dembow" class="musicStyleBtn py-2 px-2.5 rounded-xl bg-slate-900 text-slate-200 border border-white/10 font-extrabold text-xs transition active:scale-95">
+            Dembow Urbano
           </button>
-
-          <button id="shopBuyLife" class="p-3 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 text-left transition active:scale-95">
-            <div class="font-extrabold text-sm">❤️ Vida Extra</div>
-            <div class="text-[11px] text-slate-400">+1 vida de respaldo</div>
-            <div class="text-xs font-black text-amber-300 mt-1.5">45 CKN</div>
+          <button type="button" data-music-style="synthwave" class="musicStyleBtn py-2 px-2.5 rounded-xl bg-slate-900 text-slate-200 border border-white/10 font-extrabold text-xs transition active:scale-95">
+            Synthwave Turbo
+          </button>
+          <button type="button" data-music-style="chill" class="musicStyleBtn py-2 px-2.5 rounded-xl bg-slate-900 text-slate-200 border border-white/10 font-extrabold text-xs transition active:scale-95">
+            Chill Groove
           </button>
         </div>
+      </div>
+
+      <button id="toggleSfxBtn" class="w-full p-3.5 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 flex items-center justify-between text-left transition active:scale-95">
+          <div>
+            <div class="text-sm font-extrabold text-white">🔊 Efectos de sonido</div>
+            <div class="text-[11px] text-slate-400">Monedas, saltos, deslizamientos y choques</div>
+          </div>
+          <span id="sfxStateBadge" class="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">Activados</span>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Modal Fin de Carrera / Revivir -->
+  <div id="runHud" class="hidden fixed top-32 sm:top-28 inset-x-0 z-20 px-3 sm:px-6 flex flex-col gap-2 pointer-events-none">
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <div class="px-3 py-1.5 rounded-2xl bg-slate-900/90 border border-white/10 backdrop-blur-md shadow-lg flex items-center gap-1.5">
+          <span class="text-xs text-slate-400 font-semibold">Puntos:</span>
+          <span id="scoreVal" class="text-sm sm:text-base font-black text-amber-300">0</span>
+        </div>
+        <span id="multBadge" class="hidden px-2.5 py-1 rounded-full text-xs font-black bg-amber-400 text-slate-950 whitespace-nowrap shadow-lg"></span>
+      </div>
+
+      <div class="px-3 py-1.5 rounded-2xl bg-slate-900/90 border border-yellow-400/20 backdrop-blur-md shadow-lg flex items-center gap-1.5">
+        <span class="text-xs text-slate-300 font-semibold">Monedas:</span>
+        <span id="runCoinsVal" class="text-sm sm:text-base font-black text-yellow-300">0</span>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-2">
+      <div class="px-3 py-1 rounded-xl bg-slate-900/85 border border-cyan-400/20 backdrop-blur-md shadow flex items-center gap-1.5">
+        <span class="text-[11px] text-slate-300 font-semibold">Distancia:</span>
+        <span id="distanceVal" class="text-xs sm:text-sm font-black text-cyan-300">0m</span>
+      </div>
+
+      <div class="px-3 py-1 rounded-xl bg-slate-900/85 border border-white/10 backdrop-blur-md shadow flex items-center gap-1.5">
+        <span class="text-[11px] text-slate-400 font-semibold">Récord:</span>
+        <span id="bestVal" class="text-xs sm:text-sm font-black text-sky-300">0</span>
+      </div>
+    </div>
+  </div>
+
   <div id="gameOverModal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-    <div class="max-w-sm w-full rounded-3xl bg-slate-900 border border-white/15 p-6 text-center space-y-4 shadow-2xl">
-      <h2 id="overTitle" class="text-2xl font-black text-white">¡Choque en pista!</h2>
-      <p id="overSubtitle" class="text-sm text-slate-300">Has conseguido <span id="overCoins" class="text-amber-300 font-bold">0</span> CKN en esta carrera.</p>
-
-      <div class="grid grid-cols-2 gap-2.5 text-xs bg-slate-950/60 p-3 rounded-2xl border border-white/10">
-        <div>Puntaje: <strong id="overScore" class="text-white">0</strong></div>
-        <div>Llaves: <strong id="overKeys" class="text-amber-300">0</strong></div>
+    <div class="max-w-sm w-full rounded-3xl bg-slate-900 border border-white/15 p-6 text-center shadow-2xl space-y-4">
+      <div id="newRecordBadge" class="hidden inline-block px-3 py-1 rounded-full text-xs font-black bg-amber-400 text-slate-950 shadow">
+        🏆 ¡NUEVO RÉCORD!
+      </div>
+      <div class="space-y-1">
+        <h2 class="text-2xl font-black text-white">¡Choque en pista!</h2>
+        <p class="text-xs text-slate-400">
+          Has conseguido <strong id="earnedCoinsVal" class="text-yellow-300">0</strong> monedas en esta carrera.
+        </p>
       </div>
 
-      <div class="flex flex-col gap-2">
-        <button id="reviveKeyBtn" class="w-full py-3 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-sm transition active:scale-95">
-          🔑 Revivir con Llave (<span id="reviveKeysCount">1</span>)
+      <div class="grid grid-cols-2 gap-2.5 bg-slate-800/80 rounded-2xl p-3.5 border border-white/10 text-left">
+        <div>
+          <div class="text-[11px] text-slate-400">Puntaje</div>
+          <div id="finalScoreVal" class="text-lg font-black text-amber-300">0</div>
+        </div>
+        <div>
+          <div class="text-[11px] text-slate-400">Distancia</div>
+          <div id="finalDistanceVal" class="text-lg font-black text-cyan-300">0m</div>
+        </div>
+        <div>
+          <div class="text-[11px] text-slate-400">Mejor distancia</div>
+          <div id="finalBestDistVal" class="text-sm font-extrabold text-sky-300">0m</div>
+        </div>
+        <div>
+          <div class="text-[11px] text-slate-400">Llaves</div>
+          <div id="finalKeysVal" class="text-sm font-extrabold text-amber-300">0</div>
+        </div>
+      </div>
+
+      <div class="space-y-2.5">
+        <button id="reviveKeyBtn" class="w-full py-3 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-sm shadow-lg transition active:scale-95">
+          🔑 Revivir con Llave (<span id="reviveKeysCount">0</span>)
         </button>
-        <button id="retryBtn" class="w-full py-3 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm transition active:scale-95">
+        <button id="retryRunBtn" class="w-full py-3 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm shadow-lg transition active:scale-95">
           ↻ Volver a Correr
         </button>
-        <button id="goLobbyBtn" class="w-full py-2.5 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition active:scale-95">
+        <button id="backLobbyBtn" class="w-full py-2.5 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition active:scale-95">
           Volver al Lobby
         </button>
       </div>
     </div>
   </div>
 
+  <div id="lobbyOverlay" class="fixed inset-x-0 bottom-3 sm:bottom-5 z-20 px-3 sm:px-4 flex flex-col items-center pointer-events-none">
+    <div class="max-w-lg w-full rounded-3xl bg-slate-950/55 border border-white/10 backdrop-blur-sm p-3 sm:p-4 shadow-2xl pointer-events-auto space-y-2.5">
+      <div class="flex items-end justify-between gap-2 flex-wrap">
+        <div>
+          <div class="inline-block px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/30 mb-0.5">
+            KENCOIN 3D
+          </div>
+          <h1 class="text-xl sm:text-2xl font-black tracking-tight text-amber-300" style="text-shadow: 0 3px 0 #090d16, 0 6px 14px rgba(0,0,0,0.85);">
+            KenCoin Runner
+          </h1>
+        </div>
+        <div class="text-right text-[11px] text-slate-300 leading-snug">
+          <div>Personaje: <strong id="lobbyCharName" class="text-white">Ken Clásico</strong></div>
+          <div>
+            Récord: <strong id="lobbyBest" class="text-amber-300">0</strong> pts · Mejor dist.: <strong id="lobbyBestDist" class="text-cyan-300">0m</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2">
+        <button id="quickBoardBtn" class="p-2.5 rounded-2xl bg-slate-900/75 hover:bg-slate-800/90 border border-white/10 text-left transition active:scale-95">
+          <div class="text-xs font-extrabold text-white">🛹 Patineta x1</div>
+          <div class="text-[10px] text-slate-400">Salva 1 choque</div>
+          <div class="text-xs font-black text-yellow-300 mt-1">25 ¢</div>
+        </button>
+
+        <button id="quickKeyBtn" class="p-2.5 rounded-2xl bg-slate-900/75 hover:bg-slate-800/90 border border-white/10 text-left transition active:scale-95">
+          <div class="text-xs font-extrabold text-white">🔑 Llave x1</div>
+          <div class="text-[10px] text-slate-400">Revive al instante</div>
+          <div class="text-xs font-black text-amber-300 mt-1">35 CKN</div>
+        </button>
+
+        <button id="claimBonusBtn" class="p-2.5 rounded-2xl bg-slate-900/75 hover:bg-slate-800/90 border border-white/10 text-left transition active:scale-95">
+          <div class="text-xs font-extrabold text-white">🎁 Bono +30 ¢</div>
+          <div class="text-[10px] text-slate-400">Monedas iniciales</div>
+          <div id="bonusStatusText" class="text-xs font-black text-emerald-400 mt-1">Disponible</div>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="lobbyShopBtn" class="px-3.5 py-2.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-white/10 font-extrabold text-xs sm:text-sm text-amber-200 transition active:scale-95">
+          🛒 Tienda
+        </button>
+        <button id="startRunBtn" class="flex-1 py-2.5 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-sm sm:text-base shadow-lg transition active:scale-95">
+          ▶ JUGAR AHORA
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="touchControls" class="hidden fixed bottom-4 inset-x-0 z-20 px-4 flex items-center justify-center gap-2 pointer-events-none">
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <button id="btnBoard" class="px-4 h-12 rounded-2xl bg-sky-500/25 hover:bg-sky-500/35 border border-sky-400/40 backdrop-blur-md text-xs font-black text-sky-200 shadow-lg transition active:scale-95">
+        🛹 Patineta (<span id="hudBoardsCount">0</span>)
+      </button>
+    </div>
+  </div>
+
+  <div id="toastBox" class="hidden fixed inset-0 z-50 flex items-center justify-center px-6 pointer-events-none text-center text-2xl sm:text-4xl font-black tracking-wide text-amber-300" style="text-shadow: 0 3px 0 #090d16, 0 8px 20px rgba(0,0,0,0.9);"></div>
+
+  <div id="shopModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="max-w-md w-full max-h-[85vh] overflow-y-auto rounded-3xl bg-slate-900 border border-white/15 p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between gap-2">
+        <div>
+          <h2 class="text-lg font-black text-white">🛒 Tienda KenCoin</h2>
+          <p class="text-xs text-slate-400">
+            Saldo: <strong id="shopCkn" class="text-amber-300">0</strong> CKN · <strong id="shopCoins" class="text-yellow-300">0</strong> ¢
+          </p>
+        </div>
+        <button id="closeShopBtn" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-slate-300">✕</button>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs font-extrabold uppercase tracking-wider text-slate-400">Mejoras y objetos</div>
+        <div class="p-3 rounded-2xl bg-slate-800/80 border border-white/10 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-sm font-extrabold text-white">🛹 Patineta x1</div>
+            <div class="text-xs text-slate-400">Salva 1 choque durante 10s</div>
+          </div>
+          <button id="buyBoardBtn" class="px-3.5 py-2 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black text-xs transition active:scale-95">25 ¢</button>
+        </div>
+        <div class="p-3 rounded-2xl bg-slate-800/80 border border-white/10 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-sm font-extrabold text-white">🔑 Llave x1</div>
+            <div class="text-xs text-slate-400">Revive al chocar en pista</div>
+          </div>
+          <button id="buyKeyBtn" class="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition active:scale-95">35 CKN</button>
+        </div>
+        <div class="p-3 rounded-2xl bg-slate-800/80 border border-white/10 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-sm font-extrabold text-white">♥ +1 Vida Extra</div>
+            <div class="text-xs text-slate-400">Aumenta tu contador de vidas</div>
+          </div>
+          <button id="buyLifeBtn" class="px-3.5 py-2 rounded-xl bg-rose-400 hover:bg-rose-300 text-slate-950 font-black text-xs transition active:scale-95">45 CKN</button>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs font-extrabold uppercase tracking-wider text-slate-400">Personajes</div>
+        <div id="charShopList" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const CHARACTERS = [
-      { id: "classic", name: "Ken Clásico", color: 0x38bdf8, accent: 0xfbbf24, price: 0 },
-      { id: "cyber", name: "Ken Cyber", color: 0xa855f7, accent: 0x22d3ee, price: 60 },
-      { id: "gold", name: "Ken Dorado", color: 0xf59e0b, accent: 0xfef08a, price: 120 }
+      { id: "classic", name: "Ken Clásico", priceCkn: 0, body: 0x38bdf8, accent: 0xfacc15, head: 0xfde047 },
+      { id: "cyber", name: "Ken Cyber", priceCkn: 60, body: 0x8b5cf6, accent: 0x22d3ee, head: 0xa78bfa },
+      { id: "gold", name: "Ken Dorado", priceCkn: 120, body: 0xf59e0b, accent: 0xfef08a, head: 0xfde047 }
     ];
 
+    const LANES = [-3.2, 0, 3.2];
+    const GRAVITY = -34;
+    const JUMP_VEL = 13.4;
+
     const state = {
-      bank: 120,
+      bank: 0,
+      coins: 0,
       best: 0,
+      bestDistance: 0,
       lives: 1,
-      boards: 1,
-      keys: 1,
+      boards: 0,
+      keys: 0,
       ownedChars: ["classic"],
       selectedChar: "classic",
       walletConnected: false,
       walletAddress: "",
       bonusClaimed: false,
-      isMuted: false
+      musicEnabled: true,
+      musicStyle: "house",
+      sfxEnabled: true
     };
 
-    let mode = "lobby"; // "lobby" | "playing" | "gameover"
+    let mode = "lobby";
     let runScore = 0;
     let runCoins = 0;
+    let runDistance = 0;
     let runSpeed = 16;
     let boardActiveTimer = 0;
     let invincibleTimer = 0;
+    let multiplierValue = 1;
+    let multiplierTimer = 0;
+    let spawnObstacleTimer = 1.2;
+    let spawnCoinTimer = 0.7;
+    let spawnMultCooldown = 16;
+    let trafficWaveCooldown = 7;
+    let toastTimeout = null;
+    let audioCtx = null;
+    let bgmTimerId = null;
+    let bgmStep = 0;
+    let nextTickTime = 0;
+    let sharedNoiseBuffer = null;
 
-    let toastTimer = null;
+    const obstacles = [];
+    const coinsList = [];
+    const pickupsList = [];
+    const coinGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.14, 16);
+    coinGeo.rotateZ(Math.PI / 2);
+    const coinMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.35, roughness: 0.25 });
+    const mult2Mat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.3, roughness: 0.25 });
+    const mult4Mat = new THREE.MeshStandardMaterial({ color: 0xf97316, metalness: 0.3, roughness: 0.25 });
+    const pickupGeo = new THREE.OctahedronGeometry(0.55, 0);
+
+    let lastTime = 0;
+    let lastHudUpdate = 0;
+    let currentLane = 1;
+    let velY = 0;
+    let isGrounded = true;
+    let isSliding = false;
+    let slideTimer = 0;
+    let runAnimPhase = 0;
+
+    function ensureAudioContext() {
+      try {
+        if (!audioCtx) {
+          const AudioCtor = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtor) return null;
+          audioCtx = new AudioCtor();
+        }
+        if (!sharedNoiseBuffer && audioCtx) {
+          const sampleRate = audioCtx.sampleRate || 44100;
+          const length = Math.floor(sampleRate * 0.25);
+          sharedNoiseBuffer = audioCtx.createBuffer(1, length, sampleRate);
+          const data = sharedNoiseBuffer.getChannelData(0);
+          for (let i = 0; i < length; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume().catch(() => {});
+        }
+        return audioCtx;
+      } catch (e) {
+        return null;
+      }
+    }
+
     function showToast(msg) {
       const box = document.getElementById("toastBox");
       if (!box) return;
       box.textContent = msg;
       box.classList.remove("hidden");
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => {
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
         box.classList.add("hidden");
       }, 2200);
     }
 
-    let audioCtx = null;
-    function playTone(freq, duration, type = "sine", gainVal = 0.14, delay = 0) {
-      if (state.isMuted) return;
+    function playTone(freq, duration, type, gainVal, delay) {
+      if (!state.sfxEnabled) return;
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
       try {
-        if (!audioCtx) {
-          const AC = window.AudioContext || window.webkitAudioContext;
-          if (AC) audioCtx = new AC();
-        }
-        if (!audioCtx) return;
-        if (audioCtx.state === "suspended") audioCtx.resume();
-        const now = audioCtx.currentTime + delay;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
+        const now = ctx.currentTime + (delay || 0);
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type || "triangle";
         osc.frequency.setValueAtTime(freq, now);
-        gain.gain.setValueAtTime(gainVal, now);
+        gain.gain.setValueAtTime(Math.max(0.08, gainVal || 0.12), now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
         osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        gain.connect(ctx.destination);
         osc.start(now);
         osc.stop(now + duration);
       } catch (e) {}
     }
 
+    function triggerKick(ctx, now, intensity) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(150 + intensity * 25, now);
+      osc.frequency.exponentialRampToValueAtTime(38, now + 0.14);
+      gain.gain.setValueAtTime(0.24 + intensity * 0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.16);
+    }
+
+    function triggerSnare(ctx, now, intensity, sharp) {
+      if (!sharedNoiseBuffer) return;
+      const noise = ctx.createBufferSource();
+      noise.buffer = sharedNoiseBuffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = sharp ? 1800 : 1200;
+      filter.Q.value = 1.0;
+
+      const gain = ctx.createGain();
+      const dur = sharp ? 0.06 : 0.085;
+      gain.gain.setValueAtTime((sharp ? 0.1 : 0.13) + intensity * 0.04, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      noise.start(now, 0, dur);
+    }
+
+    function triggerHiHat(ctx, now, openHat) {
+      if (!sharedNoiseBuffer) return;
+      const dur = openHat ? 0.065 : 0.025;
+      const src = ctx.createBufferSource();
+      src.buffer = sharedNoiseBuffer;
+
+      const hp = ctx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = 6800;
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(openHat ? 0.04 : 0.025, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+      src.connect(hp);
+      hp.connect(gain);
+      gain.connect(ctx.destination);
+      src.start(now, 0, dur);
+    }
+
+    function triggerMusicNote(ctx, now, freq, type, gainVal, dur, cutoff) {
+      if (!freq) return;
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+
+      osc.type = type || "triangle";
+      osc.frequency.setValueAtTime(freq, now);
+
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(cutoff || 1600, now);
+
+      gain.gain.setValueAtTime(gainVal, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + dur + 0.01);
+    }
+
+    function scheduleMusicTick() {
+      if (bgmTimerId) {
+        clearTimeout(bgmTimerId);
+        bgmTimerId = null;
+      }
+      if (!state.musicEnabled || mode === "gameover" || mode === "paused") return;
+
+      const ctx = ensureAudioContext();
+      if (!ctx) {
+        bgmTimerId = setTimeout(scheduleMusicTick, 160);
+        return;
+      }
+
+      if (nextTickTime < ctx.currentTime - 0.05) {
+        nextTickTime = ctx.currentTime + 0.02;
+      }
+
+      const isLobby = mode === "lobby";
+      const distFactor = Math.min(1, runDistance / 650);
+      const speedFactor = Math.min(1, Math.max(0, (runSpeed - 16) / 16));
+      const intensity = isLobby ? 0.15 : Math.min(1, distFactor * 0.7 + speedFactor * 0.3);
+      const stepSec = isLobby ? 0.24 : Math.max(0.125, 0.165 - intensity * 0.04);
+
+      while (nextTickTime < ctx.currentTime + 0.22) {
+        const t = nextTickTime;
+        const step = bgmStep % 16;
+
+        if (isLobby) {
+          const chillNotes = [261.63, 0, 329.63, 0, 392.0, 0, 493.88, 392.0, 293.66, 0, 349.23, 0, 440.0, 0, 523.25, 440.0];
+          const chillBass = [130.81, 0, 0, 130.81, 146.83, 0, 0, 146.83, 110.0, 0, 0, 110.0, 130.81, 0, 0, 130.81];
+          if (step % 8 === 0) triggerKick(ctx, t, 0.1);
+          if (chillBass[step] > 0) triggerMusicNote(ctx, t, chillBass[step], "sine", 0.1, 0.22, 650);
+          if (chillNotes[step] > 0) triggerMusicNote(ctx, t, chillNotes[step], "sine", 0.07, 0.24, 1500);
+        } else if (state.musicStyle === "dembow") {
+          if (step % 4 === 0 || step === 11) {
+            triggerKick(ctx, t, intensity);
+          }
+          if (step === 3 || step === 6 || step === 11 || step === 14) {
+            triggerSnare(ctx, t, intensity, step === 6 || step === 14);
+          }
+          if (step % 2 === 1) {
+            triggerHiHat(ctx, t, step % 4 === 3);
+          }
+          const dembowBass = [110, 0, 0, 130.81, 146.83, 0, 130.81, 0, 110, 0, 0, 164.81, 146.83, 0, 130.81, 98.0];
+          if (dembowBass[step] > 0) {
+            triggerMusicNote(ctx, t, dembowBass[step], "triangle", 0.14, stepSec * 0.8, 900);
+          }
+          const dembowLead = [523.25, 0, 587.33, 659.25, 0, 587.33, 523.25, 0, 440, 0, 523.25, 659.25, 783.99, 0, 659.25, 587.33];
+          if (dembowLead[step] > 0) {
+            triggerMusicNote(ctx, t, dembowLead[step], "square", 0.035, stepSec * 0.65, 1900);
+          }
+        } else if (state.musicStyle === "synthwave") {
+          if (step % 4 === 0) {
+            triggerKick(ctx, t, intensity);
+          }
+          if (step === 4 || step === 12) {
+            triggerSnare(ctx, t, intensity, true);
+          }
+          triggerHiHat(ctx, t, step % 4 === 2);
+          const synthBass = [87.31, 87.31, 87.31, 87.31, 98.0, 98.0, 98.0, 98.0, 110.0, 110.0, 110.0, 110.0, 130.81, 130.81, 123.47, 110.0];
+          triggerMusicNote(ctx, t, synthBass[step], "sawtooth", 0.1, stepSec * 0.9, 850 + intensity * 600);
+          const arpNotes = [349.23, 440.0, 523.25, 659.25, 392.0, 493.88, 587.33, 783.99, 440.0, 523.25, 659.25, 880.0, 523.25, 659.25, 783.99, 659.25];
+          triggerMusicNote(ctx, t, arpNotes[step], "sawtooth", 0.04, stepSec * 0.7, 1800 + intensity * 1500);
+        } else if (state.musicStyle === "chill") {
+          if (step % 8 === 0 || step === 10) {
+            triggerKick(ctx, t, 0.25);
+          }
+          if (step === 4 || step === 12) {
+            triggerSnare(ctx, t, 0.2, false);
+          }
+          if (step % 2 === 0) {
+            triggerHiHat(ctx, t, false);
+          }
+          const grooveBass = [130.81, 0, 130.81, 0, 146.83, 0, 164.81, 0, 174.61, 0, 164.81, 0, 146.83, 0, 130.81, 0];
+          if (grooveBass[step] > 0) {
+            triggerMusicNote(ctx, t, grooveBass[step], "sine", 0.13, stepSec * 1.1, 750);
+          }
+          const grooveKeys = [523.25, 0, 0, 659.25, 0, 587.33, 0, 0, 698.46, 0, 0, 659.25, 0, 587.33, 0, 523.25];
+          if (grooveKeys[step] > 0) {
+            triggerMusicNote(ctx, t, grooveKeys[step], "triangle", 0.06, stepSec * 1.2, 1450);
+          }
+        } else {
+          if (step % 4 === 0 || (intensity > 0.7 && step === 14)) {
+            triggerKick(ctx, t, intensity);
+          }
+          if (step === 3 || step === 11) {
+            triggerSnare(ctx, t, intensity, false);
+          } else if (step === 6 || step === 14) {
+            triggerSnare(ctx, t, intensity, true);
+          }
+          if (step % 2 === 0 || intensity > 0.4) {
+            triggerHiHat(ctx, t, step % 4 === 2);
+          }
+
+          const bassNotes = [110, 0, 110, 130.81, 146.83, 0, 130.81, 98.0, 110, 0, 164.81, 146.83, 130.81, 0, 146.83, 164.81];
+          if (bassNotes[step] > 0) {
+            triggerMusicNote(ctx, t, bassNotes[step], "triangle", 0.12 + intensity * 0.04, stepSec * 0.85, 950);
+          }
+
+          const leadNotes = [440, 0, 523.25, 587.33, 0, 659.25, 587.33, 523.25, 440, 0, 783.99, 659.25, 587.33, 0, 659.25, 783.99];
+          if (leadNotes[step] > 0) {
+            triggerMusicNote(ctx, t, leadNotes[step], "sawtooth", 0.04 + intensity * 0.03, stepSec * 0.75, 1200 + intensity * 1600);
+          }
+        }
+
+        nextTickTime += stepSec;
+        bgmStep++;
+      }
+
+      bgmTimerId = setTimeout(scheduleMusicTick, 60);
+    }
+
+    function startBackgroundMusic() {
+      const ctx = ensureAudioContext();
+      if (ctx && nextTickTime < ctx.currentTime) {
+        nextTickTime = ctx.currentTime + 0.03;
+      }
+      if (!bgmTimerId) {
+        scheduleMusicTick();
+      }
+    }
+
+    function stopBackgroundMusic() {
+      if (bgmTimerId) {
+        clearTimeout(bgmTimerId);
+        bgmTimerId = null;
+      }
+    }
+
     function saveState() {
       try {
-        localStorage.setItem("kencoin_runner_clean_v1", JSON.stringify(state));
+        localStorage.setItem("kencoin_runner_real_v1", JSON.stringify(state));
       } catch (e) {}
     }
 
     function loadState() {
       try {
-        const raw = localStorage.getItem("kencoin_runner_clean_v1");
+        const raw = localStorage.getItem("kencoin_runner_real_v1");
         if (!raw) return;
         const p = JSON.parse(raw);
         if (typeof p.bank === "number") state.bank = p.bank;
+        if (typeof p.coins === "number") state.coins = p.coins;
         if (typeof p.best === "number") state.best = p.best;
+        if (typeof p.bestDistance === "number") state.bestDistance = p.bestDistance;
         if (typeof p.lives === "number") state.lives = p.lives;
         if (typeof p.boards === "number") state.boards = p.boards;
         if (typeof p.keys === "number") state.keys = p.keys;
@@ -292,815 +676,967 @@
         if (typeof p.walletConnected === "boolean") state.walletConnected = p.walletConnected;
         if (typeof p.walletAddress === "string") state.walletAddress = p.walletAddress;
         if (typeof p.bonusClaimed === "boolean") state.bonusClaimed = p.bonusClaimed;
-        if (typeof p.isMuted === "boolean") state.isMuted = p.isMuted;
+        if (typeof p.musicEnabled === "boolean") state.musicEnabled = p.musicEnabled;
+        if (typeof p.musicStyle === "string") state.musicStyle = p.musicStyle;
+        if (typeof p.sfxEnabled === "boolean") state.sfxEnabled = p.sfxEnabled;
       } catch (e) {}
     }
 
-    async function authorizePurchase(label) {
-      if (!state.walletConnected) {
-        return true;
-      }
-      if (window.ethereum && state.walletAddress && !state.walletAddress.startsWith("0x7F3b")) {
-        try {
-          await window.ethereum.request({
-            method: "eth_sendTransaction",
-            params: [{
-              from: state.walletAddress,
-              to: state.walletAddress,
-              value: "0x0"
-            }]
-          });
-          showToast("Firmado en billetera: " + label);
-          return true;
-        } catch (err) {
-          showToast("Transacción cancelada en billetera");
-          return false;
-        }
-      }
-      showToast("Aprobado vía billetera: " + label);
-      return true;
-    }
-
     function getCurrentCharacter() {
-      return CHARACTERS.find((c) => c.id === state.selectedChar) || CHARACTERS[0];
-    }
-
-    function renderShopCharacters() {
-      const container = document.getElementById("charactersList");
-      if (!container) return;
-      container.innerHTML = "";
-      CHARACTERS.forEach((char) => {
-        const owned = state.ownedChars.includes(char.id);
-        const equipped = state.selectedChar === char.id;
-        const btn = document.createElement("button");
-        btn.className =
-          "p-3 rounded-2xl border text-left transition active:scale-95 " +
-          (equipped
-            ? "bg-amber-500/20 border-amber-400"
-            : "bg-slate-800/90 hover:bg-slate-800 border-white/10");
-        btn.innerHTML = `
-          <div class="flex items-center gap-2">
-            <span class="w-3.5 h-3.5 rounded-full inline-block" style="background:#${char.color.toString(16).padStart(6, "0")}"></span>
-            <span class="font-extrabold text-sm text-white">${char.name}</span>
-          </div>
-          <div class="text-xs font-bold mt-1.5 ${equipped ? "text-amber-300" : owned ? "text-emerald-300" : "text-amber-300"}">
-            ${equipped ? "✓ Equipado" : owned ? "Equipar" : char.price + " CKN"}
-          </div>
-        `;
-        btn.addEventListener("click", async () => {
-          if (equipped) return;
-          if (owned) {
-            state.selectedChar = char.id;
-            applyCharacterAppearance();
-            saveState();
-            syncUI();
-            showToast("Equipaste a " + char.name);
-            return;
-          }
-          if (state.bank < char.price) {
-            showToast("Necesitas " + char.price + " CKN");
-            return;
-          }
-          const ok = await authorizePurchase(char.name);
-          if (!ok) return;
-          state.bank -= char.price;
-          state.ownedChars.push(char.id);
-          state.selectedChar = char.id;
-          applyCharacterAppearance();
-          saveState();
-          syncUI();
-          playTone(659.25, 0.15, "triangle", 0.18, 0);
-          showToast("¡Desbloqueaste y equipaste " + char.name + "!");
-        });
-        container.appendChild(btn);
-      });
+      return CHARACTERS.find(c => c.id === state.selectedChar) || CHARACTERS[0];
     }
 
     function syncUI() {
       const char = getCurrentCharacter();
-      document.getElementById("bankVal").textContent = state.bank;
-      document.getElementById("shopBank").textContent = state.bank + " CKN";
-      document.getElementById("hudLives").textContent = state.lives;
-      document.getElementById("hudBoards").textContent = state.boards;
-      document.getElementById("hudKeys").textContent = state.keys;
-      document.getElementById("boardBtnCount").textContent = state.boards;
-      document.getElementById("bestVal").textContent = state.best;
-      document.getElementById("lobbyBest").textContent = state.best;
+      document.getElementById("cknBalanceVal").textContent = state.bank;
+      document.getElementById("coinsBalanceVal").textContent = state.coins;
+      document.getElementById("livesVal").textContent = state.lives;
+      document.getElementById("boardsVal").textContent = state.boards;
+      document.getElementById("keysVal").textContent = state.keys;
+      document.getElementById("hudBoardsCount").textContent = state.boards;
+
       document.getElementById("lobbyCharName").textContent = char.name;
+      document.getElementById("lobbyBest").textContent = Math.floor(state.best);
+      document.getElementById("lobbyBestDist").textContent = Math.floor(state.bestDistance) + "m";
+
+      const bonusText = document.getElementById("bonusStatusText");
+      bonusText.textContent = state.bonusClaimed ? "Reclamado" : "Disponible";
+      bonusText.className = state.bonusClaimed
+        ? "text-xs font-bold text-slate-500 mt-1.5"
+        : "text-xs font-black text-emerald-400 mt-1.5";
+
       document.getElementById("scoreVal").textContent = Math.floor(runScore);
       document.getElementById("runCoinsVal").textContent = runCoins;
-      document.getElementById("soundBtn").textContent = state.isMuted ? "🔇" : "🔊";
+      document.getElementById("bestVal").textContent = Math.floor(state.best);
+      document.getElementById("distanceVal").textContent = Math.floor(runDistance) + "m";
+      document.getElementById("pauseScoreVal").textContent = Math.floor(runScore);
+      document.getElementById("pauseDistVal").textContent = Math.floor(runDistance) + "m";
+      if (multiplierValue > 1 && multiplierTimer > 0) {
+        multBadge.textContent = `x${multiplierValue} (${Math.ceil(multiplierTimer)}s)`;
+        multBadge.classList.remove("hidden");
+      } else {
+        multBadge.classList.add("hidden");
+      }
+
+      const musicBadge = document.getElementById("musicStateBadge");
+      const sfxBadge = document.getElementById("sfxStateBadge");
+      if (musicBadge) {
+        musicBadge.textContent = state.musicEnabled ? "Activada" : "Desactivada";
+        musicBadge.className = state.musicEnabled
+          ? "px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
+          : "px-2.5 py-1 rounded-full text-xs font-black bg-rose-500/20 text-rose-300 border border-rose-400/40";
+      }
+      document.querySelectorAll(".musicStyleBtn").forEach(btn => {
+        const isSelected = btn.getAttribute("data-music-style") === state.musicStyle;
+        btn.className = isSelected
+          ? "musicStyleBtn py-2 px-2.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs transition active:scale-95"
+          : "musicStyleBtn py-2 px-2.5 rounded-xl bg-slate-900 text-slate-200 border border-white/10 font-extrabold text-xs transition active:scale-95";
+      });
+      if (sfxBadge) {
+        sfxBadge.textContent = state.sfxEnabled ? "Activados" : "Desactivados";
+        sfxBadge.className = state.sfxEnabled
+          ? "px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
+          : "px-2.5 py-1 rounded-full text-xs font-black bg-rose-500/20 text-rose-300 border border-rose-400/40";
+      }
 
       const dot = document.getElementById("walletDot");
       const label = document.getElementById("walletLabel");
-      const walletMode = document.getElementById("shopWalletMode");
-      if (state.walletConnected) {
+      if (state.walletConnected && state.walletAddress) {
         dot.className = "w-2 h-2 rounded-full bg-emerald-400";
-        label.textContent = state.walletAddress
-          ? state.walletAddress.slice(0, 6) + "..." + state.walletAddress.slice(-4)
-          : "0x7F3b...9C4A";
-        walletMode.textContent = "Billetera Conectada";
+        label.textContent = state.walletAddress.slice(0, 6) + "..." + state.walletAddress.slice(-4);
       } else {
         dot.className = "w-2 h-2 rounded-full bg-amber-400";
         label.textContent = "Conectar Billetera";
-        walletMode.textContent = "Modo Saldo CKN";
       }
 
-      const bonusStatus = document.getElementById("bonusStatus");
-      if (state.bonusClaimed) {
-        bonusStatus.textContent = "Reclamado";
-        bonusStatus.className = "text-xs font-bold text-slate-400 mt-1";
-      } else {
-        bonusStatus.textContent = "Disponible";
-        bonusStatus.className = "text-xs font-black text-emerald-400 mt-1";
-      }
-
-      renderShopCharacters();
+      document.getElementById("shopCkn").textContent = state.bank;
+      document.getElementById("shopCoins").textContent = state.coins;
+      renderCharShop();
     }
 
-    // --- Escena 3D con Three.js ---
+    function renderCharShop() {
+      const container = document.getElementById("charShopList");
+      if (!container) return;
+      container.innerHTML = "";
+
+      CHARACTERS.forEach(ch => {
+        const owned = state.ownedChars.includes(ch.id);
+        const equipped = state.selectedChar === ch.id;
+        const row = document.createElement("div");
+        row.className = "p-3 rounded-2xl bg-slate-800/80 border border-white/10 flex items-center justify-between gap-3";
+
+        let actionHtml = "";
+        if (equipped) {
+          actionHtml = `<span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-xs font-black">Equipado</span>`;
+        } else if (owned) {
+          actionHtml = `<button data-equip="${ch.id}" class="px-3.5 py-2 rounded-xl bg-sky-400 hover:bg-sky-300 text-slate-950 font-black text-xs transition active:scale-95">Equipar</button>`;
+        } else {
+          actionHtml = `<button data-buy-char="${ch.id}" class="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition active:scale-95">${ch.priceCkn} CKN</button>`;
+        }
+
+        row.innerHTML = `
+          <div>
+            <div class="text-sm font-extrabold text-white">${ch.name}</div>
+            <div class="text-xs text-slate-400">${ch.priceCkn === 0 ? "Personaje inicial" : ch.priceCkn + " CKN"}</div>
+          </div>
+          ${actionHtml}
+        `;
+        container.appendChild(row);
+      });
+
+      container.querySelectorAll("[data-equip]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.selectedChar = btn.getAttribute("data-equip");
+          applyCharacterAppearance();
+          saveState();
+          syncUI();
+          showToast("Personaje equipado");
+        });
+      });
+
+      container.querySelectorAll("[data-buy-char]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const ch = CHARACTERS.find(c => c.id === btn.getAttribute("data-buy-char"));
+          if (!ch) return;
+          if (!state.walletConnected) {
+            showToast("Conecta tu billetera para comprar con CKN");
+            return;
+          }
+          if (state.bank < ch.priceCkn) {
+            showToast(`Te faltan ${ch.priceCkn - state.bank} CKN`);
+            return;
+          }
+          state.bank -= ch.priceCkn;
+          state.ownedChars.push(ch.id);
+          state.selectedChar = ch.id;
+          applyCharacterAppearance();
+          saveState();
+          syncUI();
+          playTone(784, 0.14, "triangle", 0.14, 0);
+          showToast(`Compraste ${ch.name}`);
+        });
+      });
+    }
+
     const canvas = document.getElementById("gameCanvas");
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.BasicShadowMap;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1e3a8a);
-    scene.fog = new THREE.FogExp2(0x1d4ed8, 0.012);
+    scene.background = new THREE.Color(0x0b1326);
+    scene.fog = new THREE.FogExp2(0x0b1326, 0.015);
 
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 160);
-    camera.position.set(0, 5.2, 8.5);
-    camera.lookAt(0, 1.4, -8);
+    const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 170);
+    camera.position.set(0, 5.6, 11.4);
+    camera.lookAt(0, 2.0, -11);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.35);
-    scene.add(ambientLight);
-    const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.5);
-    dirLight.position.set(6, 16, 10);
+    const hemiLight = new THREE.HemisphereLight(0x93c5fd, 0x1e293b, 0.95);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfef08a, 1.0);
+    dirLight.position.set(10, 22, 12);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 512;
+    dirLight.shadow.mapSize.height = 512;
     scene.add(dirLight);
-    const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.7);
-    fillLight.position.set(-8, 8, 5);
-    scene.add(fillLight);
 
-    // Pista de 3 carriles
-    const LANES = [-2.6, 0, 2.6];
-    const trackGeo = new THREE.BoxGeometry(9.6, 0.4, 150);
-    const trackMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.45, metalness: 0.25 });
-    const trackMesh = new THREE.Mesh(trackGeo, trackMat);
-    trackMesh.position.set(0, -0.2, -58);
-    scene.add(trackMesh);
+    const roadGroup = new THREE.Group();
+    scene.add(roadGroup);
 
-    const lineMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc });
-    [-1.3, 1.3].forEach((lx) => {
-      const line = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.04, 150), lineMat);
-      line.position.set(lx, 0.01, -58);
-      scene.add(line);
+    const roadMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(12.5, 220),
+      new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.85 })
+    );
+    roadMesh.rotation.x = -Math.PI / 2;
+    roadMesh.position.set(0, 0, -85);
+    roadMesh.receiveShadow = true;
+    roadGroup.add(roadMesh);
+
+    const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 });
+    [-7.1, 7.1].forEach(x => {
+      const sw = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.3, 220), sidewalkMat);
+      sw.position.set(x, 0.15, -85);
+      roadGroup.add(sw);
     });
 
-    // Jugador 3D articulado con animación de correr
-    const playerGroup = new THREE.Group();
-    const rigGroup = new THREE.Group();
-    playerGroup.add(rigGroup);
+    const laneDashes = [];
+    const dashGeo = new THREE.PlaneGeometry(0.18, 3.2);
+    const dashMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8 });
+    [-1.6, 1.6].forEach(x => {
+      for (let z = 10; z > -180; z -= 9) {
+        const d = new THREE.Mesh(dashGeo, dashMat);
+        d.rotation.x = -Math.PI / 2;
+        d.position.set(x, 0.02, z);
+        roadGroup.add(d);
+        laneDashes.push(d);
+      }
+    });
 
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.35, metalness: 0.2 });
-    const headMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.4 });
-    const limbMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
-    const boardMat = new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x0284c7, emissiveIntensity: 0.65 });
+    const buildings = [];
+    const bldColors = [0x1e293b, 0x172554, 0x0f172a, 0x1e1b4b];
+    for (let i = 0; i < 34; i++) {
+      const side = i % 2 === 0 ? -1 : 1;
+      const bw = 5.5 + Math.random() * 4.5;
+      const bh = 12 + Math.random() * 24;
+      const bd = 6 + Math.random() * 4;
+      const bld = new THREE.Mesh(
+        new THREE.BoxGeometry(bw, bh, bd),
+        new THREE.MeshStandardMaterial({ color: bldColors[i % bldColors.length], roughness: 0.8 })
+      );
+      const zPos = 10 - Math.floor(i / 2) * 11;
+      bld.position.set(side * (11.5 + bw * 0.45), bh * 0.5, zPos);
+      scene.add(bld);
+      buildings.push(bld);
+    }
 
-    const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.92, 1.1, 0.55), bodyMat);
-    bodyMesh.position.y = 1.35;
-    rigGroup.add(bodyMesh);
+    const playerRoot = new THREE.Group();
+    const bodyMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1.15, 1.45, 0.7),
+      new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.45 })
+    );
+    bodyMesh.position.y = 1.45;
+    bodyMesh.castShadow = true;
+    playerRoot.add(bodyMesh);
 
-    const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.72, 0.72), headMat);
-    headMesh.position.y = 2.3;
-    rigGroup.add(headMesh);
+    const accentMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.32, 1.48, 0.74),
+      new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.4 })
+    );
+    accentMesh.position.y = 1.45;
+    playerRoot.add(accentMesh);
 
-    // Brazos pivotados desde el hombro
-    const leftArmPivot = new THREE.Group();
-    leftArmPivot.position.set(-0.62, 1.82, 0);
-    const leftArmMesh = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.82, 0.28), limbMat);
-    leftArmMesh.position.y = -0.35;
-    leftArmPivot.add(leftArmMesh);
-    rigGroup.add(leftArmPivot);
+    const headMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.56, 16, 16),
+      new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0.35 })
+    );
+    headMesh.position.y = 2.65;
+    headMesh.castShadow = true;
+    playerRoot.add(headMesh);
 
-    const rightArmPivot = new THREE.Group();
-    rightArmPivot.position.set(0.62, 1.82, 0);
-    const rightArmMesh = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.82, 0.28), limbMat);
-    rightArmMesh.position.y = -0.35;
-    rightArmPivot.add(rightArmMesh);
-    rigGroup.add(rightArmPivot);
+    const legGeo = new THREE.BoxGeometry(0.42, 0.85, 0.45);
+    const leftLeg = new THREE.Mesh(legGeo, new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 }));
+    leftLeg.position.set(-0.28, 0.42, 0);
+    playerRoot.add(leftLeg);
 
-    // Piernas pivotadas desde la cadera
-    const leftLegPivot = new THREE.Group();
-    leftLegPivot.position.set(-0.24, 0.82, 0);
-    const leftLegMesh = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.82, 0.32), limbMat);
-    leftLegMesh.position.y = -0.4;
-    leftLegPivot.add(leftLegMesh);
-    rigGroup.add(leftLegPivot);
+    const rightLeg = new THREE.Mesh(legGeo, new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.6 }));
+    rightLeg.position.set(0.28, 0.42, 0);
+    playerRoot.add(rightLeg);
 
-    const rightLegPivot = new THREE.Group();
-    rightLegPivot.position.set(0.24, 0.82, 0);
-    const rightLegMesh = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.82, 0.32), limbMat);
-    rightLegMesh.position.y = -0.4;
-    rightLegPivot.add(rightLegMesh);
-    rigGroup.add(rightLegPivot);
+    const armGeo = new THREE.BoxGeometry(0.32, 1.05, 0.34);
+    const leftArm = new THREE.Mesh(armGeo, new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0.5 }));
+    leftArm.position.set(-0.78, 1.55, 0);
+    playerRoot.add(leftArm);
 
-    const boardMesh = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.14, 2.2), boardMat);
-    boardMesh.position.y = 0.14;
+    const rightArm = new THREE.Mesh(armGeo, new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0.5 }));
+    rightArm.position.set(0.78, 1.55, 0);
+    playerRoot.add(rightArm);
+
+    const boardMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1.1, 0.14, 2.2),
+      new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.4, roughness: 0.25 })
+    );
+    boardMesh.position.set(0, 0.08, 0);
     boardMesh.visible = false;
-    playerGroup.add(boardMesh);
+    playerRoot.add(boardMesh);
 
-    scene.add(playerGroup);
+    scene.add(playerRoot);
 
     function applyCharacterAppearance() {
-      const char = getCurrentCharacter();
-      bodyMat.color.setHex(char.color);
-      headMat.color.setHex(char.accent);
+      const ch = getCurrentCharacter();
+      bodyMesh.material.color.setHex(ch.body);
+      accentMesh.material.color.setHex(ch.accent);
+      headMesh.material.color.setHex(ch.head);
+      leftArm.material.color.setHex(ch.head);
+      rightArm.material.color.setHex(ch.head);
     }
 
-    let currentLane = 1;
-    let playerY = 0;
-    let velY = 0;
-    let isGrounded = true;
-    let isSliding = false;
-    let slideTimer = 0;
-    let spawnTimer = 0;
-
-    const obstacles = [];
-    const coins = [];
-    const ramps = [];
-
-    const obsGeo = new THREE.BoxGeometry(1.65, 1.5, 1.35);
-    const obsMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e, roughness: 0.4, metalness: 0.15 });
-
-    // Obstáculo alto tipo puente/arco (deja espacio abajo para deslizarse)
-    const highArchGroupGeo = new THREE.BoxGeometry(1.85, 0.95, 1.25);
-    const highObsMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.35, metalness: 0.2 });
-    const postMat = new THREE.MeshStandardMaterial({ color: 0xea580c, roughness: 0.4, metalness: 0.2 });
-
-    // Escalera real formada por múltiples peldaños ascendentes
-    const stepGeo = new THREE.BoxGeometry(1.85, 0.28, 0.95);
-    const stepMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.3, metalness: 0.3 });
-
-    const coinGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.16, 18);
-    coinGeo.rotateX(Math.PI / 2);
-    const coinMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xd97706, emissiveIntensity: 0.35 });
-
-    function createStaircaseMesh(laneIndex) {
-      const stairGroup = new THREE.Group();
-      const numSteps = 6;
-      const topHeight = numSteps * 0.26;
-      for (let s = 0; s < numSteps; s++) {
-        const stepH = (s + 1) * 0.26;
-        const stepMesh = new THREE.Mesh(stepGeo, stepMat);
-        stepMesh.scale.y = (s + 1) * 0.95;
-        stepMesh.position.set(0, stepH / 2, 2.5 - s * 1.0);
-        stairGroup.add(stepMesh);
-      }
-      // Plataforma/pasarela superior para seguir caminando tras subir la escalera
-      const deckGeo = new THREE.BoxGeometry(1.9, 0.26, 7.5);
-      const deckMat = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, roughness: 0.3, metalness: 0.3 });
-      const deckMesh = new THREE.Mesh(deckGeo, deckMat);
-      deckMesh.position.set(0, topHeight - 0.13, -6.5);
-      stairGroup.add(deckMesh);
-
-      stairGroup.position.set(LANES[laneIndex], 0, -72);
-      return stairGroup;
-    }
-
-    function createHighObstacleMesh(laneIndex) {
-      const group = new THREE.Group();
-      const topBar = new THREE.Mesh(highArchGroupGeo, highObsMat);
-      topBar.position.set(0, 1.65, 0);
-      group.add(topBar);
-
-      const leftPost = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.2, 0.22), postMat);
-      leftPost.position.set(-0.8, 0.6, 0);
-      group.add(leftPost);
-
-      const rightPost = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.2, 0.22), postMat);
-      rightPost.position.set(0.8, 0.6, 0);
-      group.add(rightPost);
-
-      group.position.set(LANES[laneIndex], 0, -72);
-      return group;
-    }
-
-    function clearEntities() {
-      obstacles.forEach((o) => scene.remove(o.mesh));
-      obstacles.length = 0;
-      coins.forEach((c) => scene.remove(c.mesh));
-      coins.length = 0;
-      ramps.forEach((r) => scene.remove(r.mesh));
-      ramps.length = 0;
-    }
-
-    function spawnRow() {
-      const lanes = [0, 1, 2];
-      const kindRoll = Math.random();
-
-      if (kindRoll < 0.38) {
-        // Escalera de peldaños + pasarela elevada en un carril
-        const rampLane = lanes[Math.floor(Math.random() * lanes.length)];
-        const stairMesh = createStaircaseMesh(rampLane);
-        scene.add(stairMesh);
-        ramps.push({ mesh: stairMesh, lane: rampLane, topY: 1.56, deckHalfLen: 5.5 });
-
-        const coinMesh = new THREE.Mesh(coinGeo, coinMat);
-        coinMesh.position.set(LANES[rampLane], 2.15, -72);
-        scene.add(coinMesh);
-        coins.push({ mesh: coinMesh, lane: rampLane, collected: false });
-
-        const deckCoinMesh = new THREE.Mesh(coinGeo, coinMat);
-        deckCoinMesh.position.set(LANES[rampLane], 2.15, -78.5);
-        scene.add(deckCoinMesh);
-        coins.push({ mesh: deckCoinMesh, lane: rampLane, collected: false });
-      } else if (kindRoll < 0.72) {
-        // Obstáculo alto con espacio inferior para deslizarse
-        const highLane = lanes[Math.floor(Math.random() * lanes.length)];
-        const highMesh = createHighObstacleMesh(highLane);
-        scene.add(highMesh);
-        obstacles.push({ mesh: highMesh, lane: highLane, requiresSlide: true });
-
-        const freeLanes = lanes.filter((l) => l !== highLane);
-        const coinLane = freeLanes[Math.floor(Math.random() * freeLanes.length)];
-        const coinMesh = new THREE.Mesh(coinGeo, coinMat);
-        coinMesh.position.set(LANES[coinLane], 1.0, -72);
-        scene.add(coinMesh);
-        coins.push({ mesh: coinMesh, lane: coinLane, collected: false });
-      } else {
-        // Obstáculo normal en pista
-        const obsLane = lanes[Math.floor(Math.random() * lanes.length)];
-        const obsMesh = new THREE.Mesh(obsGeo, obsMat);
-        obsMesh.position.set(LANES[obsLane], 0.75, -72);
-        scene.add(obsMesh);
-        obstacles.push({ mesh: obsMesh, lane: obsLane, requiresSlide: false });
-
-        const freeLanes = lanes.filter((l) => l !== obsLane);
-        const coinLane = freeLanes[Math.floor(Math.random() * freeLanes.length)];
-        const coinMesh = new THREE.Mesh(coinGeo, coinMat);
-        coinMesh.position.set(LANES[coinLane], 1.0, -72);
-        scene.add(coinMesh);
-        coins.push({ mesh: coinMesh, lane: coinLane, collected: false });
+    function moveLane(dir) {
+      if (mode !== "playing") return;
+      const nextLane = Math.max(0, Math.min(2, currentLane + dir));
+      if (nextLane !== currentLane) {
+        currentLane = nextLane;
+        playTone(420, 0.06, "triangle", 0.1, 0);
       }
     }
 
-    function jumpPlayer() {
+    function jump() {
       if (mode !== "playing") return;
       if (isGrounded) {
-        isSliding = false;
-        slideTimer = 0;
-        velY = 12.2;
         isGrounded = false;
-        playTone(440, 0.12, "sine", 0.14, 0);
+        isSliding = false;
+        playerRoot.scale.y = 1;
+        velY = JUMP_VEL;
+        playTone(560, 0.1, "sine", 0.12, 0);
       }
     }
 
-    function slidePlayer() {
+    function slide() {
       if (mode !== "playing") return;
       if (!isGrounded) {
-        velY = -18;
+        velY = Math.min(velY, -18);
       }
       isSliding = true;
       slideTimer = 0.65;
-      playTone(260, 0.11, "triangle", 0.12, 0);
-    }
-
-    function moveLane(delta) {
-      if (mode !== "playing") return;
-      currentLane = Math.max(0, Math.min(2, currentLane + delta));
-      playTone(330, 0.07, "triangle", 0.09, 0);
+      playerRoot.scale.y = 0.52;
+      playTone(310, 0.09, "sawtooth", 0.08, 0);
     }
 
     function activateBoard() {
       if (mode !== "playing") return;
       if (boardActiveTimer > 0) {
-        showToast("¡Patineta ya activa!");
+        showToast("Ya tienes una patineta activa");
         return;
       }
       if (state.boards <= 0) {
-        showToast("No tienes patinetas. Cómpralas en la Tienda");
+        showToast("No tienes patinetas");
         return;
       }
       state.boards -= 1;
-      boardActiveTimer = 8.0;
+      boardActiveTimer = 10;
       boardMesh.visible = true;
       saveState();
       syncUI();
-      playTone(523.25, 0.16, "triangle", 0.18, 0);
-      showToast("🛹 ¡Patineta activada (8s)!");
+      playTone(720, 0.14, "triangle", 0.14, 0);
+      showToast("🛹 ¡Patineta activada por 10s!");
     }
 
-    function startGame() {
-      clearEntities();
-      currentLane = 1;
-      playerY = 0;
-      velY = 0;
-      isGrounded = true;
-      isSliding = false;
-      slideTimer = 0;
-      boardActiveTimer = 0;
-      invincibleTimer = 1.0;
-      boardMesh.visible = false;
-      runScore = 0;
-      runCoins = 0;
-      runSpeed = 16;
-      spawnTimer = 0.2;
-      mode = "playing";
-
-      document.getElementById("lobbyOverlay").classList.add("hidden");
-      document.getElementById("gameOverModal").classList.add("hidden");
-      document.getElementById("runHud").classList.remove("hidden");
-      document.getElementById("touchControls").classList.remove("hidden");
-      syncUI();
+    function clearWorldEntities() {
+      for (let i = 0; i < obstacles.length; i++) scene.remove(obstacles[i].mesh);
+      obstacles.length = 0;
+      for (let i = 0; i < coinsList.length; i++) scene.remove(coinsList[i].mesh);
+      coinsList.length = 0;
+      for (let i = 0; i < pickupsList.length; i++) scene.remove(pickupsList[i].mesh);
+      pickupsList.length = 0;
     }
 
-    function finishGame() {
-      mode = "gameover";
-      boardMesh.visible = false;
-      state.bank += runCoins;
-      if (Math.floor(runScore) > state.best) {
-        state.best = Math.floor(runScore);
+    function spawnObstacle() {
+      const lane = Math.floor(Math.random() * 3);
+      const roll = Math.random();
+      const group = new THREE.Group();
+      let kind = "low";
+      let w = 1.9;
+      let h = 1.5;
+      let d = 1.6;
+
+      if (roll < 0.32) {
+        kind = "high";
+        h = 1.1;
+        w = 2.2;
+        d = 1.1;
+        const bar = new THREE.Mesh(
+          new THREE.BoxGeometry(w, h, d),
+          new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.4 })
+        );
+        bar.position.y = 2.05;
+        group.add(bar);
+
+        const postMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.6 });
+        [-0.9, 0.9].forEach(px => {
+          const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.5, 8), postMat);
+          post.position.set(px, 0.75, 0);
+          group.add(post);
+        });
+      } else if (roll < 0.54) {
+        kind = "oncoming";
+        w = 1.85;
+        h = 1.45;
+        d = 3.2;
+        const car = new THREE.Mesh(
+          new THREE.BoxGeometry(w, h, d),
+          new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.35 })
+        );
+        car.position.y = h * 0.5;
+        group.add(car);
+
+        const headLightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+        [-0.55, 0.55].forEach(lx => {
+          const hl = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.12), headLightMat);
+          hl.position.set(lx, 0.65, d * 0.5 + 0.04);
+          group.add(hl);
+        });
+      } else {
+        kind = "low";
+        w = 1.9;
+        h = 1.45;
+        d = 1.7;
+        const box = new THREE.Mesh(
+          new THREE.BoxGeometry(w, h, d),
+          new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.45 })
+        );
+        box.position.y = h * 0.5;
+        group.add(box);
       }
-      saveState();
-      syncUI();
 
-      document.getElementById("touchControls").classList.add("hidden");
-      document.getElementById("overCoins").textContent = runCoins;
-      document.getElementById("overScore").textContent = Math.floor(runScore);
-      document.getElementById("overKeys").textContent = state.keys;
-      document.getElementById("reviveKeysCount").textContent = state.keys;
-      document.getElementById("gameOverModal").classList.remove("hidden");
-      playTone(196, 0.28, "sawtooth", 0.16, 0);
+      group.position.set(LANES[lane], 0, -95);
+      scene.add(group);
+      obstacles.push({ mesh: group, lane, kind, w, h, d, hit: false });
     }
 
-    function handleCollision() {
-      if (invincibleTimer > 0) return;
+    function spawnTrafficWave() {
+      const freeLane = Math.floor(Math.random() * 3);
+      for (let lane = 0; lane < 3; lane++) {
+        if (lane === freeLane) continue;
+        const isTruck = Math.random() < 0.45;
+        const w = 1.95;
+        const h = isTruck ? 2.5 : 1.5;
+        const d = isTruck ? 4.8 : 2.8;
+        const mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(w, h, d),
+          new THREE.MeshStandardMaterial({ color: isTruck ? 0x64748b : 0x3b82f6, roughness: 0.4 })
+        );
+        mesh.position.set(LANES[lane], h * 0.5, -96 - (lane === 0 ? 1.5 : 0));
+        scene.add(mesh);
+        obstacles.push({ mesh, lane, kind: "low", w, h, d, hit: false });
+      }
+    }
 
-      if (boardActiveTimer > 0) {
+    function spawnCoinRow() {
+      const lane = Math.floor(Math.random() * 3);
+      const count = 4;
+      for (let i = 0; i < count; i++) {
+        const m = new THREE.Mesh(coinGeo, coinMat);
+        m.position.set(LANES[lane], 1.15, -90 - i * 2.4);
+        scene.add(m);
+        coinsList.push({ mesh: m, lane });
+      }
+    }
+
+    function spawnMultiplierPickup() {
+      const lane = Math.floor(Math.random() * 3);
+      const value = runDistance > 250 && Math.random() < 0.45 ? 4 : 2;
+      const m = new THREE.Mesh(pickupGeo, value === 4 ? mult4Mat : mult2Mat);
+      m.position.set(LANES[lane], 1.45, -96);
+      scene.add(m);
+      pickupsList.push({ mesh: m, lane, value });
+    }
+
+    function startNewRun(keepInventory) {
+      if (!keepInventory) {
+        clearWorldEntities();
+        runScore = 0;
+        runCoins = 0;
+        runDistance = 0;
+        runSpeed = 16;
         boardActiveTimer = 0;
+        invincibleTimer = 0;
+        multiplierValue = 1;
+        multiplierTimer = 0;
+        spawnObstacleTimer = 1.1;
+        spawnCoinTimer = 0.6;
+        spawnMultCooldown = 16;
+        trafficWaveCooldown = 7;
+        currentLane = 1;
+        velY = 0;
+        isGrounded = true;
+        isSliding = false;
+        slideTimer = 0;
+        playerRoot.position.set(0, 0, 0);
+        playerRoot.scale.y = 1;
         boardMesh.visible = false;
-        invincibleTimer = 1.2;
-        showToast("🛹 ¡Tu patineta absorbió el choque!");
-        playTone(587.33, 0.14, "triangle", 0.16, 0);
-        return;
       }
-
-      if (state.lives > 1) {
-        state.lives -= 1;
-        invincibleTimer = 1.5;
-        saveState();
-        syncUI();
-        showToast("❤️ ¡Usaste 1 Vida Extra!");
-        playTone(440, 0.15, "triangle", 0.16, 0);
-        return;
-      }
-
-      finishGame();
+      setScreenMode("playing");
+      syncUI();
+      startBackgroundMusic();
+      showToast("¡A correr!");
     }
 
-    // --- Eventos de interfaz ---
-    document.getElementById("startBtn").addEventListener("click", startGame);
-    document.getElementById("retryBtn").addEventListener("click", startGame);
-    document.getElementById("goLobbyBtn").addEventListener("click", () => {
-      mode = "lobby";
-      clearEntities();
-      document.getElementById("gameOverModal").classList.add("hidden");
-      document.getElementById("runHud").classList.add("hidden");
-      document.getElementById("touchControls").classList.add("hidden");
-      document.getElementById("lobbyOverlay").classList.remove("hidden");
+    function pauseGame() {
+      if (mode !== "playing") return;
+      stopBackgroundMusic();
+      setScreenMode("paused");
       syncUI();
-    });
+    }
 
-    document.getElementById("reviveKeyBtn").addEventListener("click", () => {
+    function resumeGame() {
+      if (mode !== "paused") return;
+      setScreenMode("playing");
+      syncUI();
+      startBackgroundMusic();
+    }
+
+    function exitToLobby() {
+      stopBackgroundMusic();
+      clearWorldEntities();
+      setScreenMode("lobby");
+      syncUI();
+    }
+
+    function triggerGameOver() {
+      stopBackgroundMusic();
+      playTone(150, 0.25, "sawtooth", 0.16, 0);
+
+      const finalPts = Math.floor(runScore);
+      const finalDist = Math.floor(runDistance);
+      const beatScore = finalPts > state.best;
+      const beatDist = finalDist > state.bestDistance;
+
+      if (beatScore) state.best = finalPts;
+      if (beatDist) state.bestDistance = finalDist;
+      saveState();
+
+      document.getElementById("newRecordBadge").classList.toggle("hidden", !(beatScore || beatDist));
+      document.getElementById("earnedCoinsVal").textContent = runCoins;
+      document.getElementById("finalScoreVal").textContent = finalPts;
+      document.getElementById("finalDistanceVal").textContent = finalDist + "m";
+      document.getElementById("finalBestDistVal").textContent = Math.floor(state.bestDistance) + "m";
+      document.getElementById("finalKeysVal").textContent = state.keys;
+      document.getElementById("reviveKeysCount").textContent = state.keys;
+
+      setScreenMode("gameover");
+      syncUI();
+    }
+
+    function reviveWithKey() {
       if (state.keys <= 0) {
-        showToast("No tienes llaves. Compra una en la Tienda");
+        showToast("No tienes llaves");
         return;
       }
       state.keys -= 1;
-      invincibleTimer = 2.0;
-      obstacles.forEach((o) => {
-        if (o.mesh.position.z > -14) o.mesh.position.z = -65;
-      });
-      mode = "playing";
+      invincibleTimer = 2.5;
+      velY = 0;
+      isGrounded = true;
+      playerRoot.position.y = 0;
+      playerRoot.scale.y = 1;
+      isSliding = false;
       saveState();
+      setScreenMode("playing");
       syncUI();
-      document.getElementById("gameOverModal").classList.add("hidden");
-      document.getElementById("touchControls").classList.remove("hidden");
-      playTone(659.25, 0.18, "triangle", 0.18, 0);
-      showToast("🔑 ¡Reviviste con tu llave!");
-    });
-
-    const openShop = () => {
-      syncUI();
-      document.getElementById("shopModal").classList.remove("hidden");
-    };
-    const closeShop = () => {
-      document.getElementById("shopModal").classList.add("hidden");
-    };
-    document.getElementById("shopTopBtn").addEventListener("click", openShop);
-    document.getElementById("lobbyShopBtn").addEventListener("click", openShop);
-    document.getElementById("closeShopBtn").addEventListener("click", closeShop);
-
-    async function buyBoard() {
-      if (state.bank < 25) return showToast("Necesitas 25 CKN");
-      const ok = await authorizePurchase("Patineta x1");
-      if (!ok) return;
-      state.bank -= 25;
-      state.boards += 1;
-      saveState();
-      syncUI();
-      playTone(587.33, 0.14, "triangle", 0.16, 0);
-      showToast("Compraste 1 Patineta");
+      startBackgroundMusic();
+      showToast("🔑 ¡Has revivido!");
     }
 
-    async function buyKey() {
-      if (state.bank < 35) return showToast("Necesitas 35 CKN");
-      const ok = await authorizePurchase("Llave x1");
-      if (!ok) return;
-      state.bank -= 35;
-      state.keys += 1;
-      saveState();
-      syncUI();
-      playTone(659.25, 0.14, "triangle", 0.16, 0);
-      showToast("🔑 Compraste 1 Llave");
-    }
+    function setScreenMode(nextMode) {
+      mode = nextMode;
+      document.getElementById("lobbyOverlay").classList.toggle("hidden", nextMode !== "lobby");
+      document.getElementById("runHud").classList.toggle("hidden", nextMode !== "playing");
+      document.getElementById("touchControls").classList.toggle("hidden", nextMode !== "playing");
+      document.getElementById("pauseBtn").classList.toggle("hidden", nextMode !== "playing");
+      document.getElementById("settingsBtn").classList.toggle("hidden", nextMode === "playing");
+      document.getElementById("pauseModal").classList.toggle("hidden", nextMode !== "paused");
+      document.getElementById("gameOverModal").classList.toggle("hidden", nextMode !== "gameover");
 
-    async function buyLife() {
-      if (state.bank < 45) return showToast("Necesitas 45 CKN");
-      const ok = await authorizePurchase("Vida Extra");
-      if (!ok) return;
-      state.bank -= 45;
-      state.lives += 1;
-      saveState();
-      syncUI();
-      playTone(523.25, 0.14, "triangle", 0.16, 0);
-      showToast("❤️ Compraste 1 Vida Extra");
-    }
-
-    document.getElementById("quickBoardBtn").addEventListener("click", buyBoard);
-    document.getElementById("shopBuyBoard").addEventListener("click", buyBoard);
-    document.getElementById("quickKeyBtn").addEventListener("click", buyKey);
-    document.getElementById("shopBuyKey").addEventListener("click", buyKey);
-    document.getElementById("shopBuyLife").addEventListener("click", buyLife);
-
-    document.getElementById("bonusBtn").addEventListener("click", () => {
-      if (state.bonusClaimed) {
-        showToast("Ya reclamaste el bono inicial");
-        return;
+      if (nextMode === "lobby" && state.musicEnabled) {
+        startBackgroundMusic();
+      } else if (nextMode === "gameover" || nextMode === "paused") {
+        stopBackgroundMusic();
       }
-      state.bank += 30;
-      state.bonusClaimed = true;
-      saveState();
-      syncUI();
-      playTone(783.99, 0.18, "triangle", 0.18, 0);
-      showToast("🎁 ¡Recibiste +30 CKN!");
-    });
+    }
 
-    document.getElementById("walletBtn").addEventListener("click", async () => {
-      if (!state.walletConnected) {
-        if (window.ethereum) {
-          try {
-            const accs = await window.ethereum.request({ method: "eth_requestAccounts" });
-            if (accs && accs.length > 0) {
-              state.walletAddress = accs[0];
-              state.walletConnected = true;
-              saveState();
-              syncUI();
-              showToast("Billetera conectada: " + accs[0].slice(0, 6) + "..." + accs[0].slice(-4));
-              return;
-            }
-          } catch (e) {
-            showToast("Conexión cancelada");
+    async function connectWallet() {
+      try {
+        if (state.walletConnected) {
+          state.walletConnected = false;
+          state.walletAddress = "";
+          saveState();
+          syncUI();
+          showToast("Billetera desconectada");
+          return;
+        }
+        if (window.ethereum && typeof window.ethereum.request === "function") {
+          const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+          if (Array.isArray(accounts) && accounts[0]) {
+            state.walletConnected = true;
+            state.walletAddress = accounts[0];
+            saveState();
+            syncUI();
+            showToast("Billetera conectada");
             return;
           }
         }
-        state.walletAddress = "0x7F3b...9C4A";
-        state.walletConnected = true;
+        showToast("No se detectó billetera Web3");
+      } catch (e) {
+        showToast("Conexión cancelada");
+      }
+    }
+
+    function animatePlayer(dt) {
+      runAnimPhase += dt * (mode === "playing" ? runSpeed * 0.78 : 6.5);
+      const swing = Math.sin(runAnimPhase) * 0.65;
+      leftLeg.rotation.x = swing;
+      rightLeg.rotation.x = -swing;
+      leftArm.rotation.x = -swing * 0.75;
+      rightArm.rotation.x = swing * 0.75;
+    }
+
+    function bindEvents() {
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      window.addEventListener("keydown", e => {
+        if (e.key === "Escape" || e.key === "p" || e.key === "P") {
+          if (mode === "playing") pauseGame();
+          else if (mode === "paused") resumeGame();
+          return;
+        }
+        if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") moveLane(-1);
+        else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") moveLane(1);
+        else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " ") jump();
+        else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") slide();
+      });
+
+      let touchStartX = 0;
+      let touchStartY = 0;
+      canvas.addEventListener("touchstart", e => {
+        if (!e.touches || !e.touches[0]) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        if ((state.musicEnabled || state.sfxEnabled) && mode !== "gameover") {
+          ensureAudioContext();
+          if (state.musicEnabled && !bgmTimerId) startBackgroundMusic();
+        }
+      }, { passive: true });
+
+      canvas.addEventListener("touchend", e => {
+        if (!e.changedTouches || !e.changedTouches[0] || mode !== "playing") return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy)) {
+          moveLane(dx > 0 ? 1 : -1);
+        } else if (dy < -28) {
+          jump();
+        } else if (dy > 28) {
+          slide();
+        }
+      }, { passive: true });
+
+      document.getElementById("btnBoard").addEventListener("click", activateBoard);
+
+      document.querySelectorAll(".musicStyleBtn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const style = btn.getAttribute("data-music-style");
+          if (!style) return;
+          state.musicStyle = style;
+          saveState();
+          syncUI();
+          if (state.musicEnabled) {
+            stopBackgroundMusic();
+            startBackgroundMusic();
+          }
+          playTone(587.33, 0.09, "triangle", 0.12, 0);
+          showToast(`Estilo: ${btn.textContent.trim()}`);
+        });
+      });
+
+      document.getElementById("startRunBtn").addEventListener("click", () => startNewRun(false));
+      document.getElementById("retryRunBtn").addEventListener("click", () => startNewRun(false));
+      document.getElementById("backLobbyBtn").addEventListener("click", exitToLobby);
+      document.getElementById("pauseBtn").addEventListener("click", pauseGame);
+      document.getElementById("resumeBtn").addEventListener("click", resumeGame);
+      document.getElementById("pauseSettingsBtn").addEventListener("click", () => {
+        syncUI();
+        document.getElementById("settingsModal").classList.remove("hidden");
+      });
+      document.getElementById("restartFromPauseBtn").addEventListener("click", () => startNewRun(false));
+      document.getElementById("exitToLobbyBtn").addEventListener("click", exitToLobby);
+      document.getElementById("reviveKeyBtn").addEventListener("click", reviveWithKey);
+      document.getElementById("walletBtn").addEventListener("click", connectWallet);
+
+      const openShop = () => {
+        syncUI();
+        document.getElementById("shopModal").classList.remove("hidden");
+      };
+      document.getElementById("openShopBtn").addEventListener("click", openShop);
+      document.getElementById("lobbyShopBtn").addEventListener("click", openShop);
+      document.getElementById("closeShopBtn").addEventListener("click", () => {
+        document.getElementById("shopModal").classList.add("hidden");
+      });
+
+      const buyBoard = () => {
+        if (state.coins < 25) {
+          showToast("Te faltan monedas");
+          return;
+        }
+        state.coins -= 25;
+        state.boards += 1;
         saveState();
         syncUI();
-        showToast("Billetera conectada (0x7F3b...9C4A)");
-      } else {
-        state.walletConnected = false;
-        state.walletAddress = "";
+        playTone(659.25, 0.12, "triangle", 0.12, 0);
+        showToast("Compraste Patineta x1");
+      };
+      document.getElementById("buyBoardBtn").addEventListener("click", buyBoard);
+      document.getElementById("quickBoardBtn").addEventListener("click", buyBoard);
+
+      const buyKey = () => {
+        if (!state.walletConnected) {
+          showToast("Conecta tu billetera para comprar con CKN");
+          return;
+        }
+        if (state.bank < 35) {
+          showToast(`Te faltan ${35 - state.bank} CKN`);
+          return;
+        }
+        state.bank -= 35;
+        state.keys += 1;
         saveState();
         syncUI();
-        showToast("Billetera desconectada");
-      }
-    });
+        playTone(659.25, 0.12, "triangle", 0.12, 0);
+        showToast("Compraste Llave x1");
+      };
+      document.getElementById("buyKeyBtn").addEventListener("click", buyKey);
+      document.getElementById("quickKeyBtn").addEventListener("click", buyKey);
 
-    document.getElementById("soundBtn").addEventListener("click", () => {
-      state.isMuted = !state.isMuted;
-      saveState();
-      syncUI();
-      showToast(state.isMuted ? "Sonido desactivado" : "Sonido activado");
-    });
+      document.getElementById("buyLifeBtn").addEventListener("click", () => {
+        if (!state.walletConnected) {
+          showToast("Conecta tu billetera para comprar con CKN");
+          return;
+        }
+        if (state.bank < 45) {
+          showToast(`Te faltan ${45 - state.bank} CKN`);
+          return;
+        }
+        state.bank -= 45;
+        state.lives += 1;
+        saveState();
+        syncUI();
+        playTone(659.25, 0.12, "triangle", 0.12, 0);
+        showToast("Compraste +1 Vida Extra");
+      });
 
-    // Teclado y botones táctiles
-    window.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") moveLane(-1);
-      if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") moveLane(1);
-      if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " ") jumpPlayer();
-      if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") slidePlayer();
-      if (e.key === "b" || e.key === "B") activateBoard();
-    });
+      document.getElementById("claimBonusBtn").addEventListener("click", () => {
+        if (state.bonusClaimed) {
+          showToast("Bono ya reclamado");
+          return;
+        }
+        state.bonusClaimed = true;
+        state.coins += 30;
+        saveState();
+        syncUI();
+        playTone(784, 0.14, "triangle", 0.14, 0);
+        showToast("¡Recibiste +30 monedas!");
+      });
 
-    document.getElementById("btnBoard").addEventListener("click", activateBoard);
+      document.getElementById("settingsBtn").addEventListener("click", () => {
+        syncUI();
+        document.getElementById("settingsModal").classList.remove("hidden");
+      });
+      document.getElementById("closeSettingsBtn").addEventListener("click", () => {
+        document.getElementById("settingsModal").classList.add("hidden");
+      });
+      document.getElementById("toggleMusicBtn").addEventListener("click", () => {
+        state.musicEnabled = !state.musicEnabled;
+        if (state.musicEnabled) {
+          startBackgroundMusic();
+          showToast("Música activada");
+        } else {
+          stopBackgroundMusic();
+          showToast("Música desactivada");
+        }
+        saveState();
+        syncUI();
+      });
+      document.getElementById("toggleSfxBtn").addEventListener("click", () => {
+        state.sfxEnabled = !state.sfxEnabled;
+        if (state.sfxEnabled) {
+          ensureAudioContext();
+          playTone(659.25, 0.1, "triangle", 0.14, 0);
+          showToast("Efectos de sonido activados");
+        } else {
+          showToast("Efectos de sonido desactivados");
+        }
+        saveState();
+        syncUI();
+      });
+    }
 
-    // Gestos táctiles de deslizar o tocar sobre el canvas
-    let touchStartX = 0;
-    let touchStartY = 0;
-    canvas.addEventListener("touchstart", (e) => {
-      if (!e.touches || e.touches.length === 0) return;
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
-    }, { passive: true });
-
-    canvas.addEventListener("touchend", (e) => {
-      if (mode !== "playing" || !e.changedTouches || e.changedTouches.length === 0) return;
-      const dx = e.changedTouches[0].clientX - touchStartX;
-      const dy = e.changedTouches[0].clientY - touchStartY;
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 22) {
-        moveLane(dx > 0 ? 1 : -1);
-      } else if (dy > 22) {
-        slidePlayer();
-      } else if (dy < -22 || (Math.abs(dx) < 18 && Math.abs(dy) < 18)) {
-        jumpPlayer();
-      }
-    }, { passive: true });
-
-    window.addEventListener("resize", () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    // --- Bucle de animación ---
-    let lastTime = performance.now();
-    let runCycle = 0;
-    function animate(now) {
-      requestAnimationFrame(animate);
-      const dt = Math.min((now - lastTime) / 1000, 0.05);
+    function gameLoop(now) {
+      requestAnimationFrame(gameLoop);
+      if (!lastTime) lastTime = now;
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
       lastTime = now;
 
-      // Movimiento lateral suave e inclinación al cambiar de carril
-      const targetX = LANES[currentLane];
-      const dxLane = targetX - playerGroup.position.x;
-      playerGroup.position.x += dxLane * Math.min(1, dt * 16);
-      rigGroup.rotation.z = -dxLane * 0.14;
+      if (mode === "playing") {
+        runSpeed = Math.min(32, 16 + runDistance * 0.015);
+        const stepDist = runSpeed * dt;
+        runDistance += stepDist;
+        runScore += stepDist * 2.2 * multiplierValue;
 
-      if (mode === "lobby") {
-        runCycle += dt * 6;
-        rigGroup.position.y = Math.abs(Math.sin(runCycle)) * 0.08;
-        leftLegPivot.rotation.x = Math.sin(runCycle) * 0.55;
-        rightLegPivot.rotation.x = -Math.sin(runCycle) * 0.55;
-        leftArmPivot.rotation.x = -Math.sin(runCycle) * 0.5;
-        rightArmPivot.rotation.x = Math.sin(runCycle) * 0.5;
-        playerGroup.rotation.y = Math.sin(now * 0.002) * 0.3;
-      } else if (mode === "playing") {
-        playerGroup.rotation.y = 0;
-        runSpeed = Math.min(32, runSpeed + dt * 0.45);
-        runScore += dt * runSpeed * 1.4;
-
-        if (invincibleTimer > 0) invincibleTimer = Math.max(0, invincibleTimer - dt);
+        if (multiplierTimer > 0) {
+          multiplierTimer = Math.max(0, multiplierTimer - dt);
+          if (multiplierTimer === 0) multiplierValue = 1;
+        }
         if (boardActiveTimer > 0) {
           boardActiveTimer = Math.max(0, boardActiveTimer - dt);
-          if (boardActiveTimer === 0) boardMesh.visible = false;
+          if (boardActiveTimer === 0) {
+            boardMesh.visible = false;
+            showToast("Patineta agotada");
+          }
         }
+        if (invincibleTimer > 0) {
+          invincibleTimer = Math.max(0, invincibleTimer - dt);
+        }
+
+        const targetX = LANES[currentLane];
+        playerRoot.position.x += (targetX - playerRoot.position.x) * Math.min(1, dt * 15);
 
         if (isSliding) {
-          slideTimer = Math.max(0, slideTimer - dt);
-          if (slideTimer === 0) isSliding = false;
-        }
-
-        // Calcular altura progresiva al subir por la escalera y caminar por su pasarela
-        let groundHeight = 0;
-        for (let i = ramps.length - 1; i >= 0; i--) {
-          const r = ramps[i];
-          r.mesh.position.z += runSpeed * dt;
-          if (r.lane === currentLane) {
-            const z = r.mesh.position.z;
-            // En coordenadas de escena:
-            // Escalera local z en [+2.5 .. -2.5] -> escena z en [z + 2.5 .. z - 2.5]
-            // Pasarela local z en [-2.5 .. -10.25] -> escena z en [z - 2.5 .. z - 10.25]
-            const stairFrontZ = z + 2.5;
-            const stairTopZ = z - 2.5;
-            const deckEndZ = z - 10.25;
-
-            if (stairFrontZ >= 0 && stairTopZ <= 0) {
-              const progress = Math.max(0, Math.min(1, stairFrontZ / 5.0));
-              const stairY = progress * r.topY;
-              if (playerY <= stairY + 1.0) {
-                groundHeight = Math.max(groundHeight, stairY);
-              }
-            } else if (stairTopZ > 0 && deckEndZ <= 0) {
-              if (playerY <= r.topY + 1.0 || Math.abs(playerY - r.topY) < 0.5) {
-                groundHeight = Math.max(groundHeight, r.topY);
-              }
-            }
-          }
-          if (r.mesh.position.z - 10.25 > 12) {
-            scene.remove(r.mesh);
-            ramps.splice(i, 1);
+          slideTimer -= dt;
+          if (slideTimer <= 0) {
+            isSliding = false;
+            playerRoot.scale.y = 1;
+            playerRoot.position.y = 0;
           }
         }
 
-        if (!isGrounded || playerY > groundHeight + 0.02) {
-          playerY += velY * dt;
-          velY -= 32 * dt;
-          if (playerY <= groundHeight) {
-            playerY = groundHeight;
+        if (!isGrounded || velY !== 0) {
+          velY += GRAVITY * dt;
+          playerRoot.position.y += velY * dt;
+          if (playerRoot.position.y <= 0) {
+            playerRoot.position.y = 0;
             velY = 0;
             isGrounded = true;
           }
-        } else {
-          playerY = groundHeight;
-          isGrounded = true;
-        }
-        playerGroup.position.y = playerY;
-        rigGroup.scale.y = isSliding ? 0.52 : 1.0;
-
-        // Animación de carrera (o pose en patineta)
-        if (boardActiveTimer > 0) {
-          leftLegPivot.rotation.x = -0.2;
-          rightLegPivot.rotation.x = 0.2;
-          leftArmPivot.rotation.x = -0.35;
-          rightArmPivot.rotation.x = 0.35;
-          rigGroup.position.y = 0.08;
-        } else if (isGrounded) {
-          runCycle += dt * (runSpeed * 0.85);
-          rigGroup.position.y = Math.abs(Math.sin(runCycle)) * 0.14;
-          leftLegPivot.rotation.x = Math.sin(runCycle) * 0.85;
-          rightLegPivot.rotation.x = -Math.sin(runCycle) * 0.85;
-          leftArmPivot.rotation.x = -Math.sin(runCycle) * 0.75;
-          rightArmPivot.rotation.x = Math.sin(runCycle) * 0.75;
-        } else {
-          rigGroup.position.y = 0;
-          leftLegPivot.rotation.x = -0.55;
-          rightLegPivot.rotation.x = 0.45;
-          leftArmPivot.rotation.x = -0.7;
-          rightArmPivot.rotation.x = -0.7;
         }
 
-        spawnTimer -= dt;
-        if (spawnTimer <= 0) {
-          spawnRow();
-          spawnTimer = Math.max(0.55, 16 / runSpeed * 0.95);
+        for (let i = 0; i < laneDashes.length; i++) {
+          laneDashes[i].position.z += stepDist;
+          if (laneDashes[i].position.z > 14) {
+            laneDashes[i].position.z -= 190;
+          }
         }
 
-        // Actualizar monedas
-        for (let i = coins.length - 1; i >= 0; i--) {
-          const c = coins[i];
-          c.mesh.position.z += runSpeed * dt;
-          c.mesh.rotation.y += dt * 4;
-          const distZ = Math.abs(c.mesh.position.z);
-          if (!c.collected && c.lane === currentLane && distZ < 1.1 && Math.abs(playerY - 1.0) < 1.35) {
-            c.collected = true;
-            runCoins += 1;
-            runScore += 25;
-            playTone(880, 0.1, "sine", 0.14, 0);
+        for (let i = 0; i < buildings.length; i++) {
+          buildings[i].position.z += stepDist;
+          if (buildings[i].position.z > 18) {
+            buildings[i].position.z -= 187;
+          }
+        }
+
+        spawnObstacleTimer -= dt;
+        if (spawnObstacleTimer <= 0) {
+          spawnObstacle();
+          spawnObstacleTimer = Math.max(0.72, 1.38 - runSpeed * 0.022) + Math.random() * 0.35;
+        }
+
+        trafficWaveCooldown -= dt;
+        if (trafficWaveCooldown <= 0 && runDistance > 80) {
+          spawnTrafficWave();
+          trafficWaveCooldown = 14 + Math.random() * 8;
+        }
+
+        spawnCoinTimer -= dt;
+        if (spawnCoinTimer <= 0) {
+          spawnCoinRow();
+          spawnCoinTimer = 1.15 + Math.random() * 0.55;
+        }
+
+        spawnMultCooldown -= dt;
+        if (spawnMultCooldown <= 0 && runDistance > 110) {
+          spawnMultiplierPickup();
+          spawnMultCooldown = 20 + Math.random() * 10;
+        }
+
+        const pX = playerRoot.position.x;
+        const pY = playerRoot.position.y;
+        const playerTop = isSliding ? pY + 1.25 : pY + 2.7;
+
+        for (let i = coinsList.length - 1; i >= 0; i--) {
+          const c = coinsList[i];
+          c.mesh.position.z += stepDist;
+          c.mesh.rotation.y += dt * 4.5;
+          const dx = Math.abs(c.mesh.position.x - pX);
+          const dz = Math.abs(c.mesh.position.z);
+          const dy = Math.abs(c.mesh.position.y - (pY + 1.2));
+          if (dx < 1.05 && dz < 1.15 && dy < 1.35) {
+            const gained = 1 * multiplierValue;
+            runCoins += gained;
+            state.coins += gained;
+            runScore += 15 * multiplierValue;
+            playTone(880, 0.08, "sine", 0.12, 0);
             scene.remove(c.mesh);
-            coins.splice(i, 1);
+            coinsList.splice(i, 1);
             continue;
           }
-          if (c.mesh.position.z > 8) {
+          if (c.mesh.position.z > 12) {
             scene.remove(c.mesh);
-            coins.splice(i, 1);
+            coinsList.splice(i, 1);
           }
         }
 
-        // Actualizar obstáculos
+        for (let i = pickupsList.length - 1; i >= 0; i--) {
+          const pk = pickupsList[i];
+          pk.mesh.position.z += stepDist;
+          pk.mesh.rotation.y += dt * 3.5;
+          const dx = Math.abs(pk.mesh.position.x - pX);
+          const dz = Math.abs(pk.mesh.position.z);
+          if (dx < 1.15 && dz < 1.3 && playerTop >= 0.8) {
+            multiplierValue = pk.value;
+            multiplierTimer = 10;
+            playTone(1046.5, 0.16, "triangle", 0.15, 0);
+            showToast(`¡Multiplicador x${pk.value} activado!`);
+            scene.remove(pk.mesh);
+            pickupsList.splice(i, 1);
+            continue;
+          }
+          if (pk.mesh.position.z > 12) {
+            scene.remove(pk.mesh);
+            pickupsList.splice(i, 1);
+          }
+        }
+
         for (let i = obstacles.length - 1; i >= 0; i--) {
-          const o = obstacles[i];
-          o.mesh.position.z += runSpeed * dt;
-          const distZ = Math.abs(o.mesh.position.z);
-          if (o.lane === currentLane && distZ < 1.05) {
-            const hitHigh = o.requiresSlide && !isSliding && (playerY + (isSliding ? 0.9 : 1.8)) > 1.2;
-            const hitLow = !o.requiresSlide && playerY < 1.25;
-            if (hitHigh || hitLow) {
-              scene.remove(o.mesh);
-              obstacles.splice(i, 1);
-              handleCollision();
-              if (mode !== "playing") break;
-              continue;
+          const ob = obstacles[i];
+          const speedMult = ob.kind === "oncoming" ? 1.55 : 1.0;
+          ob.mesh.position.z += stepDist * speedMult;
+
+          if (!ob.hit) {
+            const dx = Math.abs(ob.mesh.position.x - pX);
+            const halfZ = ob.d * 0.5 + 0.55;
+            const dz = Math.abs(ob.mesh.position.z);
+            if (dx < ob.w * 0.5 + 0.42 && dz < halfZ) {
+              let collided = false;
+              if (ob.kind === "high") {
+                if (!isSliding && playerTop > 1.55) collided = true;
+              } else {
+                if (pY < ob.h - 0.15) collided = true;
+              }
+
+              if (collided) {
+                ob.hit = true;
+                if (boardActiveTimer > 0) {
+                  boardActiveTimer = 0;
+                  boardMesh.visible = false;
+                  invincibleTimer = 1.4;
+                  playTone(440, 0.12, "square", 0.12, 0);
+                  showToast("¡La patineta absorbió el choque!");
+                } else if (invincibleTimer <= 0) {
+                  triggerGameOver();
+                  return;
+                }
+              }
             }
           }
-          if (o.mesh.position.z > 8) {
-            scene.remove(o.mesh);
+
+          if (ob.mesh.position.z > 16) {
+            scene.remove(ob.mesh);
             obstacles.splice(i, 1);
           }
         }
 
-        document.getElementById("scoreVal").textContent = Math.floor(runScore);
-        document.getElementById("runCoinsVal").textContent = runCoins;
+        if (now - lastHudUpdate > 80) {
+          lastHudUpdate = now;
+          syncUI();
+        }
       }
 
+      animatePlayer(dt);
+      const desiredCamX = playerRoot.position.x * 0.78;
+      camera.position.x += (desiredCamX - camera.position.x) * Math.min(1, dt * 10);
+      camera.lookAt(playerRoot.position.x * 0.45, 1.9, -11);
       renderer.render(scene, camera);
     }
 
     loadState();
     applyCharacterAppearance();
+    bindEvents();
+    setScreenMode("lobby");
     syncUI();
-    requestAnimationFrame(animate);
+    requestAnimationFrame(gameLoop);
   </script>
 </body>
 </html>
