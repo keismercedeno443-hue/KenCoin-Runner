@@ -623,7 +623,7 @@
         jump: './Jump.glb',
         slide: './Running Slide.glb'
       };
-      const GLB_DIRECT_SCALE = 0.095;
+      const TARGET_CHAR_HEIGHT = 2.15;
 
       const SEASONS = [
         {
@@ -1506,12 +1506,18 @@
         scene.add(playerRoot);
       }
 
-      function playGlbAnimation(name, fadeDuration) {
+      function playGlbAnimation(name, fadeDuration, timeScaleOverride) {
         if (!animMixer || !animActions[name]) return;
         const fade = typeof fadeDuration === 'number' ? fadeDuration : 0.15;
+        const scale = typeof timeScaleOverride === 'number'
+          ? timeScaleOverride
+          : (runState.mode === 'lobby' && name === 'run' ? 0.35 : 1);
         const nextAction = animActions[name];
 
-        if (currentAnimName === name && nextAction.isRunning()) return;
+        if (currentAnimName === name && nextAction.isRunning()) {
+          nextAction.setEffectiveTimeScale(scale);
+          return;
+        }
 
         Object.keys(animActions).forEach(function (key) {
           if (key !== name && animActions[key]) {
@@ -1527,7 +1533,7 @@
           nextAction.setLoop(THREE.LoopRepeat, Infinity);
           nextAction.clampWhenFinished = false;
         }
-        nextAction.setEffectiveTimeScale(1);
+        nextAction.setEffectiveTimeScale(scale);
         nextAction.setEffectiveWeight(1);
         nextAction.fadeIn(fade).play();
         currentAnimName = name;
@@ -1547,7 +1553,6 @@
               if (!animGltf || !animGltf.animations || !animGltf.animations.length || !animMixer) return;
               const clip = animGltf.animations[0].clone();
               clip.name = animKey;
-              // Quitar canales de posición para evitar que el root motion desplace el esqueleto fuera de pista
               clip.tracks = clip.tracks.filter(function (track) {
                 return !track.name.endsWith('.position');
               });
@@ -1557,8 +1562,12 @@
               animActions[animKey] = action;
               loadedAnimCount += 1;
 
-              if (animKey === 'run' && runState.mode === 'playing') {
-                playGlbAnimation('run', 0.1);
+              if (animKey === 'run') {
+                if (runState.mode === 'playing') {
+                  playGlbAnimation('run', 0.1, 1);
+                } else if (runState.mode === 'lobby') {
+                  playGlbAnimation('run', 0.15, 0.35);
+                }
               }
               if (loadedAnimCount === Object.keys(ANIM_URLS).length) {
                 showToast('🏃 Animaciones GLB listas (Run, Jump, Slide)');
@@ -1588,24 +1597,20 @@
               }
             });
 
-            model.scale.setScalar(GLB_DIRECT_SCALE);
             model.updateMatrixWorld(true);
-
-            const box = new THREE.Box3().setFromObject(model);
+            let box = new THREE.Box3().setFromObject(model);
             const size = new THREE.Vector3();
             const center = new THREE.Vector3();
             box.getSize(size);
-            box.getCenter(center);
 
-            if (size.y > 0.001 && (size.y < 0.5 || size.y > 6.0)) {
-              const targetHeight = 2.25;
-              const ratio = targetHeight / size.y;
+            if (size.y > 0.0001) {
+              const ratio = TARGET_CHAR_HEIGHT / size.y;
               model.scale.multiplyScalar(ratio);
               model.updateMatrixWorld(true);
-              box.setFromObject(model);
-              box.getCenter(center);
+              box = new THREE.Box3().setFromObject(model);
             }
 
+            box.getCenter(center);
             model.position.x -= center.x;
             model.position.z -= center.z;
             model.position.y -= box.min.y;
@@ -1951,7 +1956,7 @@
         playerBodyGroup.position.set(0, 0, 0);
         playerRoot.position.set(0, 0, 0);
 
-        playGlbAnimation('run', 0.12);
+        playGlbAnimation('run', 0.12, 1);
         applyAtmosphereForCycle(0, false, true, false, 0, false);
         setScreenMode('playing');
         refreshAllUI();
@@ -1993,7 +1998,7 @@
             runState.isSliding = false; runState.slideTimer = 0;
             playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = 0;
           }
-          playGlbAnimation('jump', 0.08);
+          playGlbAnimation('jump', 0.08, 1);
           sfxJump();
         }
       }
@@ -2005,7 +2010,7 @@
         }
         runState.isSliding = true;
         runState.slideTimer = 0.65;
-        playGlbAnimation('slide', 0.08);
+        playGlbAnimation('slide', 0.08, 1);
         sfxSlide();
       }
 
@@ -2055,7 +2060,7 @@
         saveData.keys -= 1; persistSaveData();
         runState.mode = 'playing'; runState.invulnTimer = 2.0; runState.playerY = 0;
         runState.velocityY = 0; runState.isGrounded = true; runState.onObstacleTop = false;
-        playGlbAnimation('run', 0.12);
+        playGlbAnimation('run', 0.12, 1);
         setScreenMode('playing'); refreshAllUI(); showToast('🔑 ¡Reviviste con tu llave!');
       }
 
@@ -2290,6 +2295,7 @@
           if (lightningBoltMesh) lightningBoltMesh.visible = false;
           shieldBubbleMesh.visible = false; magnetRingMesh.visible = false;
           playerBodyGroup.scale.set(1, 1, 1);
+          playGlbAnimation('run', 0.15, 0.35);
           applyAtmosphereForCycle(0, false, true, false, 0, false);
           setScreenMode('lobby'); refreshAllUI();
         }
@@ -2561,7 +2567,7 @@
               runState.isSliding = false; runState.slideTimer = 0;
               playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = 0;
               if (glbLoadedOk && (runState.isGrounded || runState.onObstacleTop)) {
-                playGlbAnimation('run', 0.14);
+                playGlbAnimation('run', 0.14, 1);
               }
             }
           }
@@ -2587,7 +2593,7 @@
             runState.onObstacleTop = supportTopY > 0;
             runState.isGrounded = supportTopY === 0;
             if (wasAirborne && !runState.isSliding && glbLoadedOk) {
-              playGlbAnimation('run', 0.12);
+              playGlbAnimation('run', 0.12, 1);
             }
           } else {
             runState.isGrounded = false;
@@ -2706,6 +2712,9 @@
           playerRoot.position.set(0, 0, 0);
           playerRoot.rotation.y = 0;
           playerRoot.rotation.z = 0;
+          if (glbLoadedOk && animActions.run && currentAnimName !== 'run') {
+            playGlbAnimation('run', 0.15, 0.35);
+          }
           if (shadowDisc) { shadowDisc.position.y = 0.02; shadowDisc.scale.set(1, 1, 1); }
           playerBodyGroup.position.y = Math.sin(elapsed * 3) * 0.04;
           if (!glbLoadedOk) {
