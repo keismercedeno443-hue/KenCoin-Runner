@@ -1572,7 +1572,6 @@
           return false;
         }
 
-        // Si el modelo está acostado (el eje mayor es X o Z y no Y), lo ponemos de pie
         if (size.z > size.y * 1.15 && size.z >= size.x) {
           glbOrientGroup.rotation.x = -Math.PI / 2;
         } else if (size.x > size.y * 1.15 && size.x > size.z) {
@@ -1594,6 +1593,9 @@
         glbOrientGroup.position.x = Number.isFinite(center.x) ? -center.x : 0;
         glbOrientGroup.position.z = Number.isFinite(center.z) ? -center.z : 0;
         glbOrientGroup.position.y = Number.isFinite(box.min.y) ? (-box.min.y + 0.02) : 0.02;
+
+        // Voltea el personaje 180° para que mire y corra hacia el fondo (-Z) en vez de hacia la cámara (+Z)
+        glbOrientGroup.rotation.y += Math.PI;
         glbOrientGroup.updateMatrixWorld(true);
 
         const finalBox = new THREE.Box3().setFromObject(glbOrientGroup);
@@ -1652,7 +1654,6 @@
               if (!animGltf || !animGltf.animations || !animGltf.animations.length || !animMixer) return;
               const clip = animGltf.animations[0].clone();
               clip.name = animKey;
-              // Quitamos tracks de posición/escala raíz y rotaciones en cadera/hips que tumban el modelo
               clip.tracks = clip.tracks.filter(function (track) {
                 if (track.name.endsWith('.position') || track.name.endsWith('.scale')) return false;
                 const lower = track.name.toLowerCase();
