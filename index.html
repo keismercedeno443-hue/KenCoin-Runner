@@ -1079,6 +1079,30 @@
         return tex;
       }
 
+      function createRoadTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#3b4859';
+        ctx.fillRect(0, 0, 256, 256);
+
+        for (let i = 0; i < 1800; i++) {
+          const x = Math.random() * 256;
+          const y = Math.random() * 256;
+          const v = 45 + Math.floor(Math.random() * 35);
+          ctx.fillStyle = 'rgba(' + v + ',' + (v + 8) + ',' + (v + 18) + ',0.25)';
+          ctx.fillRect(x, y, 2, 2);
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(2, 32);
+        tex.needsUpdate = true;
+        return tex;
+      }
+
       function initThree() {
         scene = new THREE.Scene();
         clock = new THREE.Clock();
@@ -1213,10 +1237,10 @@
           scene.add(bank);
         }
 
-        ambientLight = new THREE.AmbientLight(0x93c5fd, 0.85);
+        ambientLight = new THREE.AmbientLight(0x93c5fd, 0.92);
         scene.add(ambientLight);
 
-        hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x3f6212, 1.0);
+        hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x3f6212, 1.05);
         scene.add(hemiLight);
 
         dirLight = new THREE.DirectionalLight(0xfff1c2, 2.2);
@@ -1230,14 +1254,15 @@
         moonLight.position.set(-20, 28, -20);
         scene.add(moonLight);
 
-        playerGlowLight = new THREE.PointLight(0x38bdf8, 0.9, 9);
+        playerGlowLight = new THREE.PointLight(0x38bdf8, 1.0, 9);
         playerGlowLight.position.set(0, 2.2, 1.5);
         scene.add(playerGlowLight);
 
         const roadWidth = LANE_WIDTH * 3 + 2.2;
+        const roadTex = createRoadTexture();
         roadMesh = new THREE.Mesh(
           new THREE.PlaneGeometry(roadWidth, 240),
-          new THREE.MeshStandardMaterial({ color: 0x3b4859, roughness: 0.8, metalness: 0.12 })
+          new THREE.MeshStandardMaterial({ map: roadTex, color: 0xffffff, roughness: 0.78, metalness: 0.12 })
         );
         roadMesh.rotation.x = -Math.PI / 2;
         roadMesh.position.set(0, 0, -90);
@@ -1280,9 +1305,10 @@
 
         for (let i = 0; i < 26; i++) {
           const side = i % 2 === 0 ? -1 : 1;
-          const prop = i % 5 === 0 ? createLampProp() : createTreeProp();
+          const prop = i % 5 === 0 ? createLampProp() : createTreeProp(i);
           const distFromRoad = i % 5 === 0 ? roadWidth * 0.5 + 0.85 : roadWidth * 0.5 + 4.5 + (i % 3) * 4;
           prop.position.set(side * distFromRoad, 0, -i * 8.2);
+          prop.userData.swayPhase = i * 0.7;
           sceneryProps.push(prop);
           scene.add(prop);
 
@@ -1323,13 +1349,30 @@
         scene.add(lightningBoltMesh);
 
         buildPlayerMesh();
-        if (fallbackBoxGroup) fallbackBoxGroup.visible = true;
+        forceFallbackVisible('init');
         loadCharacterGlbModel();
         applyCharacterAppearance(saveData.selectedChar);
         applyAtmosphereForCycle(0, false, true, false, 0, false);
       }
 
-      function createTreeProp() {
+      function forceFallbackVisible(reason) {
+        if (playerRoot) playerRoot.visible = true;
+        if (playerBodyGroup) {
+          playerBodyGroup.visible = true;
+          playerBodyGroup.scale.set(1, 1, 1);
+          playerBodyGroup.position.set(0, 0, 0);
+        }
+        if (fallbackBoxGroup) {
+          fallbackBoxGroup.visible = true;
+          fallbackBoxGroup.scale.set(1, 1, 1);
+          fallbackBoxGroup.position.set(0, 0, 0);
+        }
+        if (reason) {
+          console.log('[KenCoin] Respaldo activo:', reason);
+        }
+      }
+
+      function createTreeProp(idx) {
         const g = new THREE.Group();
         const trunk = new THREE.Mesh(
           new THREE.CylinderGeometry(0.25, 0.35, 1.6, 6),
@@ -1342,6 +1385,16 @@
           new THREE.MeshStandardMaterial({ color: 0x226b38, roughness: 0.8 })
         );
         crown.position.y = 3.1; crown.castShadow = true; g.add(crown);
+
+        const topCrown = new THREE.Mesh(
+          new THREE.ConeGeometry(1.05, 2.3, 7),
+          new THREE.MeshStandardMaterial({ color: 0x2f8548, roughness: 0.78 })
+        );
+        topCrown.position.y = 4.65; topCrown.castShadow = true; g.add(topCrown);
+
+        g.userData.crown = crown;
+        g.userData.topCrown = topCrown;
+        g.userData.idx = idx || 0;
         return g;
       }
 
@@ -1382,10 +1435,14 @@
 
       function buildPlayerMesh() {
         playerRoot = new THREE.Group();
+        playerRoot.visible = true;
+
         playerBodyGroup = new THREE.Group();
+        playerBodyGroup.visible = true;
         playerRoot.add(playerBodyGroup);
 
         glbModelGroup = new THREE.Group();
+        glbModelGroup.visible = true;
         playerBodyGroup.add(glbModelGroup);
 
         glbOrientGroup = new THREE.Group();
@@ -1515,7 +1572,7 @@
       }
 
       function normalizeGlbModelTransform() {
-        if (!glbOrientGroup) return;
+        if (!glbOrientGroup) return false;
         glbOrientGroup.position.set(0, 0, 0);
         glbOrientGroup.rotation.set(GLB_UPRIGHT_ROT_X, 0, GLB_UPRIGHT_ROT_Z);
         glbOrientGroup.scale.set(1, 1, 1);
@@ -1526,18 +1583,21 @@
         const center = new THREE.Vector3();
         box.getSize(size);
 
-        if (size.y > 0.0001 && Number.isFinite(size.y)) {
-          const ratio = TARGET_CHAR_HEIGHT / size.y;
-          glbOrientGroup.scale.setScalar(ratio);
-          glbOrientGroup.updateMatrixWorld(true);
-          box = new THREE.Box3().setFromObject(glbOrientGroup);
+        if (!(size.y > 0.001) || !Number.isFinite(size.y)) {
+          return false;
         }
 
+        const ratio = TARGET_CHAR_HEIGHT / size.y;
+        glbOrientGroup.scale.setScalar(ratio);
+        glbOrientGroup.updateMatrixWorld(true);
+        box = new THREE.Box3().setFromObject(glbOrientGroup);
         box.getCenter(center);
+
         glbOrientGroup.position.x = Number.isFinite(center.x) ? -center.x : 0;
         glbOrientGroup.position.z = Number.isFinite(center.z) ? -center.z : 0;
         glbOrientGroup.position.y = Number.isFinite(box.min.y) ? (-box.min.y + 0.04) : 0.04;
         glbOrientGroup.updateMatrixWorld(true);
+        return true;
       }
 
       function playGlbAnimation(name, fadeDuration, timeScaleOverride) {
@@ -1627,7 +1687,7 @@
             const model = gltf.scene || (gltf.scenes && gltf.scenes[0]);
             if (!model || !glbOrientGroup) {
               glbLoadedOk = false;
-              if (fallbackBoxGroup) fallbackBoxGroup.visible = true;
+              forceFallbackVisible('sin escena GLB');
               return;
             }
 
@@ -1637,6 +1697,7 @@
 
             model.traverse(function (child) {
               if (child.isMesh) {
+                child.visible = true;
                 child.castShadow = true;
                 child.receiveShadow = true;
                 child.frustumCulled = false;
@@ -1648,7 +1709,13 @@
             }
             glbOrientGroup.add(model);
             activeGlbModel = model;
-            normalizeGlbModelTransform();
+
+            const normalizedOk = normalizeGlbModelTransform();
+            if (!normalizedOk) {
+              glbLoadedOk = false;
+              forceFallbackVisible('GLB con tamaño inválido');
+              return;
+            }
 
             glbLoadedOk = true;
             if (fallbackBoxGroup) fallbackBoxGroup.visible = false;
@@ -1660,7 +1727,7 @@
             console.warn('No se pudo cargar character-opt.glb:', err);
             glbLoadedOk = false;
             activeGlbModel = null;
-            if (fallbackBoxGroup) fallbackBoxGroup.visible = true;
+            forceFallbackVisible('error al cargar GLB');
             showToast('⚠️ Usando personaje clásico');
           }
         );
@@ -1741,8 +1808,8 @@
         }
 
         if (roadMesh && roadMesh.material) {
-          roadMesh.material.color.setHex(cityActive ? 0x262f3d : (stormActive ? 0x182232 : s.roadColor));
-          roadMesh.material.roughness = stormActive ? 0.25 : 0.8;
+          roadMesh.material.color.setHex(cityActive ? 0xcbd5e1 : (stormActive ? 0x94a3b8 : 0xffffff));
+          roadMesh.material.roughness = stormActive ? 0.25 : 0.78;
         }
 
         const groundHex = cityActive
@@ -1769,12 +1836,12 @@
 
         if (ambientLight) {
           ambientLight.color.setHex(stormActive ? 0x64748b : (isNight ? 0x60a5fa : 0x93c5fd));
-          ambientLight.intensity = stormActive ? 0.6 : (isNight ? 0.78 : 0.85);
+          ambientLight.intensity = stormActive ? 0.65 : (isNight ? 0.82 : 0.92);
         }
         if (hemiLight) {
           hemiLight.color.setHex(stormActive ? 0x94a3b8 : (isNight ? 0x93c5fd : 0xbae6fd));
           hemiLight.groundColor.setHex(stormActive ? 0x0f172a : (isNight ? 0x1e293b : 0x3f6212));
-          hemiLight.intensity = stormActive ? 0.7 : (isNight ? 0.82 : 1.0);
+          hemiLight.intensity = stormActive ? 0.72 : (isNight ? 0.85 : 1.05);
         }
         if (dirLight) dirLight.intensity = stormActive ? 0.25 : (isNight ? 0.3 : 2.15);
         if (moonLight) moonLight.intensity = stormActive ? 0.35 : (isNight ? 1.35 : 0.0);
@@ -1983,10 +2050,22 @@
         if (lightningBoltMesh) lightningBoltMesh.visible = false;
         shieldBubbleMesh.visible = false;
         magnetRingMesh.visible = false;
+        playerRoot.visible = true;
+        playerBodyGroup.visible = true;
         playerBodyGroup.scale.set(1, 1, 1);
         playerBodyGroup.position.set(0, 0, 0);
         playerRoot.position.set(0, 0, 0);
-        if (activeGlbModel) normalizeGlbModelTransform();
+
+        if (glbLoadedOk && activeGlbModel) {
+          if (!normalizeGlbModelTransform()) {
+            glbLoadedOk = false;
+            forceFallbackVisible('startRun sin tamaño GLB');
+          } else if (fallbackBoxGroup) {
+            fallbackBoxGroup.visible = false;
+          }
+        } else {
+          forceFallbackVisible('startRun sin GLB');
+        }
 
         playGlbAnimation('run', 0.12, 1);
         applyAtmosphereForCycle(0, false, true, false, 0, false);
@@ -2326,8 +2405,14 @@
           if (bikeGroup) bikeGroup.visible = false;
           if (lightningBoltMesh) lightningBoltMesh.visible = false;
           shieldBubbleMesh.visible = false; magnetRingMesh.visible = false;
+          playerRoot.visible = true;
+          playerBodyGroup.visible = true;
           playerBodyGroup.scale.set(1, 1, 1);
-          if (activeGlbModel) normalizeGlbModelTransform();
+          if (glbLoadedOk && activeGlbModel) {
+            normalizeGlbModelTransform();
+          } else {
+            forceFallbackVisible('returnToLobby');
+          }
           playGlbAnimation('run', 0.15, 0.35);
           applyAtmosphereForCycle(0, false, true, false, 0, false);
           setScreenMode('lobby'); refreshAllUI();
@@ -2528,6 +2613,12 @@
         const dt = Math.min(clock.getDelta(), 0.05);
         const elapsed = clock.getElapsedTime();
 
+        if (playerRoot) playerRoot.visible = true;
+        if (playerBodyGroup) playerBodyGroup.visible = true;
+        if (!glbLoadedOk && fallbackBoxGroup && !fallbackBoxGroup.visible) {
+          fallbackBoxGroup.visible = true;
+        }
+
         if (animMixer && runState.mode !== 'paused') {
           animMixer.update(dt);
         }
@@ -2537,6 +2628,14 @@
             const ud = bank.userData;
             ud.angle += dt * ud.speed * 0.25;
             bank.position.x = Math.cos(ud.angle) * ud.radius;
+          });
+
+          sceneryProps.forEach(function (prop) {
+            if (prop.visible && prop.userData && prop.userData.crown) {
+              const sway = Math.sin(elapsed * 2.2 + (prop.userData.swayPhase || 0)) * 0.035;
+              prop.userData.crown.rotation.z = sway;
+              if (prop.userData.topCrown) prop.userData.topCrown.rotation.z = -sway * 0.8;
+            }
           });
         }
 
@@ -2549,6 +2648,10 @@
           const distDelta = runState.speed * dt;
           runState.distance += distDelta;
           runState.score += distDelta * 0.65 * (1 + (runState.difficultyLevel - 1) * 0.15) * (runState.bikeActive ? 1.25 : 1);
+
+          if (roadMesh && roadMesh.material && roadMesh.material.map) {
+            roadMesh.material.map.offset.y -= distDelta * 0.06;
+          }
 
           const cycle = computeCycleFromDistance(runState.distance);
           if (
@@ -2583,10 +2686,10 @@
             }
             if (runState.stormFlash > 0) {
               runState.stormFlash = Math.max(0, runState.stormFlash - dt);
-              if (ambientLight) ambientLight.intensity = 0.6 + (runState.stormFlash / 0.16) * 0.95;
+              if (ambientLight) ambientLight.intensity = 0.65 + (runState.stormFlash / 0.16) * 0.95;
               if (lightningBoltMesh && runState.stormFlash < 0.06) lightningBoltMesh.visible = false;
-            } else if (ambientLight && ambientLight.intensity > 0.65) {
-              ambientLight.intensity = 0.6;
+            } else if (ambientLight && ambientLight.intensity > 0.7) {
+              ambientLight.intensity = 0.65;
             }
           }
 
