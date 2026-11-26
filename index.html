@@ -624,7 +624,8 @@
         slide: './Running Slide.glb'
       };
       const TARGET_CHAR_HEIGHT = 2.15;
-      const GLB_UPRIGHT_ROT_Z = -Math.PI / 2;
+      const GLB_UPRIGHT_ROT_X = Math.PI / 2;
+      const GLB_UPRIGHT_ROT_Z = Math.PI / 2;
 
       const SEASONS = [
         {
@@ -1387,7 +1388,7 @@
         playerBodyGroup.add(glbModelGroup);
 
         glbOrientGroup = new THREE.Group();
-        glbOrientGroup.rotation.z = GLB_UPRIGHT_ROT_Z;
+        glbOrientGroup.rotation.set(GLB_UPRIGHT_ROT_X, 0, GLB_UPRIGHT_ROT_Z);
         glbModelGroup.add(glbOrientGroup);
 
         fallbackBoxGroup = new THREE.Group();
@@ -1514,7 +1515,7 @@
       function normalizeGlbModelTransform() {
         if (!glbOrientGroup) return;
         glbOrientGroup.position.set(0, 0, 0);
-        glbOrientGroup.rotation.set(0, 0, GLB_UPRIGHT_ROT_Z);
+        glbOrientGroup.rotation.set(GLB_UPRIGHT_ROT_X, 0, GLB_UPRIGHT_ROT_Z);
         glbOrientGroup.scale.set(1, 1, 1);
         glbOrientGroup.updateMatrixWorld(true);
 
