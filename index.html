@@ -1018,7 +1018,6 @@
       let bikeGroup, shieldBubbleMesh, magnetRingMesh, shadowDisc;
       let glbLoadedOk = false;
 
-      // Sistema de animaciones GLB (sin skin)
       let animMixer = null;
       let animActions = {};
       let currentAnimName = '';
@@ -1548,6 +1547,12 @@
               if (!animGltf || !animGltf.animations || !animGltf.animations.length || !animMixer) return;
               const clip = animGltf.animations[0].clone();
               clip.name = animKey;
+              // Quitar canales de posición para evitar que el root motion desplace el esqueleto fuera de pista
+              clip.tracks = clip.tracks.filter(function (track) {
+                return !track.name.endsWith('.position');
+              });
+              if (!clip.tracks.length) return;
+
               const action = animMixer.clipAction(clip);
               animActions[animKey] = action;
               loadedAnimCount += 1;
@@ -1579,6 +1584,7 @@
               if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
+                child.frustumCulled = false;
               }
             });
 
@@ -1942,6 +1948,7 @@
         shieldBubbleMesh.visible = false;
         magnetRingMesh.visible = false;
         playerBodyGroup.scale.set(1, 1, 1);
+        playerBodyGroup.position.set(0, 0, 0);
         playerRoot.position.set(0, 0, 0);
 
         playGlbAnimation('run', 0.12);
