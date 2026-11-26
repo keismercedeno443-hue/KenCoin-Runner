@@ -618,8 +618,8 @@
       const ACCOUNTS_KEY = 'kencoin_runner_3d_accounts_v1';
       const SESSION_KEY = 'kencoin_runner_3d_session_v1';
       const MODEL_URL = './character-opt.glb';
-      // Escala directa para modelos grandes/Mixamo: ajústala si lo quieres más grande (0.015) o más chico (0.008)
-      const GLB_DIRECT_SCALE = 0.012;
+      // Escala visible para modelos grandes/Mixamo (~1.9m de alto en escena)
+      const GLB_DIRECT_SCALE = 0.08;
 
       const SEASONS = [
         {
@@ -1202,13 +1202,13 @@
           scene.add(bank);
         }
 
-        ambientLight = new THREE.AmbientLight(0x93c5fd, 0.78);
+        ambientLight = new THREE.AmbientLight(0x93c5fd, 0.85);
         scene.add(ambientLight);
 
-        hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x3f6212, 0.95);
+        hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x3f6212, 1.0);
         scene.add(hemiLight);
 
-        dirLight = new THREE.DirectionalLight(0xfff1c2, 2.1);
+        dirLight = new THREE.DirectionalLight(0xfff1c2, 2.2);
         dirLight.position.set(18, 32, 16);
         dirLight.castShadow = true;
         dirLight.shadow.mapSize.width = 1024;
@@ -1513,7 +1513,27 @@
             });
 
             model.scale.setScalar(GLB_DIRECT_SCALE);
-            model.position.set(0, 0, 0);
+            model.updateMatrixWorld(true);
+
+            const box = new THREE.Box3().setFromObject(model);
+            const size = new THREE.Vector3();
+            const center = new THREE.Vector3();
+            box.getSize(size);
+            box.getCenter(center);
+
+            // Si tras escalar con GLB_DIRECT_SCALE el alto es muy pequeño (< 0.5) o muy grande (> 6), ajusta automáticamente a ~1.95m
+            if (size.y > 0.001 && (size.y < 0.5 || size.y > 6.0)) {
+              const targetHeight = 1.95;
+              const ratio = targetHeight / size.y;
+              model.scale.multiplyScalar(ratio);
+              model.updateMatrixWorld(true);
+              box.setFromObject(model);
+              box.getCenter(center);
+            }
+
+            model.position.x -= center.x;
+            model.position.z -= center.z;
+            model.position.y -= box.min.y;
 
             while (glbModelGroup.children.length > 0) {
               glbModelGroup.remove(glbModelGroup.children[0]);
@@ -1522,14 +1542,14 @@
 
             glbLoadedOk = true;
             if (fallbackBoxGroup) fallbackBoxGroup.visible = false;
-            showToast('✅ Personaje escalado (' + GLB_DIRECT_SCALE + ')');
+            showToast('✅ Personaje GLB listo');
           },
           undefined,
           function (err) {
             console.warn('No se pudo cargar character-opt.glb:', err);
             glbLoadedOk = false;
             if (fallbackBoxGroup) fallbackBoxGroup.visible = true;
-            showToast('⚠️ Error cargando character-opt.glb');
+            showToast('⚠️ Usando personaje clásico');
           }
         );
       }
