@@ -618,8 +618,7 @@
       const ACCOUNTS_KEY = 'kencoin_runner_3d_accounts_v1';
       const SESSION_KEY = 'kencoin_runner_3d_session_v1';
       const MODEL_URL = './character-opt.glb';
-      // Escala visible para modelos grandes/Mixamo (~1.9m de alto en escena)
-      const GLB_DIRECT_SCALE = 0.08;
+      const GLB_DIRECT_SCALE = 0.095;
 
       const SEASONS = [
         {
@@ -1521,9 +1520,8 @@
             box.getSize(size);
             box.getCenter(center);
 
-            // Si tras escalar con GLB_DIRECT_SCALE el alto es muy pequeño (< 0.5) o muy grande (> 6), ajusta automáticamente a ~1.95m
             if (size.y > 0.001 && (size.y < 0.5 || size.y > 6.0)) {
-              const targetHeight = 1.95;
+              const targetHeight = 2.25;
               const ratio = targetHeight / size.y;
               model.scale.multiplyScalar(ratio);
               model.updateMatrixWorld(true);
@@ -2502,7 +2500,7 @@
           }
 
           playerRoot.position.set(runState.laneX, runState.playerY, 0);
-          playerRoot.rotation.y = 0;
+          playerRoot.rotation.y = Math.PI;
           playerRoot.rotation.z = (runState.laneX - targetX) * -0.16;
 
           if (shadowDisc) {
@@ -2612,7 +2610,7 @@
           document.getElementById('hud-speed').textContent = (runState.speed / 25).toFixed(1) + 'x';
         } else if (runState.mode !== 'paused') {
           playerRoot.position.set(0, 0, 0);
-          playerRoot.rotation.y = Math.PI;
+          playerRoot.rotation.y = 0;
           playerRoot.rotation.z = 0;
           if (shadowDisc) { shadowDisc.position.y = 0.02; shadowDisc.scale.set(1, 1, 1); }
           playerBodyGroup.position.y = Math.sin(elapsed * 3) * 0.04;
