@@ -618,6 +618,11 @@
       const ACCOUNTS_KEY = 'kencoin_runner_3d_accounts_v1';
       const SESSION_KEY = 'kencoin_runner_3d_session_v1';
       const MODEL_URL = './character-opt.glb';
+      const ANIM_URLS = {
+        run: './Running.glb',
+        jump: './Jump.glb',
+        slide: './Running Slide.glb'
+      };
       const GLB_DIRECT_SCALE = 0.095;
 
       const SEASONS = [
@@ -1012,6 +1017,12 @@
       let headMesh, capVisorMesh, torsoMesh, armL, armR, legL, legR;
       let bikeGroup, shieldBubbleMesh, magnetRingMesh, shadowDisc;
       let glbLoadedOk = false;
+
+      // Sistema de animaciones GLB (sin skin)
+      let animMixer = null;
+      let animActions = {};
+      let currentAnimName = '';
+      let loadedAnimCount = 0;
 
       function createRadialTexture(stops) {
         const canvas = document.createElement('canvas');
@@ -1496,6 +1507,66 @@
         scene.add(playerRoot);
       }
 
+      function playGlbAnimation(name, fadeDuration) {
+        if (!animMixer || !animActions[name]) return;
+        const fade = typeof fadeDuration === 'number' ? fadeDuration : 0.15;
+        const nextAction = animActions[name];
+
+        if (currentAnimName === name && nextAction.isRunning()) return;
+
+        Object.keys(animActions).forEach(function (key) {
+          if (key !== name && animActions[key]) {
+            animActions[key].fadeOut(fade);
+          }
+        });
+
+        nextAction.reset();
+        if (name === 'jump' || name === 'slide') {
+          nextAction.setLoop(THREE.LoopOnce, 1);
+          nextAction.clampWhenFinished = true;
+        } else {
+          nextAction.setLoop(THREE.LoopRepeat, Infinity);
+          nextAction.clampWhenFinished = false;
+        }
+        nextAction.setEffectiveTimeScale(1);
+        nextAction.setEffectiveWeight(1);
+        nextAction.fadeIn(fade).play();
+        currentAnimName = name;
+      }
+
+      function loadAnimationClips(loader, targetObject) {
+        animMixer = new THREE.AnimationMixer(targetObject);
+        animActions = {};
+        currentAnimName = '';
+        loadedAnimCount = 0;
+
+        Object.keys(ANIM_URLS).forEach(function (animKey) {
+          const url = ANIM_URLS[animKey];
+          loader.load(
+            url,
+            function (animGltf) {
+              if (!animGltf || !animGltf.animations || !animGltf.animations.length || !animMixer) return;
+              const clip = animGltf.animations[0].clone();
+              clip.name = animKey;
+              const action = animMixer.clipAction(clip);
+              animActions[animKey] = action;
+              loadedAnimCount += 1;
+
+              if (animKey === 'run' && runState.mode === 'playing') {
+                playGlbAnimation('run', 0.1);
+              }
+              if (loadedAnimCount === Object.keys(ANIM_URLS).length) {
+                showToast('🏃 Animaciones GLB listas (Run, Jump, Slide)');
+              }
+            },
+            undefined,
+            function (err) {
+              console.warn('No se pudo cargar animación ' + url + ':', err);
+            }
+          );
+        });
+      }
+
       function loadCharacterGlbModel() {
         const loader = new GLTFLoader();
         loader.load(
@@ -1540,6 +1611,7 @@
 
             glbLoadedOk = true;
             if (fallbackBoxGroup) fallbackBoxGroup.visible = false;
+            loadAnimationClips(loader, model);
             showToast('✅ Personaje GLB listo');
           },
           undefined,
@@ -1872,6 +1944,7 @@
         playerBodyGroup.scale.set(1, 1, 1);
         playerRoot.position.set(0, 0, 0);
 
+        playGlbAnimation('run', 0.12);
         applyAtmosphereForCycle(0, false, true, false, 0, false);
         setScreenMode('playing');
         refreshAllUI();
@@ -1913,6 +1986,7 @@
             runState.isSliding = false; runState.slideTimer = 0;
             playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = 0;
           }
+          playGlbAnimation('jump', 0.08);
           sfxJump();
         }
       }
@@ -1924,6 +1998,7 @@
         }
         runState.isSliding = true;
         runState.slideTimer = 0.65;
+        playGlbAnimation('slide', 0.08);
         sfxSlide();
       }
 
@@ -1973,6 +2048,7 @@
         saveData.keys -= 1; persistSaveData();
         runState.mode = 'playing'; runState.invulnTimer = 2.0; runState.playerY = 0;
         runState.velocityY = 0; runState.isGrounded = true; runState.onObstacleTop = false;
+        playGlbAnimation('run', 0.12);
         setScreenMode('playing'); refreshAllUI(); showToast('🔑 ¡Reviviste con tu llave!');
       }
 
@@ -2406,6 +2482,10 @@
         const dt = Math.min(clock.getDelta(), 0.05);
         const elapsed = clock.getElapsedTime();
 
+        if (animMixer && runState.mode !== 'paused') {
+          animMixer.update(dt);
+        }
+
         if (runState.mode !== 'paused') {
           cloudBanks.forEach(function (bank) {
             const ud = bank.userData;
@@ -2473,6 +2553,9 @@
             if (runState.slideTimer <= 0) {
               runState.isSliding = false; runState.slideTimer = 0;
               playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = 0;
+              if (glbLoadedOk && (runState.isGrounded || runState.onObstacleTop)) {
+                playGlbAnimation('run', 0.14);
+              }
             }
           }
 
@@ -2480,6 +2563,7 @@
           runState.playerY += runState.velocityY * dt;
 
           let supportTopY = 0;
+          const wasAirborne = !runState.isGrounded && !runState.onObstacleTop;
           runState.onObstacleTop = false;
           for (let i = 0; i < obstacles.length; i++) {
             const obs = obstacles[i];
@@ -2495,6 +2579,9 @@
             runState.playerY = supportTopY; runState.velocityY = 0;
             runState.onObstacleTop = supportTopY > 0;
             runState.isGrounded = supportTopY === 0;
+            if (wasAirborne && !runState.isSliding && glbLoadedOk) {
+              playGlbAnimation('run', 0.12);
+            }
           } else {
             runState.isGrounded = false;
           }
@@ -2521,8 +2608,8 @@
               armL.rotation.x = -stride * 0.95; armR.rotation.x = stride * 0.95; legL.rotation.x = stride * 0.95; legR.rotation.x = -stride * 0.95;
             }
           } else {
-            playerBodyGroup.position.y = runState.isSliding ? -0.18 : (runState.isGrounded ? bounce * 0.06 : 0);
-            glbModelGroup.rotation.x = runState.isSliding ? -0.3 : 0;
+            playerBodyGroup.position.y = runState.isSliding ? -0.12 : (runState.isGrounded ? bounce * 0.03 : 0);
+            glbModelGroup.rotation.x = 0;
           }
 
           laneStripes.forEach(function (st) { st.position.z += distDelta; if (st.position.z > 14) st.position.z -= 160; });
