@@ -138,7 +138,8 @@
           🧲 Imán <strong id="buff-magnet-time" class="font-mono text-white">0.0s</strong>
         </span>
       </div>
-    <!-- Lateral Derecho: Cuenta/Usuario, Tienda, Configuración y Pausa debajo -->
+    </div>
+
     <!-- Lateral Derecho: Login/Usuario arriba, y Tienda, Configuración y Pausa en columna vertical -->
     <div class="pointer-events-auto fixed top-2.5 right-2 sm:top-3 sm:right-2.5 z-20 flex flex-col items-end gap-1.5">
       <button
@@ -606,10 +607,20 @@
     </div>
   </section>
 
-  <!-- Three.js y Tone.js desde CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- ImportMap para Three.js + GLTFLoader y Tone.js -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-  <script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
     (function () {
       'use strict';
 
@@ -621,6 +632,7 @@
       const STORAGE_KEY = 'kencoin_runner_3d_save_v1';
       const ACCOUNTS_KEY = 'kencoin_runner_3d_accounts_v1';
       const SESSION_KEY = 'kencoin_runner_3d_session_v1';
+      const MODEL_URL = './character-opt.glb';
 
       const SEASONS = [
         {
@@ -882,13 +894,8 @@
 
         if (typeof window.Tone !== 'undefined') {
           try {
-            const mDb = mFactor <= 0.0001 ? -120 : Tone.gainToDb(mFactor);
-            const sDb = sFactor <= 0.0001 ? -120 : Tone.gainToDb(sFactor);
             if (toneMusicGain) toneMusicGain.gain.value = mFactor;
             if (toneSfxGain) toneSfxGain.gain.value = sFactor;
-            if (toneSynth) toneSynth.volume.value = -4 + mDb;
-            if (toneKick) toneKick.volume.value = -2 + mDb;
-            if (toneNoise) toneNoise.volume.value = -6 + sDb;
           } catch (err) {}
         }
       }
@@ -1077,9 +1084,7 @@
 
       function sfxJump() {
         playTone(340, 0.13, 'sine', 0.11);
-        setTimeout(function () {
-          playTone(520, 0.13, 'sine', 0.09);
-        }, 55);
+        setTimeout(function () { playTone(520, 0.13, 'sine', 0.09); }, 55);
       }
 
       function sfxSlide() {
@@ -1089,9 +1094,7 @@
       function sfxCoin(comboStep) {
         const pitchBoost = Math.min(1.45, 1 + (comboStep || 0) * 0.03);
         playTone(784 * pitchBoost, 0.09, 'triangle', 0.1);
-        setTimeout(function () {
-          playTone(1046.5 * pitchBoost, 0.12, 'triangle', 0.1);
-        }, 55);
+        setTimeout(function () { playTone(1046.5 * pitchBoost, 0.12, 'triangle', 0.1); }, 55);
       }
 
       function sfxPowerup() {
@@ -1103,19 +1106,13 @@
 
       function sfxCrash() {
         playTone(145, 0.24, 'sawtooth', 0.14);
-        setTimeout(function () {
-          playTone(95, 0.26, 'square', 0.11);
-        }, 70);
+        setTimeout(function () { playTone(95, 0.26, 'square', 0.11); }, 70);
       }
 
       function sfxSeasonUp() {
         playTone(440, 0.12, 'triangle', 0.1);
-        setTimeout(function () {
-          playTone(554.37, 0.12, 'triangle', 0.1);
-        }, 90);
-        setTimeout(function () {
-          playTone(659.25, 0.2, 'triangle', 0.11);
-        }, 180);
+        setTimeout(function () { playTone(554.37, 0.12, 'triangle', 0.1); }, 90);
+        setTimeout(function () { playTone(659.25, 0.2, 'triangle', 0.11); }, 180);
       }
 
       function sfxThunder() {
@@ -1165,8 +1162,7 @@
         const nightLead = [392.0, 0, 466.16, 0, 523.25, 587.33, 523.25, 0, 440.0, 0, 392.0, 349.23, 392.0, 0, 493.88, 587.33];
 
         bgmTimerId = setInterval(function () {
-          if (!saveData.audioEnabled) return;
-          if (runState.mode === 'paused') return;
+          if (!saveData.audioEnabled || runState.mode === 'paused') return;
           if (audioCtx && audioCtx.state === 'suspended') {
             audioCtx.resume().catch(function () {});
           }
@@ -1180,31 +1176,15 @@
               playMusicNote(note, 0.16, 'triangle', 0.14);
             }
           } else if (runState.isNight) {
-            if (nightKickSteps.indexOf(s16) !== -1) {
-              playKick(145, 38, 0.13, 0.28);
-            }
-            if (nightSnareSteps.indexOf(s16) !== -1) {
-              playSnare(1800, 0.085, 0.18);
-            }
-            if (nightBass[s8] > 0) {
-              playMusicNote(nightBass[s8], 0.15, 'triangle', 0.18);
-            }
-            if (nightLead[s16] > 0) {
-              playMusicNote(nightLead[s16], 0.11, 'sine', 0.15);
-            }
+            if (nightKickSteps.indexOf(s16) !== -1) playKick(145, 38, 0.13, 0.28);
+            if (nightSnareSteps.indexOf(s16) !== -1) playSnare(1800, 0.085, 0.18);
+            if (nightBass[s8] > 0) playMusicNote(nightBass[s8], 0.15, 'triangle', 0.18);
+            if (nightLead[s16] > 0) playMusicNote(nightLead[s16], 0.11, 'sine', 0.15);
           } else {
-            if (dayKickSteps.indexOf(s16) !== -1) {
-              playKick(155, 42, 0.13, 0.28);
-            }
-            if (daySnareSteps.indexOf(s16) !== -1) {
-              playSnare(2150, 0.08, 0.17);
-            }
-            if (dayBass[s8] > 0) {
-              playMusicNote(dayBass[s8], 0.14, 'triangle', 0.17);
-            }
-            if (daySynth[s16] > 0) {
-              playMusicNote(daySynth[s16], 0.11, 'sine', 0.15);
-            }
+            if (dayKickSteps.indexOf(s16) !== -1) playKick(155, 42, 0.13, 0.28);
+            if (daySnareSteps.indexOf(s16) !== -1) playSnare(2150, 0.08, 0.17);
+            if (dayBass[s8] > 0) playMusicNote(dayBass[s8], 0.14, 'triangle', 0.17);
+            if (daySynth[s16] > 0) playMusicNote(daySynth[s16], 0.11, 'sine', 0.15);
           }
 
           bgmStep += 1;
@@ -1235,7 +1215,11 @@
       let burstParticles = [];
       let weatherPoints, weatherGeo;
       let lightningBoltMesh;
-      let playerRoot, playerBodyGroup, headMesh, capVisorMesh, torsoMesh, armL, armR, legL, legR, bikeGroup, shieldBubbleMesh, magnetRingMesh, shadowDisc;
+
+      let playerRoot, playerBodyGroup, fallbackBoxGroup, glbModelGroup;
+      let headMesh, capVisorMesh, torsoMesh, armL, armR, legL, legR;
+      let bikeGroup, shieldBubbleMesh, magnetRingMesh, shadowDisc;
+      let glbLoadedOk = false;
 
       function createRadialTexture(stops) {
         const canvas = document.createElement('canvas');
@@ -1435,22 +1419,18 @@
             bank.add(sp);
           }
 
-          bank.userData = {
-            speed: 0.08 + (c % 4) * 0.03,
-            angle: angle,
-            radius: radius
-          };
+          bank.userData = { speed: 0.08 + (c % 4) * 0.03, angle: angle, radius: radius };
           cloudBanks.push(bank);
           scene.add(bank);
         }
 
-        ambientLight = new THREE.AmbientLight(0x93c5fd, 0.72);
+        ambientLight = new THREE.AmbientLight(0x93c5fd, 0.78);
         scene.add(ambientLight);
 
-        hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x3f6212, 0.9);
+        hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x3f6212, 0.95);
         scene.add(hemiLight);
 
-        dirLight = new THREE.DirectionalLight(0xfff1c2, 2.0);
+        dirLight = new THREE.DirectionalLight(0xfff1c2, 2.1);
         dirLight.position.set(18, 32, 16);
         dirLight.castShadow = true;
         dirLight.shadow.mapSize.width = 1024;
@@ -1555,6 +1535,7 @@
         scene.add(lightningBoltMesh);
 
         buildPlayerMesh();
+        loadCharacterGlbModel();
         applyCharacterAppearance(saveData.selectedChar);
         applyAtmosphereForCycle(0, false, true, false, 0, false);
       }
@@ -1624,6 +1605,12 @@
         playerBodyGroup = new THREE.Group();
         playerRoot.add(playerBodyGroup);
 
+        glbModelGroup = new THREE.Group();
+        playerBodyGroup.add(glbModelGroup);
+
+        fallbackBoxGroup = new THREE.Group();
+        playerBodyGroup.add(fallbackBoxGroup);
+
         shadowDisc = new THREE.Mesh(
           new THREE.CircleGeometry(0.75, 20),
           new THREE.MeshBasicMaterial({ color: 0x020617, transparent: true, opacity: 0.36, depthWrite: false })
@@ -1643,7 +1630,6 @@
 
         headMesh = new THREE.Group();
         headMesh.position.y = 1.92;
-
         const headBox = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.84, 0.82), headMat);
         headBox.castShadow = true;
         headMesh.add(headBox);
@@ -1653,7 +1639,6 @@
           new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.55 })
         );
         capCrown.position.set(0, 0.36, 0.02);
-        capCrown.castShadow = true;
         headMesh.add(capCrown);
 
         capVisorMesh = new THREE.Mesh(
@@ -1665,98 +1650,70 @@
 
         const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.17, 0.06), eyeMat);
         eyeL.position.set(0.2, 0.04, -0.42);
-        headMesh.add(eyeL);
-
         const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.17, 0.06), eyeMat);
         eyeR.position.set(-0.2, 0.04, -0.42);
-        headMesh.add(eyeR);
-
         const smile = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.07, 0.06), smileMat);
         smile.position.set(0, -0.18, -0.42);
-        headMesh.add(smile);
-
-        playerBodyGroup.add(headMesh);
+        headMesh.add(eyeL, eyeR, smile);
+        fallbackBoxGroup.add(headMesh);
 
         torsoMesh = new THREE.Group();
         torsoMesh.position.y = 1.04;
-
         const chest = new THREE.Mesh(new THREE.BoxGeometry(0.92, 1.06, 0.54), torsoMat);
         chest.castShadow = true;
-        torsoMesh.add(chest);
-
         const hood = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.34, 0.24), torsoMat);
         hood.position.set(0, 0.34, 0.34);
-        hood.castShadow = true;
-        torsoMesh.add(hood);
-
         const collar = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.13, 0.58), trimMat);
         collar.position.set(0, 0.49, 0);
-        torsoMesh.add(collar);
-
         const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.15, 0.57), trimMat);
         stripe.position.set(0, -0.1, 0);
-        torsoMesh.add(stripe);
-
         const belt = new THREE.Mesh(
           new THREE.BoxGeometry(0.94, 0.13, 0.56),
           new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 })
         );
         belt.position.set(0, -0.47, 0);
-        torsoMesh.add(belt);
-
-        playerBodyGroup.add(torsoMesh);
+        torsoMesh.add(chest, hood, collar, stripe, belt);
+        fallbackBoxGroup.add(torsoMesh);
 
         armL = new THREE.Group();
         armL.position.set(-0.66, 1.44, 0);
         const armLMesh = new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.88, 0.3), torsoMat);
         armLMesh.position.y = -0.38;
-        armLMesh.castShadow = true;
-        armL.add(armLMesh);
         const handL = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.24, 0.3), headMat);
         handL.position.y = -0.84;
-        armL.add(handL);
-        playerBodyGroup.add(armL);
+        armL.add(armLMesh, handL);
+        fallbackBoxGroup.add(armL);
 
         armR = new THREE.Group();
         armR.position.set(0.66, 1.44, 0);
         const armRMesh = new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.88, 0.3), torsoMat);
         armRMesh.position.y = -0.38;
-        armRMesh.castShadow = true;
-        armR.add(armRMesh);
         const handR = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.24, 0.3), headMat);
         handR.position.y = -0.84;
-        armR.add(handR);
-        playerBodyGroup.add(armR);
+        armR.add(armRMesh, handR);
+        fallbackBoxGroup.add(armR);
 
         legL = new THREE.Group();
         legL.position.set(-0.24, 0.54, 0);
         const legLMesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.44, 0.38), limbMat);
         legLMesh.position.y = -0.2;
-        legLMesh.castShadow = true;
-        legL.add(legLMesh);
         const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.18, 0.56), shoeMat);
         shoeL.position.set(0, -0.42, -0.06);
-        shoeL.castShadow = true;
-        legL.add(shoeL);
         const soleL = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.58), soleMat);
         soleL.position.set(0, -0.5, -0.06);
-        legL.add(soleL);
-        playerBodyGroup.add(legL);
+        legL.add(legLMesh, shoeL, soleL);
+        fallbackBoxGroup.add(legL);
 
         legR = new THREE.Group();
         legR.position.set(0.24, 0.54, 0);
         const legRMesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.44, 0.38), limbMat);
         legRMesh.position.y = -0.2;
-        legRMesh.castShadow = true;
-        legR.add(legRMesh);
         const shoeR = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.18, 0.56), shoeMat);
         shoeR.position.set(0, -0.42, -0.06);
-        shoeR.castShadow = true;
-        legR.add(shoeR);
         const soleR = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.58), soleMat);
         soleR.position.set(0, -0.5, -0.06);
-        legR.add(soleR);
-        playerBodyGroup.add(legR);
+        legR.add(legRMesh, shoeR, soleR);
+        fallbackBoxGroup.add(legR);
 
         bikeGroup = new THREE.Group();
         const frameMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.3, metalness: 0.55 });
@@ -1765,43 +1722,26 @@
 
         const body = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.42, 1.85), frameMat);
         body.position.set(0, 0.56, 0.05);
-        body.castShadow = true;
-        bikeGroup.add(body);
-
         const fairing = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.48, 0.72), frameMat);
         fairing.position.set(0, 0.76, -0.68);
         fairing.rotation.x = 0.35;
-        fairing.castShadow = true;
-        bikeGroup.add(fairing);
-
         const headlight = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.1), neonMat);
         headlight.position.set(0, 0.82, -1.04);
-        bikeGroup.add(headlight);
-
         const handlebar = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.08, 0.1), darkMat);
         handlebar.position.set(0, 1.02, -0.58);
-        bikeGroup.add(handlebar);
-
         const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.24, 16);
         wheelGeo.rotateZ(Math.PI / 2);
         const frontWheel = new THREE.Mesh(wheelGeo, darkMat);
         frontWheel.position.set(0, 0.42, -0.88);
-        frontWheel.castShadow = true;
         const rearWheel = new THREE.Mesh(wheelGeo, darkMat);
         rearWheel.position.set(0, 0.42, 0.92);
-        rearWheel.castShadow = true;
-        bikeGroup.add(frontWheel, rearWheel);
-
+        bikeGroup.add(body, fairing, headlight, handlebar, frontWheel, rearWheel);
         bikeGroup.visible = false;
         playerRoot.add(bikeGroup);
 
         shieldBubbleMesh = new THREE.Mesh(
           new THREE.SphereGeometry(1.42, 24, 18),
-          new THREE.MeshBasicMaterial({
-            color: 0x38bdf8,
-            transparent: true,
-            opacity: 0.24
-          })
+          new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.24 })
         );
         shieldBubbleMesh.position.y = 1.25;
         shieldBubbleMesh.visible = false;
@@ -1817,6 +1757,59 @@
         playerRoot.add(magnetRingMesh);
 
         scene.add(playerRoot);
+      }
+
+      function loadCharacterGlbModel() {
+        const loader = new GLTFLoader();
+        loader.load(
+          MODEL_URL,
+          function (gltf) {
+            const model = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+            if (!model) return;
+
+            model.traverse(function (child) {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+
+            // Normalizar tamaño (~2.05m de alto) y dejar los pies en y = 0
+            const rawBox = new THREE.Box3().setFromObject(model);
+            const rawSize = new THREE.Vector3();
+            rawBox.getSize(rawSize);
+            const maxDim = Math.max(rawSize.y, rawSize.x, rawSize.z, 0.001);
+            const targetHeight = 2.05;
+            const scaleFactor = rawSize.y > 0.05 ? (targetHeight / rawSize.y) : (targetHeight / maxDim);
+
+            model.scale.setScalar(scaleFactor);
+            model.updateMatrixWorld(true);
+
+            const scaledBox = new THREE.Box3().setFromObject(model);
+            const center = new THREE.Vector3();
+            scaledBox.getCenter(center);
+
+            model.position.x -= center.x;
+            model.position.z -= center.z;
+            model.position.y -= scaledBox.min.y;
+
+            while (glbModelGroup.children.length > 0) {
+              glbModelGroup.remove(glbModelGroup.children[0]);
+            }
+            glbModelGroup.add(model);
+
+            glbLoadedOk = true;
+            if (fallbackBoxGroup) fallbackBoxGroup.visible = false;
+            showToast('✅ Modelo 3D character-opt.glb cargado');
+          },
+          undefined,
+          function (err) {
+            console.warn('No se pudo cargar character-opt.glb:', err);
+            glbLoadedOk = false;
+            if (fallbackBoxGroup) fallbackBoxGroup.visible = true;
+            showToast('⚠️ No cargó character-opt.glb (revisa ruta/WebP)');
+          }
+        );
       }
 
       function applyCharacterAppearance(charId) {
@@ -1853,21 +1846,13 @@
 
         if (!isCity) {
           if (difficultyLevel === 9) {
-            isNight = true;
-            isStorm = true;
-            stormSeverity = 1.0;
+            isNight = true; isStorm = true; stormSeverity = 1.0;
           } else if (difficultyLevel === 10) {
-            isNight = false;
-            isStorm = false;
-            stormSeverity = 0;
+            isNight = false; isStorm = false; stormSeverity = 0;
           } else if (difficultyLevel === 11) {
-            isNight = true;
-            isStorm = true;
-            stormSeverity = 2.0;
+            isNight = true; isStorm = true; stormSeverity = 2.0;
           } else if (difficultyLevel === 12) {
-            isNight = true;
-            isStorm = true;
-            stormSeverity = 1.4;
+            isNight = true; isStorm = true; stormSeverity = 1.4;
           }
         } else {
           const cityStage = Math.floor(activeDist / CYCLE_SPAN_METERS);
@@ -1953,18 +1938,18 @@
 
         if (ambientLight) {
           ambientLight.color.setHex(stormActive ? 0x64748b : (isNight ? 0x60a5fa : 0x93c5fd));
-          ambientLight.intensity = stormActive ? 0.55 : 0.72;
+          ambientLight.intensity = stormActive ? 0.6 : (isNight ? 0.78 : 0.85);
         }
         if (hemiLight) {
           hemiLight.color.setHex(stormActive ? 0x94a3b8 : (isNight ? 0x93c5fd : 0xbae6fd));
           hemiLight.groundColor.setHex(stormActive ? 0x0f172a : (isNight ? 0x1e293b : 0x3f6212));
-          hemiLight.intensity = stormActive ? 0.65 : (isNight ? 0.76 : 0.9);
+          hemiLight.intensity = stormActive ? 0.7 : (isNight ? 0.82 : 1.0);
         }
         if (dirLight) {
-          dirLight.intensity = stormActive ? 0.2 : (isNight ? 0.25 : 2.0);
+          dirLight.intensity = stormActive ? 0.25 : (isNight ? 0.3 : 2.15);
         }
         if (moonLight) {
-          moonLight.intensity = stormActive ? 0.35 : (isNight ? 1.3 : 0.0);
+          moonLight.intensity = stormActive ? 0.35 : (isNight ? 1.35 : 0.0);
         }
 
         if (weatherPoints && weatherPoints.material) {
@@ -2051,17 +2036,10 @@
           const mesh = new THREE.Group();
           const bar = new THREE.Mesh(
             new THREE.BoxGeometry(w, h, d),
-            new THREE.MeshStandardMaterial({
-              color: 0xa855f7,
-              emissive: 0x3b0764,
-              emissiveIntensity: 0.25,
-              roughness: 0.35,
-              metalness: 0.25
-            })
+            new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0x3b0764, emissiveIntensity: 0.25, roughness: 0.35, metalness: 0.25 })
           );
           bar.position.y = bottomGap + h * 0.5;
           bar.castShadow = true;
-          bar.receiveShadow = true;
           mesh.add(bar);
 
           const trim = new THREE.Mesh(
@@ -2102,15 +2080,10 @@
         const group = new THREE.Group();
         const box = new THREE.Mesh(
           new THREE.BoxGeometry(w, h, d),
-          new THREE.MeshStandardMaterial({
-            color: isMedium ? 0xe11d48 : 0xf97316,
-            roughness: 0.42,
-            metalness: 0.15
-          })
+          new THREE.MeshStandardMaterial({ color: isMedium ? 0xe11d48 : 0xf97316, roughness: 0.42, metalness: 0.15 })
         );
         box.position.y = h * 0.5;
         box.castShadow = true;
-        box.receiveShadow = true;
         group.add(box);
 
         const topBand = new THREE.Mesh(
@@ -2143,13 +2116,7 @@
         for (let i = 0; i < 3; i++) {
           const coinMesh = new THREE.Mesh(
             new THREE.CylinderGeometry(0.42, 0.42, 0.14, 16),
-            new THREE.MeshStandardMaterial({
-              color: 0xfacc15,
-              emissive: 0xca8a04,
-              emissiveIntensity: 0.4,
-              roughness: 0.25,
-              metalness: 0.72
-            })
+            new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xca8a04, emissiveIntensity: 0.4, roughness: 0.25, metalness: 0.72 })
           );
           coinMesh.rotation.z = Math.PI / 2;
           coinMesh.position.set(lane * LANE_WIDTH, baseY, -115 - i * 2.6);
@@ -2164,13 +2131,7 @@
 
         const arch = new THREE.Mesh(
           new THREE.TorusGeometry(0.42, 0.13, 10, 20, Math.PI),
-          new THREE.MeshStandardMaterial({
-            color: 0xe879f9,
-            emissive: 0xa21caf,
-            emissiveIntensity: 0.45,
-            roughness: 0.25,
-            metalness: 0.5
-          })
+          new THREE.MeshStandardMaterial({ color: 0xe879f9, emissive: 0xa21caf, emissiveIntensity: 0.45, roughness: 0.25, metalness: 0.5 })
         );
         group.add(arch);
 
@@ -2210,7 +2171,6 @@
           new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.2, metalness: 0.5 })
         );
         cabin.position.set(0, 1.4, -0.15);
-        cabin.castShadow = true;
         carGroup.add(cabin);
 
         const headlightGeo = new THREE.BoxGeometry(0.28, 0.18, 0.1);
@@ -2750,10 +2710,7 @@
         document.getElementById('btn-close-shop').addEventListener('click', closeShop);
 
         document.getElementById('shop-buy-shield').addEventListener('click', function () {
-          if (saveData.coins < 25) {
-            showToast('Necesitas 25 ¢ para un escudo');
-            return;
-          }
+          if (saveData.coins < 25) { showToast('Necesitas 25 ¢ para un escudo'); return; }
           saveData.coins -= 25;
           saveData.shields += 1;
           persistSaveData();
@@ -2763,10 +2720,7 @@
         });
 
         document.getElementById('shop-buy-bike').addEventListener('click', function () {
-          if (saveData.coins < 45) {
-            showToast('Necesitas 45 ¢ para una moto');
-            return;
-          }
+          if (saveData.coins < 45) { showToast('Necesitas 45 ¢ para una moto'); return; }
           saveData.coins -= 45;
           saveData.bikes += 1;
           persistSaveData();
@@ -2776,10 +2730,7 @@
         });
 
         document.getElementById('shop-buy-key').addEventListener('click', function () {
-          if (saveData.ckn < 35) {
-            showToast('Necesitas 35 CKN para una llave');
-            return;
-          }
+          if (saveData.ckn < 35) { showToast('Necesitas 35 CKN para una llave'); return; }
           saveData.ckn -= 35;
           saveData.keys += 1;
           persistSaveData();
@@ -2789,10 +2740,7 @@
         });
 
         document.getElementById('shop-buy-heart').addEventListener('click', function () {
-          if (saveData.coins < 40) {
-            showToast('Necesitas 40 ¢');
-            return;
-          }
+          if (saveData.coins < 40) { showToast('Necesitas 40 ¢'); return; }
           saveData.coins -= 40;
           saveData.hearts += 1;
           persistSaveData();
@@ -2803,9 +2751,7 @@
 
         const settingsModal = document.getElementById('settings-modal');
         document.getElementById('btn-open-settings').addEventListener('click', function () {
-          if (runState.mode === 'playing') {
-            pauseRun(true);
-          }
+          if (runState.mode === 'playing') pauseRun(true);
           settingsModal.classList.remove('hidden');
           settingsModal.classList.add('flex');
         });
@@ -2813,9 +2759,7 @@
         document.getElementById('btn-close-settings').addEventListener('click', function () {
           settingsModal.classList.add('hidden');
           settingsModal.classList.remove('flex');
-          if (runState.mode === 'paused' && runState.pausedFromSettings) {
-            resumeRun();
-          }
+          if (runState.mode === 'paused' && runState.pausedFromSettings) resumeRun();
         });
 
         document.getElementById('btn-toggle-audio').addEventListener('click', function () {
@@ -2860,16 +2804,12 @@
             if (lbl) lbl.textContent = pct + '%';
           });
           sfxSliderEl.addEventListener('change', function () {
-            if (saveData.audioEnabled && saveData.sfxVolume > 0) {
-              sfxCoin(0);
-            }
+            if (saveData.audioEnabled && saveData.sfxVolume > 0) sfxCoin(0);
           });
         }
 
         document.getElementById('btn-reset-save').addEventListener('click', function () {
-          try {
-            localStorage.removeItem(STORAGE_KEY);
-          } catch (err) {}
+          try { localStorage.removeItem(STORAGE_KEY); } catch (err) {}
           const currentUsername = saveData.username || 'Corredor';
           saveData = Object.assign({}, getDefaultSaveData(), { username: currentUsername });
           persistSaveData();
@@ -2933,12 +2873,8 @@
           const accounts = loadAccountsMap();
           if (activeSessionBox && sessionEmail && accounts[sessionEmail]) {
             activeSessionBox.classList.remove('hidden');
-            if (sessionUserEl) {
-              sessionUserEl.textContent = accounts[sessionEmail].username || saveData.username || 'Jugador';
-            }
-            if (sessionEmailEl) {
-              sessionEmailEl.textContent = sessionEmail;
-            }
+            if (sessionUserEl) sessionUserEl.textContent = accounts[sessionEmail].username || saveData.username || 'Jugador';
+            if (sessionEmailEl) sessionEmailEl.textContent = sessionEmail;
           } else if (activeSessionBox) {
             activeSessionBox.classList.add('hidden');
           }
@@ -2962,17 +2898,10 @@
         document.getElementById('btn-close-auth').addEventListener('click', closeAuthModal);
 
         if (tabLogin) {
-          tabLogin.addEventListener('click', function () {
-            authMode = 'login';
-            syncAuthModalState();
-          });
+          tabLogin.addEventListener('click', function () { authMode = 'login'; syncAuthModalState(); });
         }
-
         if (tabRegister) {
-          tabRegister.addEventListener('click', function () {
-            authMode = 'register';
-            syncAuthModalState();
-          });
+          tabRegister.addEventListener('click', function () { authMode = 'register'; syncAuthModalState(); });
         }
 
         const logoutBtn = document.getElementById('btn-logout-account');
@@ -3002,8 +2931,7 @@
             const password = passwordInput ? passwordInput.value : '';
             const username = (usernameInput ? usernameInput.value : '').trim().slice(0, 24);
 
-            const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-            if (!emailValid) {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
               setAuthError('Escribe un correo electrónico válido.');
               return;
             }
@@ -3025,11 +2953,7 @@
               }
 
               const initialSave = normalizeSaveData(Object.assign({}, saveData, { username: username }));
-              accounts[email] = {
-                username: username,
-                password: password,
-                save: initialSave
-              };
+              accounts[email] = { username: username, password: password, save: initialSave };
               persistAccountsMap(accounts);
               persistActiveSessionEmail(email);
               saveData = initialSave;
@@ -3067,16 +2991,12 @@
             return;
           }
           if (runState.mode !== 'playing') return;
-          if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-            moveLane(-1);
-          } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-            moveLane(1);
-          } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') {
+          if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLane(-1);
+          else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveLane(1);
+          else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') {
             e.preventDefault();
             jumpPlayer();
-          } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
-            slidePlayer();
-          }
+          } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') slidePlayer();
         });
       }
 
@@ -3136,31 +3056,24 @@
               runState.stormFlash = 0.16;
               runState.cameraShake = Math.max(runState.cameraShake, 0.12 * sev);
               if (lightningBoltMesh) {
-                const boltLaneX = LANES[Math.floor(Math.random() * LANES.length)] * LANE_WIDTH * 2.4;
-                lightningBoltMesh.position.x = boltLaneX;
+                lightningBoltMesh.position.x = LANES[Math.floor(Math.random() * LANES.length)] * LANE_WIDTH * 2.4;
                 lightningBoltMesh.visible = true;
               }
               sfxThunder();
             }
             if (runState.stormFlash > 0) {
               runState.stormFlash = Math.max(0, runState.stormFlash - dt);
-              if (ambientLight) {
-                ambientLight.intensity = 0.55 + (runState.stormFlash / 0.16) * 0.95;
-              }
-              if (lightningBoltMesh && runState.stormFlash < 0.06) {
-                lightningBoltMesh.visible = false;
-              }
-            } else if (ambientLight && ambientLight.intensity > 0.6) {
-              ambientLight.intensity = 0.55;
+              if (ambientLight) ambientLight.intensity = 0.6 + (runState.stormFlash / 0.16) * 0.95;
+              if (lightningBoltMesh && runState.stormFlash < 0.06) lightningBoltMesh.visible = false;
+            } else if (ambientLight && ambientLight.intensity > 0.65) {
+              ambientLight.intensity = 0.6;
             }
           }
 
           const targetX = runState.lane * LANE_WIDTH;
           runState.laneX += (targetX - runState.laneX) * Math.min(1, dt * 15);
 
-          if (runState.invulnTimer > 0) {
-            runState.invulnTimer = Math.max(0, runState.invulnTimer - dt);
-          }
+          if (runState.invulnTimer > 0) runState.invulnTimer = Math.max(0, runState.invulnTimer - dt);
 
           if (runState.isSliding) {
             runState.slideTimer -= dt;
@@ -3217,64 +3130,47 @@
             shadowDisc.scale.set(shadowScale, shadowScale, 1);
           }
 
-          if (playerGlowLight) {
-            playerGlowLight.position.set(runState.laneX, runState.playerY + 2.2, 1.4);
-          }
+          if (playerGlowLight) playerGlowLight.position.set(runState.laneX, runState.playerY + 2.2, 1.4);
 
           const stride = Math.sin(elapsed * runState.speed * 0.95);
           const bounce = Math.abs(Math.cos(elapsed * runState.speed * 0.95));
 
-          if (runState.isSliding) {
-            playerBodyGroup.scale.set(1, 1, 1);
-            playerBodyGroup.position.y = -0.36;
-            torsoMesh.rotation.x = -0.78;
-            torsoMesh.rotation.y = 0;
-            headMesh.rotation.x = 0.42;
-            headMesh.rotation.y = 0;
-            armL.rotation.x = -0.75;
-            armR.rotation.x = 0.75;
-            legL.rotation.x = -1.25;
-            legR.rotation.x = 0.35;
-          } else if (!runState.isGrounded && !runState.onObstacleTop) {
-            playerBodyGroup.position.y = 0;
-            const jumpPose = runState.velocityY >= 0 ? 0.45 : -0.35;
-            torsoMesh.rotation.x = -0.14 + jumpPose * 0.25;
-            torsoMesh.rotation.y = 0;
-            headMesh.rotation.x = jumpPose * 0.35;
-            headMesh.rotation.y = 0;
-            armL.rotation.x = 1.15;
-            armR.rotation.x = 0.95;
-            legL.rotation.x = 0.85;
-            legR.rotation.x = -0.75;
+          if (!glbLoadedOk) {
+            if (runState.isSliding) {
+              playerBodyGroup.position.y = -0.36;
+              torsoMesh.rotation.x = -0.78;
+              legL.rotation.x = -1.25;
+              legR.rotation.x = 0.35;
+            } else {
+              playerBodyGroup.position.y = bounce * 0.14;
+              torsoMesh.rotation.x = -0.18 - Math.abs(stride) * 0.08;
+              armL.rotation.x = -stride * 0.95;
+              armR.rotation.x = stride * 0.95;
+              legL.rotation.x = stride * 0.95;
+              legR.rotation.x = -stride * 0.95;
+            }
           } else {
-            playerBodyGroup.position.y = bounce * 0.14;
-            torsoMesh.rotation.x = -0.18 - Math.abs(stride) * 0.08;
-            torsoMesh.rotation.y = stride * 0.16;
-            headMesh.rotation.x = 0.12 - stride * 0.06;
-            headMesh.rotation.y = stride * 0.18 + (runState.laneX - targetX) * 0.12;
-            armL.rotation.x = -stride * 0.95;
-            armR.rotation.x = stride * 0.95;
-            legL.rotation.x = stride * 0.95;
-            legR.rotation.x = -stride * 0.95;
+            // Movimiento sutil de trote/deslizamiento sin romper la pose del GLB
+            if (runState.isSliding) {
+              playerBodyGroup.position.y = -0.22;
+              glbModelGroup.rotation.x = -0.35;
+            } else {
+              playerBodyGroup.position.y = (runState.isGrounded ? bounce * 0.08 : 0);
+              glbModelGroup.rotation.x = 0;
+            }
           }
 
           playerBodyGroup.visible = true;
 
           laneStripes.forEach(function (st) {
             st.position.z += distDelta;
-            if (st.position.z > 14) {
-              st.position.z -= 160;
-            }
+            if (st.position.z > 14) st.position.z -= 160;
           });
 
           sceneryProps.forEach(function (prop, idx) {
             prop.position.z += distDelta;
-            if (prop.position.z > 16) {
-              prop.position.z -= 213.2;
-            }
-            if (cityBuildings[idx]) {
-              cityBuildings[idx].position.z = prop.position.z;
-            }
+            if (prop.position.z > 16) prop.position.z -= 213.2;
+            if (cityBuildings[idx]) cityBuildings[idx].position.z = prop.position.z;
           });
 
           runState.spawnTimer -= dt;
@@ -3386,8 +3282,7 @@
                 runState.comboTimer = 2.2;
 
                 const comboBonus = runState.comboCount >= 3 ? Math.min(50, runState.comboCount * 5) : 0;
-                const gainedPts = 15 + comboBonus;
-                runState.score += gainedPts;
+                runState.score += 15 + comboBonus;
 
                 sfxCoin(runState.comboCount);
                 spawnBurst(c.mesh.position, 0xfacc15, 6);
@@ -3432,8 +3327,9 @@
           document.getElementById('hud-score').textContent = Math.floor(runState.score);
           document.getElementById('hud-speed').textContent = (runState.speed / 25).toFixed(1) + 'x';
         } else if (runState.mode !== 'paused') {
-          const idleBob = Math.sin(elapsed * 3) * 0.06;
+          const idleBob = Math.sin(elapsed * 3) * 0.05;
           playerRoot.position.set(0, 0, 0);
+          // En el lobby miramos hacia la cámara (+Z) para ver al personaje de frente
           playerRoot.rotation.y = Math.PI;
           playerRoot.rotation.z = 0;
           if (shadowDisc) {
@@ -3441,14 +3337,19 @@
             shadowDisc.scale.set(1, 1, 1);
           }
           playerBodyGroup.position.y = idleBob;
-          torsoMesh.rotation.x = 0;
-          torsoMesh.rotation.y = Math.sin(elapsed * 2) * 0.12;
-          headMesh.rotation.x = Math.sin(elapsed * 2.5) * 0.08;
-          headMesh.rotation.y = Math.sin(elapsed * 1.7) * 0.25;
-          armL.rotation.x = Math.sin(elapsed * 3) * 0.32;
-          armR.rotation.x = -Math.sin(elapsed * 3) * 0.32;
-          legL.rotation.x = Math.sin(elapsed * 2) * 0.1;
-          legR.rotation.x = -Math.sin(elapsed * 2) * 0.1;
+          if (!glbLoadedOk) {
+            torsoMesh.rotation.x = 0;
+            torsoMesh.rotation.y = Math.sin(elapsed * 2) * 0.12;
+            headMesh.rotation.x = Math.sin(elapsed * 2.5) * 0.08;
+            headMesh.rotation.y = Math.sin(elapsed * 1.7) * 0.25;
+            armL.rotation.x = Math.sin(elapsed * 3) * 0.32;
+            armR.rotation.x = -Math.sin(elapsed * 3) * 0.32;
+            legL.rotation.x = Math.sin(elapsed * 2) * 0.1;
+            legR.rotation.x = -Math.sin(elapsed * 2) * 0.1;
+          } else {
+            glbModelGroup.rotation.x = 0;
+            glbModelGroup.rotation.y = Math.sin(elapsed * 1.4) * 0.18;
+          }
         }
 
         if (runState.mode !== 'paused' && burstParticles.length > 0) {
@@ -3496,9 +3397,7 @@
           camera.updateProjectionMatrix();
         }
 
-        if (runState.cameraShake > 0) {
-          runState.cameraShake = Math.max(0, runState.cameraShake - dt);
-        }
+        if (runState.cameraShake > 0) runState.cameraShake = Math.max(0, runState.cameraShake - dt);
         const shakeX = runState.cameraShake > 0 ? (Math.random() - 0.5) * runState.cameraShake * 0.8 : 0;
         const shakeY = runState.cameraShake > 0 ? (Math.random() - 0.5) * runState.cameraShake * 0.8 : 0;
 
