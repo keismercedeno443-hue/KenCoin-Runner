@@ -1323,6 +1323,7 @@
         scene.add(lightningBoltMesh);
 
         buildPlayerMesh();
+        if (fallbackBoxGroup) fallbackBoxGroup.visible = true;
         loadCharacterGlbModel();
         applyCharacterAppearance(saveData.selectedChar);
         applyAtmosphereForCycle(0, false, true, false, 0, false);
@@ -1392,6 +1393,7 @@
         glbModelGroup.add(glbOrientGroup);
 
         fallbackBoxGroup = new THREE.Group();
+        fallbackBoxGroup.visible = true;
         playerBodyGroup.add(fallbackBoxGroup);
 
         shadowDisc = new THREE.Mesh(
@@ -1524,7 +1526,7 @@
         const center = new THREE.Vector3();
         box.getSize(size);
 
-        if (size.y > 0.0001) {
+        if (size.y > 0.0001 && Number.isFinite(size.y)) {
           const ratio = TARGET_CHAR_HEIGHT / size.y;
           glbOrientGroup.scale.setScalar(ratio);
           glbOrientGroup.updateMatrixWorld(true);
@@ -1532,9 +1534,9 @@
         }
 
         box.getCenter(center);
-        glbOrientGroup.position.x = -center.x;
-        glbOrientGroup.position.z = -center.z;
-        glbOrientGroup.position.y = -box.min.y + 0.04;
+        glbOrientGroup.position.x = Number.isFinite(center.x) ? -center.x : 0;
+        glbOrientGroup.position.z = Number.isFinite(center.z) ? -center.z : 0;
+        glbOrientGroup.position.y = Number.isFinite(box.min.y) ? (-box.min.y + 0.04) : 0.04;
         glbOrientGroup.updateMatrixWorld(true);
       }
 
@@ -1623,7 +1625,11 @@
           MODEL_URL,
           function (gltf) {
             const model = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-            if (!model || !glbOrientGroup) return;
+            if (!model || !glbOrientGroup) {
+              glbLoadedOk = false;
+              if (fallbackBoxGroup) fallbackBoxGroup.visible = true;
+              return;
+            }
 
             model.position.set(0, 0, 0);
             model.rotation.set(0, 0, 0);
