@@ -1534,7 +1534,7 @@
         box.getCenter(center);
         glbOrientGroup.position.x = -center.x;
         glbOrientGroup.position.z = -center.z;
-        glbOrientGroup.position.y = -box.min.y;
+        glbOrientGroup.position.y = -box.min.y + 0.04;
         glbOrientGroup.updateMatrixWorld(true);
       }
 
@@ -2628,7 +2628,7 @@
 
           playerRoot.position.set(runState.laneX, runState.playerY, 0);
           playerRoot.rotation.y = Math.PI;
-          playerRoot.rotation.z = (runState.laneX - targetX) * -0.16;
+          playerRoot.rotation.z = 0;
 
           if (shadowDisc) {
             shadowDisc.position.y = 0.02 - runState.playerY;
@@ -2642,13 +2642,13 @@
 
           if (!glbLoadedOk) {
             if (runState.isSliding) {
-              playerBodyGroup.position.y = -0.36; torsoMesh.rotation.x = -0.78; legL.rotation.x = -1.25; legR.rotation.x = 0.35;
+              playerBodyGroup.position.y = 0; torsoMesh.rotation.x = -0.55; legL.rotation.x = -0.95; legR.rotation.x = 0.25;
             } else {
-              playerBodyGroup.position.y = bounce * 0.14; torsoMesh.rotation.x = -0.18 - Math.abs(stride) * 0.08;
-              armL.rotation.x = -stride * 0.95; armR.rotation.x = stride * 0.95; legL.rotation.x = stride * 0.95; legR.rotation.x = -stride * 0.95;
+              playerBodyGroup.position.y = bounce * 0.08; torsoMesh.rotation.x = -0.08;
+              armL.rotation.x = -stride * 0.85; armR.rotation.x = stride * 0.85; legL.rotation.x = stride * 0.85; legR.rotation.x = -stride * 0.85;
             }
           } else {
-            playerBodyGroup.position.y = runState.isSliding ? -0.12 : (runState.isGrounded ? bounce * 0.03 : 0);
+            playerBodyGroup.position.y = runState.isSliding ? 0 : (runState.isGrounded ? bounce * 0.02 : 0);
             glbModelGroup.rotation.x = 0;
           }
 
@@ -2737,13 +2737,13 @@
           document.getElementById('hud-speed').textContent = (runState.speed / 25).toFixed(1) + 'x';
         } else if (runState.mode !== 'paused') {
           playerRoot.position.set(0, 0, 0);
-          playerRoot.rotation.y = 0;
+          playerRoot.rotation.y = Math.PI;
           playerRoot.rotation.z = 0;
           if (glbLoadedOk && animActions.run && currentAnimName !== 'run') {
             playGlbAnimation('run', 0.15, 0.35);
           }
           if (shadowDisc) { shadowDisc.position.y = 0.02; shadowDisc.scale.set(1, 1, 1); }
-          playerBodyGroup.position.y = Math.sin(elapsed * 3) * 0.04;
+          playerBodyGroup.position.y = Math.max(0, Math.sin(elapsed * 3) * 0.02);
           if (!glbLoadedOk) {
             torsoMesh.rotation.x = 0; torsoMesh.rotation.y = Math.sin(elapsed * 2) * 0.12;
             headMesh.rotation.x = Math.sin(elapsed * 2.5) * 0.08; headMesh.rotation.y = Math.sin(elapsed * 1.7) * 0.25;
@@ -2751,7 +2751,7 @@
             legL.rotation.x = Math.sin(elapsed * 2) * 0.1; legR.rotation.x = -Math.sin(elapsed * 2) * 0.1;
           } else {
             glbModelGroup.rotation.x = 0;
-            glbModelGroup.rotation.y = Math.sin(elapsed * 1.4) * 0.18;
+            glbModelGroup.rotation.y = 0;
           }
         }
 
