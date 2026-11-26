@@ -624,6 +624,7 @@
         slide: './Running Slide.glb'
       };
       const TARGET_CHAR_HEIGHT = 2.15;
+      const GLB_UPRIGHT_ROT_Z = -Math.PI / 2;
 
       const SEASONS = [
         {
@@ -1013,7 +1014,7 @@
       let obstacles = [], coins = [], magnets = [], trafficCars = [], burstParticles = [];
       let weatherPoints, weatherGeo, lightningBoltMesh;
 
-      let playerRoot, playerBodyGroup, fallbackBoxGroup, glbModelGroup, activeGlbModel = null;
+      let playerRoot, playerBodyGroup, fallbackBoxGroup, glbModelGroup, glbOrientGroup, activeGlbModel = null;
       let headMesh, capVisorMesh, torsoMesh, armL, armR, legL, legR;
       let bikeGroup, shieldBubbleMesh, magnetRingMesh, shadowDisc;
       let glbLoadedOk = false;
@@ -1385,6 +1386,10 @@
         glbModelGroup = new THREE.Group();
         playerBodyGroup.add(glbModelGroup);
 
+        glbOrientGroup = new THREE.Group();
+        glbOrientGroup.rotation.z = GLB_UPRIGHT_ROT_Z;
+        glbModelGroup.add(glbOrientGroup);
+
         fallbackBoxGroup = new THREE.Group();
         playerBodyGroup.add(fallbackBoxGroup);
 
@@ -1506,31 +1511,30 @@
         scene.add(playerRoot);
       }
 
-      function normalizeGlbModelTransform(model) {
-        if (!model) return;
-        model.position.set(0, 0, 0);
-        model.rotation.set(0, 0, 0);
-        model.scale.set(1, 1, 1);
-        model.updateMatrixWorld(true);
+      function normalizeGlbModelTransform() {
+        if (!glbOrientGroup) return;
+        glbOrientGroup.position.set(0, 0, 0);
+        glbOrientGroup.rotation.set(0, 0, GLB_UPRIGHT_ROT_Z);
+        glbOrientGroup.scale.set(1, 1, 1);
+        glbOrientGroup.updateMatrixWorld(true);
 
-        let box = new THREE.Box3().setFromObject(model);
+        let box = new THREE.Box3().setFromObject(glbOrientGroup);
         const size = new THREE.Vector3();
         const center = new THREE.Vector3();
         box.getSize(size);
 
-        const maxDim = Math.max(size.y, size.x * 0.5, size.z * 0.5);
-        if (maxDim > 0.0001) {
-          const ratio = TARGET_CHAR_HEIGHT / maxDim;
-          model.scale.setScalar(ratio);
-          model.updateMatrixWorld(true);
-          box = new THREE.Box3().setFromObject(model);
+        if (size.y > 0.0001) {
+          const ratio = TARGET_CHAR_HEIGHT / size.y;
+          glbOrientGroup.scale.setScalar(ratio);
+          glbOrientGroup.updateMatrixWorld(true);
+          box = new THREE.Box3().setFromObject(glbOrientGroup);
         }
 
         box.getCenter(center);
-        model.position.x = -center.x;
-        model.position.z = -center.z;
-        model.position.y = -box.min.y;
-        model.updateMatrixWorld(true);
+        glbOrientGroup.position.x = -center.x;
+        glbOrientGroup.position.z = -center.z;
+        glbOrientGroup.position.y = -box.min.y;
+        glbOrientGroup.updateMatrixWorld(true);
       }
 
       function playGlbAnimation(name, fadeDuration, timeScaleOverride) {
@@ -1590,7 +1594,7 @@
               loadedAnimCount += 1;
 
               if (activeGlbModel) {
-                normalizeGlbModelTransform(activeGlbModel);
+                normalizeGlbModelTransform();
               }
 
               if (animKey === 'run') {
@@ -1618,7 +1622,11 @@
           MODEL_URL,
           function (gltf) {
             const model = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-            if (!model) return;
+            if (!model || !glbOrientGroup) return;
+
+            model.position.set(0, 0, 0);
+            model.rotation.set(0, 0, 0);
+            model.scale.set(1, 1, 1);
 
             model.traverse(function (child) {
               if (child.isMesh) {
@@ -1628,13 +1636,12 @@
               }
             });
 
-            normalizeGlbModelTransform(model);
-
-            while (glbModelGroup.children.length > 0) {
-              glbModelGroup.remove(glbModelGroup.children[0]);
+            while (glbOrientGroup.children.length > 0) {
+              glbOrientGroup.remove(glbOrientGroup.children[0]);
             }
-            glbModelGroup.add(model);
+            glbOrientGroup.add(model);
             activeGlbModel = model;
+            normalizeGlbModelTransform();
 
             glbLoadedOk = true;
             if (fallbackBoxGroup) fallbackBoxGroup.visible = false;
@@ -1972,7 +1979,7 @@
         playerBodyGroup.scale.set(1, 1, 1);
         playerBodyGroup.position.set(0, 0, 0);
         playerRoot.position.set(0, 0, 0);
-        if (activeGlbModel) normalizeGlbModelTransform(activeGlbModel);
+        if (activeGlbModel) normalizeGlbModelTransform();
 
         playGlbAnimation('run', 0.12, 1);
         applyAtmosphereForCycle(0, false, true, false, 0, false);
@@ -2313,7 +2320,7 @@
           if (lightningBoltMesh) lightningBoltMesh.visible = false;
           shieldBubbleMesh.visible = false; magnetRingMesh.visible = false;
           playerBodyGroup.scale.set(1, 1, 1);
-          if (activeGlbModel) normalizeGlbModelTransform(activeGlbModel);
+          if (activeGlbModel) normalizeGlbModelTransform();
           playGlbAnimation('run', 0.15, 0.35);
           applyAtmosphereForCycle(0, false, true, false, 0, false);
           setScreenMode('lobby'); refreshAllUI();
