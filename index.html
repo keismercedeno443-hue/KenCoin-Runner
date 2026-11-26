@@ -1541,6 +1541,10 @@
         glbOrientGroup.rotation.set(0, 0, 0);
         glbOrientGroup.scale.set(1, 1, 1);
 
+        activeGlbModel.position.set(0, 0, 0);
+        activeGlbModel.rotation.set(0, 0, 0);
+        activeGlbModel.scale.set(1, 1, 1);
+
         activeGlbModel.traverse(function (child) {
           if (child.isMesh) {
             child.visible = true;
@@ -1561,7 +1565,6 @@
         glbOrientGroup.updateMatrixWorld(true);
         let box = new THREE.Box3().setFromObject(glbOrientGroup);
         const size = new THREE.Vector3();
-        const center = new THREE.Vector3();
         box.getSize(size);
 
         const maxDim = Math.max(size.x || 0, size.y || 0, size.z || 0);
@@ -1569,12 +1572,23 @@
           return false;
         }
 
-        const heightRef = size.y > 0.05 ? size.y : maxDim;
+        // Si el modelo está acostado (el eje mayor es X o Z y no Y), lo ponemos de pie
+        if (size.z > size.y * 1.15 && size.z >= size.x) {
+          glbOrientGroup.rotation.x = -Math.PI / 2;
+        } else if (size.x > size.y * 1.15 && size.x > size.z) {
+          glbOrientGroup.rotation.z = Math.PI / 2;
+        }
+        glbOrientGroup.updateMatrixWorld(true);
+
+        box = new THREE.Box3().setFromObject(glbOrientGroup);
+        box.getSize(size);
+        const heightRef = Math.max(size.y || 0.05, 0.05);
         const ratio = Math.max(0.001, Math.min(20, TARGET_CHAR_HEIGHT / heightRef));
         glbOrientGroup.scale.setScalar(ratio);
         glbOrientGroup.updateMatrixWorld(true);
 
         box = new THREE.Box3().setFromObject(glbOrientGroup);
+        const center = new THREE.Vector3();
         box.getCenter(center);
 
         glbOrientGroup.position.x = Number.isFinite(center.x) ? -center.x : 0;
@@ -1638,8 +1652,14 @@
               if (!animGltf || !animGltf.animations || !animGltf.animations.length || !animMixer) return;
               const clip = animGltf.animations[0].clone();
               clip.name = animKey;
+              // Quitamos tracks de posición/escala raíz y rotaciones en cadera/hips que tumban el modelo
               clip.tracks = clip.tracks.filter(function (track) {
-                return !track.name.endsWith('.position') && !track.name.endsWith('.scale');
+                if (track.name.endsWith('.position') || track.name.endsWith('.scale')) return false;
+                const lower = track.name.toLowerCase();
+                if ((lower.includes('hips') || lower.includes('pelvis') || lower.includes('root')) && lower.endsWith('.quaternion')) {
+                  return false;
+                }
+                return true;
               });
               if (!clip.tracks.length) return;
 
@@ -2721,8 +2741,7 @@
           }
 
           playerRoot.position.set(runState.laneX, runState.playerY, 0);
-          playerRoot.rotation.y = Math.PI;
-          playerRoot.rotation.z = 0;
+          playerRoot.rotation.set(0, 0, 0);
 
           if (shadowDisc) {
             shadowDisc.position.y = 0.02 - runState.playerY;
@@ -2831,8 +2850,7 @@
           document.getElementById('hud-speed').textContent = (runState.speed / 25).toFixed(1) + 'x';
         } else if (runState.mode !== 'paused') {
           playerRoot.position.set(0, 0, 0);
-          playerRoot.rotation.y = Math.PI;
-          playerRoot.rotation.z = 0;
+          playerRoot.rotation.set(0, 0, 0);
           if (glbLoadedOk && animActions.run && currentAnimName !== 'run') {
             playGlbAnimation('run', 0.15, 0.35);
           }
