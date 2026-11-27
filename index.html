@@ -1107,7 +1107,7 @@
             const targetDepth = SIDE_GRASS_LENGTH;
             const sx = size.x > 0.001 ? targetWidth / size.x : 1;
             const sz = size.z > 0.001 ? targetDepth / size.z : 1;
-            const sy = size.y > 0.001 ? Math.max(0.08, (Math.min(sx, sz) || 1) * 0.28) : 0.25;
+            const sy = size.y > 0.001 ? Math.max(0.03, (Math.min(sx, sz) || 0.1) * 0.09) : 0.08;
 
             const normalizedBase = new THREE.Group();
             rawModel.scale.set(sx, sy, sz);
@@ -1122,23 +1122,24 @@
             rawModel.position.y -= normBox.min.y;
 
             const sideOffsetX = roadWidth * 0.5 + targetWidth * 0.5 + 0.15;
+            const grassBaseY = -0.85;
 
             for (let i = 0; i < SIDE_GRASS_COUNT_PER_SIDE; i++) {
               const zPos = 16 - i * SIDE_GRASS_LENGTH;
 
               const leftTile = normalizedBase.clone(true);
-              leftTile.position.set(-sideOffsetX, -0.28, zPos);
+              leftTile.position.set(-sideOffsetX, grassBaseY, zPos);
               scene.add(leftTile);
               sideGrassTiles.push(leftTile);
 
               const rightTile = normalizedBase.clone(true);
-              rightTile.position.set(sideOffsetX, -0.28, zPos);
+              rightTile.position.set(sideOffsetX, grassBaseY, zPos);
               scene.add(rightTile);
               sideGrassTiles.push(rightTile);
             }
 
             sideGrassLoaded = true;
-            showToast('🌿 Césped 3D bajo y optimizado');
+            showToast('🌿 Césped 3D bajo y pegado al suelo');
           },
           undefined,
           function (err) {
