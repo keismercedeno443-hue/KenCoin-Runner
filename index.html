@@ -619,6 +619,11 @@
       const SESSION_KEY = 'kencoin_runner_3d_session_v1';
       const MODEL_URL = './character-opt.glb';
       const GRASS_MODEL_URL = './césped.glb';
+      const TREE_SINGLE_URL = './arbol_tree.glb';
+      const TREE_GROUP_URL = './arboles.glb';
+      const SCENERY_COUNT = 22;
+      const SCENERY_SPACING = 14.5;
+      const SCENERY_LOOP_SPAN = SCENERY_COUNT * SCENERY_SPACING;
       const SIDE_GRASS_LENGTH = 30.11;
       const SIDE_GRASS_WIDTH = 12.5;
       const SIDE_GRASS_COUNT_PER_SIDE = 7;
@@ -636,25 +641,29 @@
           name: 'Primavera', icon: '🌸',
           dayZenith: 0x165294, dayHorizon: 0x8cc6f2, dayFog: 0x7cb8e8,
           nightZenith: 0x071124, nightHorizon: 0x1e3a5f, nightFog: 0x0f172a,
-          roadColor: 0x2b3442, groundDay: 0x1e5c2b, groundNight: 0x0d261a, particleColor: 0xffb7d5
+          roadColor: 0x2b3442, groundDay: 0x1e5c2b, groundNight: 0x0d261a,
+          foliageDay: 0x2e8b37, foliageNight: 0x144224, particleColor: 0xffb7d5
         },
         {
           name: 'Verano', icon: '☀️',
           dayZenith: 0x0e6ba8, dayHorizon: 0x7dd3fc, dayFog: 0x67c3f0,
           nightZenith: 0x09132c, nightHorizon: 0x1d3557, nightFog: 0x0f1b33,
-          roadColor: 0x2f3b4c, groundDay: 0x19572f, groundNight: 0x0c281d, particleColor: 0xfef08a
+          roadColor: 0x2f3b4c, groundDay: 0x19572f, groundNight: 0x0c281d,
+          foliageDay: 0x187a2c, foliageNight: 0x0b3b1b, particleColor: 0xfef08a
         },
         {
           name: 'Otoño', icon: '🍂',
           dayZenith: 0x9a3412, dayHorizon: 0xfdba74, dayFog: 0xe89b54,
           nightZenith: 0x1c1024, nightHorizon: 0x4a2545, nightFog: 0x1e1326,
-          roadColor: 0x3b322a, groundDay: 0x7a3407, groundNight: 0x261209, particleColor: 0xfb923c
+          roadColor: 0x3b322a, groundDay: 0x7a3407, groundNight: 0x261209,
+          foliageDay: 0xe05a1a, foliageNight: 0x5c200b, particleColor: 0xfb923c
         },
         {
           name: 'Invierno', icon: '❄️',
           dayZenith: 0x1e3a8a, dayHorizon: 0xbae6fd, dayFog: 0x9dd6f5,
           nightZenith: 0x060d1f, nightHorizon: 0x172554, nightFog: 0x0b132b,
-          roadColor: 0x273244, groundDay: 0x7e90a6, groundNight: 0x151e2e, particleColor: 0xf8fafc
+          roadColor: 0x273244, groundDay: 0x7e90a6, groundNight: 0x151e2e,
+          foliageDay: 0xe2e8f0, foliageNight: 0x334155, particleColor: 0xf8fafc
         }
       ];
 
@@ -1018,6 +1027,7 @@
       let sidewalkLeftMesh, sidewalkRightMesh;
       let sideGrassTiles = [], sideGrassMaterials = [], sideGrassLoaded = false;
       let laneStripes = [], sceneryProps = [], cityBuildings = [];
+      let customTreeTemplates = { single: null, group: null };
       let obstacles = [], coins = [], magnets = [], trafficCars = [], burstParticles = [];
       let weatherPoints, weatherGeo, lightningBoltMesh;
 
@@ -1258,6 +1268,205 @@
         );
       }
 
+      function isWoodOrTrunkMaterial(mat, meshName) {
+        const nameLower = String((meshName || '') + ' ' + ((mat && mat.name) || '')).toLowerCase();
+        if (nameLower.includes('trunk') || nameLower.includes('wood') || nameLower.includes('bark') || nameLower.includes('tronco') || nameLower.includes('rama') || nameLower.includes('stem')) {
+          return true;
+        }
+        if (mat && mat.color) {
+          const r = mat.color.r, g = mat.color.g, b = mat.color.b;
+          if (r > g * 1.18 && r > b * 1.35 && r < 0.65) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function prepareGlbTreeTemplate(rawModel, isGroupModel) {
+        const wrapper = new THREE.Group();
+        const copy = rawModel.clone(true);
+        copy.position.set(0, 0, 0);
+        copy.rotation.set(0, 0, 0);
+        copy.scale.set(1, 1, 1);
+
+        const foliageMats = [];
+        let hasMeshes = false;
+
+        copy.traverse(function (child) {
+          if (child.isMesh) {
+            hasMeshes = true;
+            child.visible = true;
+            child.castShadow = true;
+            child.receiveShadow = true;
+            child.frustumCulled = false;
+
+            if (child.material) {
+              const mats = Array.isArray(child.material) ? child.material : [child.material];
+              const clonedMats = mats.map(function (m) {
+                if (!m) return m;
+                const mc = m.clone();
+                mc.side = THREE.DoubleSide;
+                mc.needsUpdate = true;
+                if (!isWoodOrTrunkMaterial(mc, child.name) && mc.color) {
+                  foliageMats.push({
+                    mat: mc,
+                    baseColor: mc.color.clone()
+                  });
+                }
+                return mc;
+              });
+              child.material = Array.isArray(child.material) ? clonedMats : clonedMats[0];
+            }
+          }
+        });
+
+        if (!hasMeshes) return null;
+
+        wrapper.add(copy);
+        wrapper.updateMatrixWorld(true);
+
+        const box = new THREE.Box3().setFromObject(copy);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+
+        const maxXZ = Math.max(size.x || 0.1, size.z || 0.1);
+        const heightY = Math.max(size.y || 0.1, 0.1);
+        const desiredHeight = isGroupModel ? 4.4 : 4.2;
+        const desiredMaxWidth = isGroupModel ? 5.6 : 3.2;
+
+        const scaleByH = desiredHeight / heightY;
+        const scaleByW = desiredMaxWidth / maxXZ;
+        const finalScale = Math.max(0.02, Math.min(25, Math.min(scaleByH, scaleByW)));
+
+        copy.scale.setScalar(finalScale);
+        copy.updateMatrixWorld(true);
+
+        const scaledBox = new THREE.Box3().setFromObject(copy);
+        const center = new THREE.Vector3();
+        scaledBox.getCenter(center);
+
+        if (Number.isFinite(center.x)) copy.position.x = -center.x;
+        if (Number.isFinite(center.z)) copy.position.z = -center.z;
+        if (Number.isFinite(scaledBox.min.y)) copy.position.y = -scaledBox.min.y;
+
+        wrapper.userData.foliageEntries = foliageMats;
+        return wrapper;
+      }
+
+      function applyGlbTreeSeasonTint(prop, seasonIndex, isNight, isStorm) {
+        const entries = prop && prop.userData ? prop.userData.foliageEntries : null;
+        if (!entries || !entries.length) return;
+
+        const s = SEASONS[seasonIndex] || SEASONS[0];
+        const targetHex = isStorm
+          ? 0x475569
+          : (seasonIndex === 2
+            ? (isNight ? 0x9a3412 : 0xf97316)
+            : (seasonIndex === 3
+              ? (isNight ? 0x64748b : 0xf1f5f9)
+              : (isNight ? s.foliageNight : s.foliageDay)));
+        const targetCol = new THREE.Color(targetHex);
+
+        entries.forEach(function (item) {
+          if (!item.mat || !item.mat.color) return;
+          if (seasonIndex === 2 || seasonIndex === 3 || isStorm) {
+            item.mat.color.copy(item.baseColor).lerp(targetCol, 0.72);
+          } else {
+            item.mat.color.copy(item.baseColor).lerp(targetCol, isNight ? 0.55 : 0.35);
+          }
+        });
+      }
+
+      function populateSceneryPropAt(prop, idx, roadWidth) {
+        const side = idx % 2 === 0 ? -1 : 1;
+        const useGroup = (idx % 3 === 1) && customTreeTemplates.group;
+        const useSingle = customTreeTemplates.single;
+
+        while (prop.children.length > 0) {
+          prop.remove(prop.children[0]);
+        }
+        prop.userData.foliageEntries = null;
+        prop.userData.crownMat = null;
+
+        if (useGroup || useSingle) {
+          const template = useGroup ? customTreeTemplates.group : customTreeTemplates.single;
+          const instance = template.clone(true);
+          instance.userData.foliageEntries = (template.userData.foliageEntries || []).map(function (entry) {
+            return { mat: entry.mat, baseColor: entry.baseColor };
+          });
+          const jitterScale = 0.88 + ((idx * 7) % 5) * 0.06;
+          instance.scale.setScalar(jitterScale);
+          instance.rotation.y = ((idx * 1.15) % (Math.PI * 2));
+          prop.add(instance);
+          prop.userData.foliageEntries = instance.userData.foliageEntries;
+        } else {
+          const fallbackTree = createFallbackTreeMesh(idx);
+          prop.add(fallbackTree.group);
+          prop.userData.crownMat = fallbackTree.crownMat;
+        }
+
+        const lateralOffset = roadWidth * 0.5 + 3.4 + ((idx * 1.9) % 4.6);
+        prop.position.set(side * lateralOffset, 0, -idx * SCENERY_SPACING);
+        prop.visible = !runState.isCity;
+
+        applyGlbTreeSeasonTint(prop, runState.currentSeasonIndex, runState.isNight, runState.isStorm);
+        if (prop.userData.crownMat) {
+          const s = SEASONS[runState.currentSeasonIndex] || SEASONS[0];
+          prop.userData.crownMat.color.setHex(
+            runState.isStorm ? 0x334155 : (runState.isNight ? s.foliageNight : s.foliageDay)
+          );
+        }
+      }
+
+      function initCustomTrees(roadWidth) {
+        const loader = new GLTFLoader();
+        let loadedAny = false;
+
+        function onTreeTemplateReady() {
+          if (!loadedAny) {
+            loadedAny = true;
+            showToast('🌲 Árboles 3D cargados en la grama');
+          }
+          for (let i = 0; i < sceneryProps.length; i++) {
+            populateSceneryPropAt(sceneryProps[i], i, roadWidth);
+          }
+        }
+
+        loader.load(
+          TREE_SINGLE_URL,
+          function (gltf) {
+            const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+            if (!raw) return;
+            const tpl = prepareGlbTreeTemplate(raw, false);
+            if (tpl) {
+              customTreeTemplates.single = tpl;
+              onTreeTemplateReady();
+            }
+          },
+          undefined,
+          function (err) {
+            console.warn('No se pudo cargar arbol_tree.glb:', err);
+          }
+        );
+
+        loader.load(
+          TREE_GROUP_URL,
+          function (gltf) {
+            const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+            if (!raw) return;
+            const tpl = prepareGlbTreeTemplate(raw, true);
+            if (tpl) {
+              customTreeTemplates.group = tpl;
+              onTreeTemplateReady();
+            }
+          },
+          undefined,
+          function (err) {
+            console.warn('No se pudo cargar arboles.glb:', err);
+          }
+        );
+      }
+
       function initThree() {
         scene = new THREE.Scene();
         clock = new THREE.Clock();
@@ -1473,20 +1682,21 @@
           }
         });
 
-        for (let i = 0; i < 26; i++) {
-          const side = i % 2 === 0 ? -1 : 1;
-          const prop = i % 5 === 0 ? createLampProp() : createTreeProp();
-          const distFromRoad = i % 5 === 0 ? roadWidth * 0.5 + 0.85 : roadWidth * 0.5 + 4.5 + (i % 3) * 4;
-          prop.position.set(side * distFromRoad, 0, -i * 8.2);
+        for (let i = 0; i < SCENERY_COUNT; i++) {
+          const prop = new THREE.Group();
+          populateSceneryPropAt(prop, i, roadWidth);
           sceneryProps.push(prop);
           scene.add(prop);
 
+          const side = i % 2 === 0 ? -1 : 1;
           const building = createCityBuildingProp(i);
-          building.position.set(side * (roadWidth * 0.5 + 7.2 + (i % 2) * 2.4), 0, -i * 8.2);
+          building.position.set(side * (roadWidth * 0.5 + 7.2 + (i % 2) * 2.4), 0, -i * SCENERY_SPACING);
           building.visible = false;
           cityBuildings.push(building);
           scene.add(building);
         }
+
+        initCustomTrees(roadWidth);
 
         const pCount = 280;
         const pPos = new Float32Array(pCount * 3);
@@ -1544,36 +1754,21 @@
         }
       }
 
-      function createTreeProp() {
+      function createFallbackTreeMesh(idx) {
         const g = new THREE.Group();
         const trunk = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.25, 0.35, 1.6, 6),
+          new THREE.CylinderGeometry(0.24, 0.36, 1.7, 7),
           new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.9 })
         );
-        trunk.position.y = 0.8; trunk.castShadow = true; g.add(trunk);
+        trunk.position.y = 0.85; trunk.castShadow = true; g.add(trunk);
 
+        const crownMat = new THREE.MeshStandardMaterial({ color: 0x2e8b37, roughness: 0.8 });
         const crown = new THREE.Mesh(
-          new THREE.ConeGeometry(1.45, 3.4, 7),
-          new THREE.MeshStandardMaterial({ color: 0x1b5e2b, roughness: 0.82 })
+          idx % 2 === 0 ? new THREE.ConeGeometry(1.5, 3.2, 7) : new THREE.DodecahedronGeometry(1.45, 1),
+          crownMat
         );
-        crown.position.y = 3.1; crown.castShadow = true; g.add(crown);
-        return g;
-      }
-
-      function createLampProp() {
-        const g = new THREE.Group();
-        const pole = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.08, 0.12, 4.4, 6),
-          new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.6, roughness: 0.4 })
-        );
-        pole.position.y = 2.2; g.add(pole);
-
-        const bulb = new THREE.Mesh(
-          new THREE.SphereGeometry(0.24, 8, 8),
-          new THREE.MeshBasicMaterial({ color: 0xfef08a })
-        );
-        bulb.position.y = 4.45; g.add(bulb);
-        return g;
+        crown.position.y = 2.95; crown.castShadow = true; g.add(crown);
+        return { group: g, crownMat: crownMat };
       }
 
       function createCityBuildingProp(index) {
@@ -2090,6 +2285,12 @@
 
         sceneryProps.forEach(function (prop, idx) {
           prop.visible = !cityActive;
+          applyGlbTreeSeasonTint(prop, seasonIndex, isNight, stormActive);
+          if (prop.userData && prop.userData.crownMat) {
+            prop.userData.crownMat.color.setHex(
+              stormActive ? 0x334155 : (isNight ? s.foliageNight : s.foliageDay)
+            );
+          }
           const bGroup = cityBuildings[idx];
           if (bGroup) {
             bGroup.visible = cityActive;
@@ -3026,7 +3227,7 @@
           laneStripes.forEach(function (st) { st.position.z += distDelta; if (st.position.z > 14) st.position.z -= 160; });
           sceneryProps.forEach(function (prop, idx) {
             prop.position.z += distDelta;
-            if (prop.position.z > 16) prop.position.z -= 213.2;
+            if (prop.position.z > 16) prop.position.z -= SCENERY_LOOP_SPAN;
             if (cityBuildings[idx]) cityBuildings[idx].position.z = prop.position.z;
           });
 
