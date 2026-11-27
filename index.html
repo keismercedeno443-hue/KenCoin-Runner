@@ -1658,9 +1658,8 @@
 
       // =========================================================================
       // AQUÍ SE GRADÚA EL TAMAÑO Y TONO DE LOS CARROS (carro_barbie.glb / carro_kia.glb)
-      // - desiredWidth / desiredLength / desiredHeight: tamaño base en metros
-      // - extraBoost: multiplicador extra para modelos miniatura/comiquita
-      // - maxScaleCap: tope máximo de escala si el .glb original viene diminuto
+      // - Se conserva el material y color natural del .glb para que no se queme
+      // - Solo si el color viene casi negro/apagado se rescata suavemente
       // =========================================================================
       function prepareCarTemplate(rawModel, options) {
         const opts = options || {};
@@ -1673,7 +1672,7 @@
         copy.rotation.set(0, 0, 0);
         copy.scale.set(1, 1, 1);
 
-        const barbiePink = new THREE.Color(0xff5cb8);
+        const rescuePink = new THREE.Color(0xf472b6);
         let hasMeshes = false;
 
         copy.traverse(function (child) {
@@ -1700,14 +1699,15 @@
                     mc.opacity = 1;
                   }
                 }
-                if (isBarbie && mc.color) {
-                  mc.color.lerp(barbiePink, 0.55);
-                  if ('emissive' in mc && mc.emissive) {
-                    mc.emissive.setHex(0xff2a9d);
-                    mc.emissiveIntensity = 0.22;
+                if (isBarbie && mc.color && !mc.map) {
+                  const lum = 0.2126 * mc.color.r + 0.7152 * mc.color.g + 0.0722 * mc.color.b;
+                  if (lum < 0.08) {
+                    mc.color.copy(rescuePink);
                   }
-                  if ('roughness' in mc) mc.roughness = Math.min(mc.roughness ?? 0.5, 0.35);
-                  if ('metalness' in mc) mc.metalness = Math.min(mc.metalness ?? 0.2, 0.25);
+                }
+                if (isBarbie && 'emissive' in mc && mc.emissive) {
+                  mc.emissive.setHex(0x000000);
+                  mc.emissiveIntensity = 0;
                 }
                 mc.needsUpdate = true;
                 return mc;
@@ -1736,7 +1736,7 @@
         if (!Number.isFinite(maxRaw) || maxRaw <= 0.00001) {
           const fallbackBody = new THREE.Mesh(
             new THREE.BoxGeometry(desiredWidth, desiredHeight * 0.75, desiredLength),
-            new THREE.MeshStandardMaterial({ color: isBarbie ? 0xff4da6 : 0x3b82f6, roughness: 0.35, metalness: 0.25 })
+            new THREE.MeshStandardMaterial({ color: isBarbie ? 0xf472b6 : 0x3b82f6, roughness: 0.42, metalness: 0.15 })
           );
           fallbackBody.position.y = desiredHeight * 0.375;
           fallbackBody.castShadow = true;
@@ -1795,7 +1795,7 @@
         function onCarReady() {
           loadedCount += 1;
           if (loadedCount === 1) {
-            showToast('🩷 Carro Barbie con tono rosado realzado');
+            showToast('🩷 Carro Barbie con tono original de Sketchfab');
           }
         }
 
@@ -1849,7 +1849,7 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
         renderer.setSize(w, h);
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.0;
+        renderer.toneMappingExposure = 0.88;
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -2844,7 +2844,7 @@
           hitHeight = chosenTpl.userData.hitHeight || 1.78;
           hitDepth = chosenTpl.userData.hitDepth || 3.85;
         } else {
-          const bodyColors = [0xff4da6, 0x3b82f6, 0x10b981, 0xeab308, 0xa855f7];
+          const bodyColors = [0xf472b6, 0x3b82f6, 0x10b981, 0xeab308, 0xa855f7];
           carGroup = createFallbackTrafficCarGroup(bodyColors[Math.floor(Math.random() * bodyColors.length)]);
         }
 
