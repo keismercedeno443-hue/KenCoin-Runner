@@ -621,8 +621,8 @@
       const GRASS_MODEL_URL = './césped.glb';
       const TREE_SINGLE_URL = './arbol_tree.glb';
       const TREE_GROUP_URL = './arboles.glb';
-      const SCENERY_COUNT = 10;
-      const SCENERY_SPACING = 30.0;
+      const SCENERY_COUNT = 6;
+      const SCENERY_SPACING = 46.0;
       const SCENERY_LOOP_SPAN = SCENERY_COUNT * SCENERY_SPACING;
       const SIDE_GRASS_LENGTH = 30.11;
       const SIDE_GRASS_WIDTH = 12.5;
@@ -1334,8 +1334,8 @@
         } else {
           const maxXZ = Math.max(size.x || 0.1, size.z || 0.1);
           const heightY = Math.max(size.y || 0.1, 0.1);
-          const desiredHeight = 2.45;
-          const desiredMaxWidth = 1.95;
+          const desiredHeight = 1.45;
+          const desiredMaxWidth = 1.25;
           const scaleByH = desiredHeight / heightY;
           const scaleByW = desiredMaxWidth / maxXZ;
           const finalScale = Math.max(0.01, Math.min(20, Math.min(scaleByH, scaleByW)));
@@ -1400,7 +1400,7 @@
           if (template.userData.isGroupModel) {
             instance.scale.set(1, 1, 1);
           } else {
-            const jitterScale = 0.88 + ((idx * 5) % 3) * 0.06;
+            const jitterScale = 0.8 + ((idx * 3) % 3) * 0.06;
             instance.scale.setScalar(jitterScale);
           }
           instance.rotation.y = ((idx * 1.15) % (Math.PI * 2));
@@ -1412,8 +1412,8 @@
           prop.userData.crownMat = fallbackTree.crownMat;
         }
 
-        const justBehindGrassOffset = roadWidth * 0.5 + SIDE_GRASS_WIDTH + 0.85 + ((idx * 0.37) % 1.1);
-        prop.position.set(side * justBehindGrassOffset, 0, -idx * SCENERY_SPACING);
+        const onGrassOffset = roadWidth * 0.5 + 3.2 + ((idx * 1.9) % Math.max(1.5, SIDE_GRASS_WIDTH - 5.4));
+        prop.position.set(side * onGrassOffset, 0.02, -idx * SCENERY_SPACING);
         prop.visible = !runState.isCity;
 
         applyGlbTreeSeasonTint(prop, runState.currentSeasonIndex, runState.isNight, runState.isStorm);
@@ -1432,7 +1432,7 @@
         function onTreeTemplateReady() {
           if (!loadedAny) {
             loadedAny = true;
-            showToast('🌲 arbol_tree.glb reducido · arboles.glb intacto');
+            showToast('🌿 Árboles en el césped · arbol_tree.glb más chico');
           }
           for (let i = 0; i < sceneryProps.length; i++) {
             populateSceneryPropAt(sceneryProps[i], i, roadWidth);
@@ -1764,17 +1764,17 @@
       function createFallbackTreeMesh(idx) {
         const g = new THREE.Group();
         const trunk = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.22, 0.32, 1.5, 7),
+          new THREE.CylinderGeometry(0.18, 0.26, 1.1, 7),
           new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.9 })
         );
-        trunk.position.y = 0.75; trunk.castShadow = true; g.add(trunk);
+        trunk.position.y = 0.55; trunk.castShadow = true; g.add(trunk);
 
         const crownMat = new THREE.MeshStandardMaterial({ color: 0x2e8b37, roughness: 0.8 });
         const crown = new THREE.Mesh(
-          idx % 2 === 0 ? new THREE.ConeGeometry(1.3, 2.7, 7) : new THREE.DodecahedronGeometry(1.25, 1),
+          idx % 2 === 0 ? new THREE.ConeGeometry(0.95, 1.9, 7) : new THREE.DodecahedronGeometry(0.92, 1),
           crownMat
         );
-        crown.position.y = 2.55; crown.castShadow = true; g.add(crown);
+        crown.position.y = 1.85; crown.castShadow = true; g.add(crown);
         return { group: g, crownMat: crownMat };
       }
 
