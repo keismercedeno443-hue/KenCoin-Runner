@@ -1656,11 +1656,6 @@
         );
       }
 
-      // =========================================================================
-      // AQUÍ SE GRADÚA EL TAMAÑO Y TONO DE LOS CARROS (carro_barbie.glb / carro_kia.glb)
-      // - Se conserva el material y color natural del .glb para que no se queme
-      // - Solo si el color viene casi negro/apagado se rescata suavemente
-      // =========================================================================
       function prepareCarTemplate(rawModel, options) {
         const opts = options || {};
         const isBarbie = Boolean(opts.isBarbie);
@@ -1672,7 +1667,10 @@
         copy.rotation.set(0, 0, 0);
         copy.scale.set(1, 1, 1);
 
-        const rescuePink = new THREE.Color(0xf472b6);
+        const barbieMainPink = new THREE.Color(0xff69b4);
+        const barbieSoftPink = new THREE.Color(0xf9a8d4);
+        const barbieTrimWhite = new THREE.Color(0xf8fafc);
+
         let hasMeshes = false;
 
         copy.traverse(function (child) {
@@ -1680,7 +1678,7 @@
             hasMeshes = true;
             child.visible = true;
             child.castShadow = true;
-            child.receiveShadow = true;
+            child.receiveShadow = false;
             child.frustumCulled = false;
 
             if (child.geometry && child.geometry.boundingBox === null && typeof child.geometry.computeBoundingBox === 'function') {
@@ -1693,22 +1691,40 @@
                 if (!m) return m;
                 const mc = m.clone();
                 mc.side = THREE.DoubleSide;
-                if (!preserveOriginalMaterials) {
+
+                if (isBarbie) {
+                  const matName = String(mc.name || child.name || '').toLowerCase();
+                  const isTireOrWheel = matName.includes('tire') || matName.includes('wheel') || matName.includes('llanta') || matName.includes('rim');
+
+                  if (!isTireOrWheel) {
+                    mc.map = null;
+                    if (!mc.color) mc.color = new THREE.Color(0xffffff);
+
+                    if (matName.includes('white') || matName.includes('seat') || matName.includes('trim') || matName.includes('side')) {
+                      mc.color.copy(barbieTrimWhite);
+                    } else {
+                      mc.color.copy(barbieMainPink).lerp(barbieSoftPink, 0.25);
+                    }
+
+                    mc.roughness = 0.35;
+                    mc.metalness = 0.1;
+                    if ('emissive' in mc && mc.emissive) {
+                      mc.emissive.setHex(0x2a0818);
+                      mc.emissiveIntensity = 0.08;
+                    }
+                  } else {
+                    mc.map = null;
+                    mc.color = new THREE.Color(0x1e293b);
+                    mc.roughness = 0.7;
+                    mc.metalness = 0.15;
+                  }
+                } else if (!preserveOriginalMaterials) {
                   if (mc.transparent && mc.opacity < 0.15) {
                     mc.transparent = false;
                     mc.opacity = 1;
                   }
                 }
-                if (isBarbie && mc.color && !mc.map) {
-                  const lum = 0.2126 * mc.color.r + 0.7152 * mc.color.g + 0.0722 * mc.color.b;
-                  if (lum < 0.08) {
-                    mc.color.copy(rescuePink);
-                  }
-                }
-                if (isBarbie && 'emissive' in mc && mc.emissive) {
-                  mc.emissive.setHex(0x000000);
-                  mc.emissiveIntensity = 0;
-                }
+
                 mc.needsUpdate = true;
                 return mc;
               });
@@ -1726,9 +1742,9 @@
         const rawSize = new THREE.Vector3();
         rawBox.getSize(rawSize);
 
-        const desiredWidth = isBarbie ? 2.65 : 1.85;
-        const desiredLength = isBarbie ? 5.65 : 3.85;
-        const desiredHeight = isBarbie ? 2.65 : 1.78;
+        const desiredWidth = isBarbie ? 2.55 : 1.85;
+        const desiredLength = isBarbie ? 5.4 : 3.85;
+        const desiredHeight = isBarbie ? 2.35 : 1.78;
         const extraBoost = isBarbie ? 2.15 : 1.0;
         const maxScaleCap = isBarbie ? 1500 : 400;
 
@@ -1736,9 +1752,9 @@
         if (!Number.isFinite(maxRaw) || maxRaw <= 0.00001) {
           const fallbackBody = new THREE.Mesh(
             new THREE.BoxGeometry(desiredWidth, desiredHeight * 0.75, desiredLength),
-            new THREE.MeshStandardMaterial({ color: isBarbie ? 0xf472b6 : 0x3b82f6, roughness: 0.42, metalness: 0.15 })
+            new THREE.MeshStandardMaterial({ color: isBarbie ? 0xff69b4 : 0x3b82f6, roughness: 0.35, metalness: 0.1 })
           );
-          fallbackBody.position.y = desiredHeight * 0.375;
+          fallbackBody.position.y = desiredHeight * 0.375 + 0.05;
           fallbackBody.castShadow = true;
           wrapper.add(fallbackBody);
           wrapper.userData.hitWidth = desiredWidth;
@@ -1774,7 +1790,7 @@
 
         if (Number.isFinite(center.x)) copy.position.x = -center.x;
         if (Number.isFinite(center.z)) copy.position.z = -center.z;
-        if (Number.isFinite(scaledBox.min.y)) copy.position.y = -scaledBox.min.y;
+        if (Number.isFinite(scaledBox.min.y)) copy.position.y = -scaledBox.min.y + 0.05;
 
         wrapper.updateMatrixWorld(true);
 
@@ -1795,7 +1811,7 @@
         function onCarReady() {
           loadedCount += 1;
           if (loadedCount === 1) {
-            showToast('🩷 Carro Barbie con tono original de Sketchfab');
+            showToast('🩷 Carro Barbie rosado sin parpadeo listo');
           }
         }
 
@@ -1804,7 +1820,7 @@
           function (gltf) {
             const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
             if (!raw) return;
-            const tpl = prepareCarTemplate(raw, { isBarbie: true, preserveOriginalMaterials: true });
+            const tpl = prepareCarTemplate(raw, { isBarbie: true, preserveOriginalMaterials: false });
             if (tpl) {
               carTemplates.barbie = tpl;
               onCarReady();
@@ -2848,7 +2864,7 @@
           carGroup = createFallbackTrafficCarGroup(bodyColors[Math.floor(Math.random() * bodyColors.length)]);
         }
 
-        carGroup.position.set(lane * LANE_WIDTH, 0, -115);
+        carGroup.position.set(lane * LANE_WIDTH, 0.04, -115);
         scene.add(carGroup);
         trafficCars.push({
           mesh: carGroup,
