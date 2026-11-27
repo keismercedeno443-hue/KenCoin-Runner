@@ -1656,6 +1656,12 @@
         );
       }
 
+      // =========================================================================
+      // AQUÍ SE GRADÚA EL TAMAÑO DE LOS CARROS (carro_barbie.glb / carro_kia.glb)
+      // - desiredWidth / desiredLength / desiredHeight: tamaño base en metros
+      // - extraBoost: multiplicador extra para modelos miniatura/comiquita
+      // - maxScaleCap: tope máximo de escala si el .glb original viene diminuto
+      // =========================================================================
       function prepareCarTemplate(rawModel, options) {
         const opts = options || {};
         const isBarbie = Boolean(opts.isBarbie);
@@ -1709,10 +1715,12 @@
         const rawSize = new THREE.Vector3();
         rawBox.getSize(rawSize);
 
-        const desiredWidth = isBarbie ? 2.45 : 1.85;
-        const desiredLength = isBarbie ? 5.15 : 3.85;
-        const desiredHeight = isBarbie ? 2.35 : 1.78;
-        const extraBoost = isBarbie ? 1.45 : 1.0;
+        // Gradúa estas medidas para cambiar el tamaño del carro de Barbie:
+        const desiredWidth = isBarbie ? 2.65 : 1.85;
+        const desiredLength = isBarbie ? 5.65 : 3.85;
+        const desiredHeight = isBarbie ? 2.65 : 1.78;
+        const extraBoost = isBarbie ? 2.15 : 1.0;
+        const maxScaleCap = isBarbie ? 1500 : 400;
 
         const maxRaw = Math.max(rawSize.x || 0, rawSize.y || 0, rawSize.z || 0);
         if (!Number.isFinite(maxRaw) || maxRaw <= 0.00001) {
@@ -1742,10 +1750,10 @@
         const sx = orientedSize.x > 0.0001 ? ((desiredWidth * extraBoost) / orientedSize.x) : 1;
         const sz = orientedSize.z > 0.0001 ? ((desiredLength * extraBoost) / orientedSize.z) : 1;
         const sy = orientedSize.y > 0.0001 ? ((desiredHeight * extraBoost) / orientedSize.y) : 1;
-        const baseScale = Math.max(0.002, Math.min(400, Math.min(sx, sz)));
+        const baseScale = Math.max(0.002, Math.min(maxScaleCap, Math.min(sx, sz)));
         copy.scale.set(
           baseScale,
-          Math.max(0.002, Math.min(400, Math.min(sy, baseScale * 1.25))),
+          Math.max(0.002, Math.min(maxScaleCap, Math.min(sy, baseScale * 1.25))),
           baseScale
         );
         copy.updateMatrixWorld(true);
@@ -1764,9 +1772,9 @@
         const finalSize = new THREE.Vector3();
         finalBox.getSize(finalSize);
 
-        wrapper.userData.hitWidth = isBarbie ? Math.max(1.8, Math.min(2.35, finalSize.x || desiredWidth)) : Math.max(1.45, Math.min(2.15, finalSize.x || desiredWidth));
-        wrapper.userData.hitHeight = isBarbie ? Math.max(1.6, Math.min(2.4, finalSize.y || desiredHeight)) : Math.max(1.25, Math.min(2.25, finalSize.y || desiredHeight));
-        wrapper.userData.hitDepth = isBarbie ? Math.max(3.6, Math.min(4.8, finalSize.z || desiredLength)) : Math.max(2.8, Math.min(4.5, finalSize.z || desiredLength));
+        wrapper.userData.hitWidth = isBarbie ? Math.max(1.85, Math.min(2.45, finalSize.x || desiredWidth)) : Math.max(1.45, Math.min(2.15, finalSize.x || desiredWidth));
+        wrapper.userData.hitHeight = isBarbie ? Math.max(1.7, Math.min(2.6, finalSize.y || desiredHeight)) : Math.max(1.25, Math.min(2.25, finalSize.y || desiredHeight));
+        wrapper.userData.hitDepth = isBarbie ? Math.max(3.8, Math.min(5.2, finalSize.z || desiredLength)) : Math.max(2.8, Math.min(4.5, finalSize.z || desiredLength));
         return wrapper;
       }
 
@@ -1777,7 +1785,7 @@
         function onCarReady() {
           loadedCount += 1;
           if (loadedCount === 1) {
-            showToast('🚗 Carro Barbie agrandado y KIA intacto');
+            showToast('🚗 Carro Barbie escalado (extraBoost 2.15) · KIA intacto');
           }
         }
 
