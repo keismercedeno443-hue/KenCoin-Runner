@@ -1657,7 +1657,7 @@
       }
 
       // =========================================================================
-      // AQUÍ SE GRADÚA EL TAMAÑO DE LOS CARROS (carro_barbie.glb / carro_kia.glb)
+      // AQUÍ SE GRADÚA EL TAMAÑO Y TONO DE LOS CARROS (carro_barbie.glb / carro_kia.glb)
       // - desiredWidth / desiredLength / desiredHeight: tamaño base en metros
       // - extraBoost: multiplicador extra para modelos miniatura/comiquita
       // - maxScaleCap: tope máximo de escala si el .glb original viene diminuto
@@ -1673,7 +1673,9 @@
         copy.rotation.set(0, 0, 0);
         copy.scale.set(1, 1, 1);
 
+        const barbiePink = new THREE.Color(0xff5cb8);
         let hasMeshes = false;
+
         copy.traverse(function (child) {
           if (child.isMesh) {
             hasMeshes = true;
@@ -1698,6 +1700,15 @@
                     mc.opacity = 1;
                   }
                 }
+                if (isBarbie && mc.color) {
+                  mc.color.lerp(barbiePink, 0.55);
+                  if ('emissive' in mc && mc.emissive) {
+                    mc.emissive.setHex(0xff2a9d);
+                    mc.emissiveIntensity = 0.22;
+                  }
+                  if ('roughness' in mc) mc.roughness = Math.min(mc.roughness ?? 0.5, 0.35);
+                  if ('metalness' in mc) mc.metalness = Math.min(mc.metalness ?? 0.2, 0.25);
+                }
                 mc.needsUpdate = true;
                 return mc;
               });
@@ -1715,7 +1726,6 @@
         const rawSize = new THREE.Vector3();
         rawBox.getSize(rawSize);
 
-        // Gradúa estas medidas para cambiar el tamaño del carro de Barbie:
         const desiredWidth = isBarbie ? 2.65 : 1.85;
         const desiredLength = isBarbie ? 5.65 : 3.85;
         const desiredHeight = isBarbie ? 2.65 : 1.78;
@@ -1785,7 +1795,7 @@
         function onCarReady() {
           loadedCount += 1;
           if (loadedCount === 1) {
-            showToast('🚗 Carro Barbie escalado (extraBoost 2.15) · KIA intacto');
+            showToast('🩷 Carro Barbie con tono rosado realzado');
           }
         }
 
