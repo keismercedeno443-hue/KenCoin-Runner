@@ -624,8 +624,8 @@
         slide: './Running Slide.glb'
       };
       const TARGET_CHAR_HEIGHT = 2.15;
-      const SLIDE_DROP_GLB = 0.52;
-      const SLIDE_DROP_FALLBACK = 0.45;
+      const SLIDE_DROP_GLB = 0.28;
+      const SLIDE_DROP_FALLBACK = 0.25;
 
       const SEASONS = [
         {
@@ -2141,7 +2141,6 @@
         }
         runState.isSliding = true;
         runState.slideTimer = 0.65;
-        playerBodyGroup.position.y = glbLoadedOk ? -SLIDE_DROP_GLB : -SLIDE_DROP_FALLBACK;
         playGlbAnimation('slide', 0.08, 1);
         sfxSlide();
       }
@@ -2766,7 +2765,10 @@
           playerRoot.position.set(runState.laneX, runState.playerY, 0);
           playerRoot.rotation.set(0, 0, 0);
 
-          const slideDropOffset = runState.isSliding ? (glbLoadedOk ? -SLIDE_DROP_GLB : -SLIDE_DROP_FALLBACK) : 0;
+          const slideDropOffset = runState.isSliding
+            ? (glbLoadedOk ? -SLIDE_DROP_GLB : -SLIDE_DROP_FALLBACK)
+            : 0;
+
           if (shadowDisc) {
             shadowDisc.position.y = 0.02 - runState.playerY - slideDropOffset;
             const sScale = Math.max(0.4, 1 - runState.playerY * 0.14);
@@ -2780,9 +2782,9 @@
           if (!glbLoadedOk) {
             if (runState.isSliding) {
               playerBodyGroup.position.y = -SLIDE_DROP_FALLBACK;
-              torsoMesh.rotation.x = -0.65;
-              legL.rotation.x = -1.05;
-              legR.rotation.x = 0.25;
+              torsoMesh.rotation.x = -0.45;
+              legL.rotation.x = -0.75;
+              legR.rotation.x = 0.15;
             } else {
               playerBodyGroup.position.y = bounce * 0.08;
               torsoMesh.rotation.x = -0.08;
@@ -2790,7 +2792,9 @@
               legL.rotation.x = stride * 0.85; legR.rotation.x = -stride * 0.85;
             }
           } else {
-            playerBodyGroup.position.y = runState.isSliding ? -SLIDE_DROP_GLB : (runState.isGrounded ? bounce * 0.02 : 0);
+            playerBodyGroup.position.y = runState.isSliding
+              ? -SLIDE_DROP_GLB
+              : (runState.isGrounded ? bounce * 0.02 : 0);
             glbModelGroup.rotation.x = 0;
           }
 
