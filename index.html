@@ -1656,46 +1656,10 @@
         );
       }
 
-      function colorizeMaterialIfMissing(mat, meshName, fallbackColorHex) {
-        if (!mat) return mat;
-        const mc = mat.clone();
-        mc.side = THREE.DoubleSide;
-        if (mc.transparent && mc.opacity < 0.15) {
-          mc.transparent = false;
-          mc.opacity = 1;
-        }
-        const nameLower = String((meshName || '') + ' ' + (mc.name || '')).toLowerCase();
-        const isWheelOrTire = nameLower.includes('wheel') || nameLower.includes('tire') || nameLower.includes('rueda') || nameLower.includes('rim');
-        const isGlass = nameLower.includes('glass') || nameLower.includes('window') || nameLower.includes('vidrio');
-
-        if (mc.color) {
-          const lum = mc.color.r * 0.299 + mc.color.g * 0.587 + mc.color.b * 0.114;
-          const hasTexture = Boolean(mc.map);
-          if (!hasTexture && (lum < 0.08 || (isWheelOrTire && lum < 0.12))) {
-            if (isWheelOrTire) {
-              mc.color.setHex(0x1e293b);
-            } else if (isGlass) {
-              mc.color.setHex(0x38bdf8);
-            } else {
-              mc.color.setHex(fallbackColorHex || 0xff4da6);
-            }
-          } else if (!hasTexture && !isWheelOrTire && !isGlass && lum > 0.88) {
-            mc.color.lerp(new THREE.Color(fallbackColorHex || 0xff4da6), 0.35);
-          }
-        } else {
-          mc.color = new THREE.Color(isWheelOrTire ? 0x1e293b : (fallbackColorHex || 0xff4da6));
-        }
-
-        if (typeof mc.roughness === 'number') mc.roughness = Math.min(0.65, Math.max(0.22, mc.roughness));
-        if (typeof mc.metalness === 'number') mc.metalness = Math.min(0.45, Math.max(0.05, mc.metalness));
-        mc.needsUpdate = true;
-        return mc;
-      }
-
       function prepareCarTemplate(rawModel, options) {
         const opts = options || {};
         const isBarbie = Boolean(opts.isBarbie);
-        const fallbackColorHex = opts.fallbackColorHex || (isBarbie ? 0xff4da6 : 0x3b82f6);
+        const preserveOriginalMaterials = Boolean(opts.preserveOriginalMaterials);
 
         const wrapper = new THREE.Group();
         const copy = rawModel.clone(true);
@@ -1719,16 +1683,19 @@
             if (child.material) {
               const mats = Array.isArray(child.material) ? child.material : [child.material];
               const cloned = mats.map(function (m) {
-                return colorizeMaterialIfMissing(m, child.name, fallbackColorHex);
+                if (!m) return m;
+                const mc = m.clone();
+                mc.side = THREE.DoubleSide;
+                if (!preserveOriginalMaterials) {
+                  if (mc.transparent && mc.opacity < 0.15) {
+                    mc.transparent = false;
+                    mc.opacity = 1;
+                  }
+                }
+                mc.needsUpdate = true;
+                return mc;
               });
               child.material = Array.isArray(child.material) ? cloned : cloned[0];
-            } else {
-              child.material = new THREE.MeshStandardMaterial({
-                color: fallbackColorHex,
-                roughness: 0.35,
-                metalness: 0.25,
-                side: THREE.DoubleSide
-              });
             }
           }
         });
@@ -1742,15 +1709,16 @@
         const rawSize = new THREE.Vector3();
         rawBox.getSize(rawSize);
 
-        const desiredWidth = isBarbie ? 1.88 : 1.85;
-        const desiredLength = isBarbie ? 3.92 : 3.85;
-        const desiredHeight = isBarbie ? 1.82 : 1.78;
+        const desiredWidth = isBarbie ? 2.45 : 1.85;
+        const desiredLength = isBarbie ? 5.15 : 3.85;
+        const desiredHeight = isBarbie ? 2.35 : 1.78;
+        const extraBoost = isBarbie ? 1.45 : 1.0;
 
         const maxRaw = Math.max(rawSize.x || 0, rawSize.y || 0, rawSize.z || 0);
         if (!Number.isFinite(maxRaw) || maxRaw <= 0.00001) {
           const fallbackBody = new THREE.Mesh(
             new THREE.BoxGeometry(desiredWidth, desiredHeight * 0.75, desiredLength),
-            new THREE.MeshStandardMaterial({ color: fallbackColorHex, roughness: 0.32, metalness: 0.3 })
+            new THREE.MeshStandardMaterial({ color: isBarbie ? 0xff4da6 : 0x3b82f6, roughness: 0.35, metalness: 0.25 })
           );
           fallbackBody.position.y = desiredHeight * 0.375;
           fallbackBody.castShadow = true;
@@ -1771,14 +1739,14 @@
         const orientedSize = new THREE.Vector3();
         orientedBox.getSize(orientedSize);
 
-        const sx = orientedSize.x > 0.0001 ? (desiredWidth / orientedSize.x) : 1;
-        const sz = orientedSize.z > 0.0001 ? (desiredLength / orientedSize.z) : 1;
-        const sy = orientedSize.y > 0.0001 ? (desiredHeight / orientedSize.y) : 1;
-        const finalScale = Math.max(0.002, Math.min(250, Math.min(sx, sz)));
+        const sx = orientedSize.x > 0.0001 ? ((desiredWidth * extraBoost) / orientedSize.x) : 1;
+        const sz = orientedSize.z > 0.0001 ? ((desiredLength * extraBoost) / orientedSize.z) : 1;
+        const sy = orientedSize.y > 0.0001 ? ((desiredHeight * extraBoost) / orientedSize.y) : 1;
+        const baseScale = Math.max(0.002, Math.min(400, Math.min(sx, sz)));
         copy.scale.set(
-          finalScale,
-          Math.max(0.002, Math.min(250, Math.min(sy, finalScale * 1.25))),
-          finalScale
+          baseScale,
+          Math.max(0.002, Math.min(400, Math.min(sy, baseScale * 1.25))),
+          baseScale
         );
         copy.updateMatrixWorld(true);
 
@@ -1796,9 +1764,9 @@
         const finalSize = new THREE.Vector3();
         finalBox.getSize(finalSize);
 
-        wrapper.userData.hitWidth = Math.max(1.45, Math.min(2.15, finalSize.x || desiredWidth));
-        wrapper.userData.hitHeight = Math.max(1.25, Math.min(2.25, finalSize.y || desiredHeight));
-        wrapper.userData.hitDepth = Math.max(2.8, Math.min(4.5, finalSize.z || desiredLength));
+        wrapper.userData.hitWidth = isBarbie ? Math.max(1.8, Math.min(2.35, finalSize.x || desiredWidth)) : Math.max(1.45, Math.min(2.15, finalSize.x || desiredWidth));
+        wrapper.userData.hitHeight = isBarbie ? Math.max(1.6, Math.min(2.4, finalSize.y || desiredHeight)) : Math.max(1.25, Math.min(2.25, finalSize.y || desiredHeight));
+        wrapper.userData.hitDepth = isBarbie ? Math.max(3.6, Math.min(4.8, finalSize.z || desiredLength)) : Math.max(2.8, Math.min(4.5, finalSize.z || desiredLength));
         return wrapper;
       }
 
@@ -1809,7 +1777,7 @@
         function onCarReady() {
           loadedCount += 1;
           if (loadedCount === 1) {
-            showToast('🚗 Carros Barbie y KIA listos a escala real');
+            showToast('🚗 Carro Barbie agrandado y KIA intacto');
           }
         }
 
@@ -1818,7 +1786,7 @@
           function (gltf) {
             const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
             if (!raw) return;
-            const tpl = prepareCarTemplate(raw, { isBarbie: true, fallbackColorHex: 0xff4da6 });
+            const tpl = prepareCarTemplate(raw, { isBarbie: true, preserveOriginalMaterials: true });
             if (tpl) {
               carTemplates.barbie = tpl;
               onCarReady();
@@ -1835,7 +1803,7 @@
           function (gltf) {
             const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
             if (!raw) return;
-            const tpl = prepareCarTemplate(raw, { isBarbie: false, fallbackColorHex: 0x38bdf8 });
+            const tpl = prepareCarTemplate(raw, { isBarbie: false, preserveOriginalMaterials: true });
             if (tpl) {
               carTemplates.kia = tpl;
               onCarReady();
