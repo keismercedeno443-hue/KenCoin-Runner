@@ -1331,6 +1331,7 @@
 
         if (isGroupModel) {
           copy.scale.set(1, 1, 1);
+          copy.rotation.y = Math.PI * 0.5;
         } else {
           const maxXZ = Math.max(size.x || 0.1, size.z || 0.1);
           const heightY = Math.max(size.y || 0.1, 0.1);
@@ -1399,11 +1400,12 @@
           });
           if (template.userData.isGroupModel) {
             instance.scale.set(1, 1, 1);
+            instance.rotation.y = side < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
           } else {
             const jitterScale = 0.8 + ((idx * 3) % 3) * 0.06;
             instance.scale.setScalar(jitterScale);
+            instance.rotation.y = ((idx * 1.15) % (Math.PI * 2));
           }
-          instance.rotation.y = ((idx * 1.15) % (Math.PI * 2));
           prop.add(instance);
           prop.userData.foliageEntries = instance.userData.foliageEntries;
         } else {
@@ -1412,7 +1414,9 @@
           prop.userData.crownMat = fallbackTree.crownMat;
         }
 
-        const onGrassOffset = roadWidth * 0.5 + 3.2 + ((idx * 1.9) % Math.max(1.5, SIDE_GRASS_WIDTH - 5.4));
+        const onGrassOffset = useGroup
+          ? (roadWidth * 0.5 + SIDE_GRASS_WIDTH * 0.5 + 0.08)
+          : (roadWidth * 0.5 + 3.2 + ((idx * 1.9) % Math.max(1.5, SIDE_GRASS_WIDTH - 5.4)));
         prop.position.set(side * onGrassOffset, 0.02, -idx * SCENERY_SPACING);
         prop.visible = !runState.isCity;
 
@@ -1432,7 +1436,7 @@
         function onTreeTemplateReady() {
           if (!loadedAny) {
             loadedAny = true;
-            showToast('🌿 Árboles en el césped · arbol_tree.glb más chico');
+            showToast('🌿 arboles.glb volteado en el césped');
           }
           for (let i = 0; i < sceneryProps.length; i++) {
             populateSceneryPropAt(sceneryProps[i], i, roadWidth);
