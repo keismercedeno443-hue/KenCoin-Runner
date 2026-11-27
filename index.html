@@ -618,6 +618,9 @@
       const ACCOUNTS_KEY = 'kencoin_runner_3d_accounts_v1';
       const SESSION_KEY = 'kencoin_runner_3d_session_v1';
       const MODEL_URL = './character-opt.glb';
+      const GRASS_MODEL_URL = './cespedtest2.glb';
+      const SIDE_GRASS_LENGTH = 16;
+      const SIDE_GRASS_COUNT_PER_SIDE = 12;
       const ANIM_URLS = {
         run: './Running.glb',
         jump: './Jump.glb',
@@ -1011,6 +1014,7 @@
       let ambientLight, hemiLight, dirLight, moonLight, playerGlowLight;
       let cloudBanks = [];
       let roadMesh, roadEdgeL, roadEdgeR, groundLeftMesh, groundRightMesh;
+      let sideGrassTiles = [], sideGrassLoaded = false;
       let laneStripes = [], sceneryProps = [], cityBuildings = [];
       let obstacles = [], coins = [], magnets = [], trafficCars = [], burstParticles = [];
       let weatherPoints, weatherGeo, lightningBoltMesh;
@@ -1077,6 +1081,70 @@
         const tex = new THREE.CanvasTexture(canvas);
         tex.needsUpdate = true;
         return tex;
+      }
+
+      function initSideGrassModel(roadWidth) {
+        const loader = new GLTFLoader();
+        loader.load(
+          GRASS_MODEL_URL,
+          function (gltf) {
+            const rawModel = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+            if (!rawModel) return;
+
+            rawModel.traverse(function (child) {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                child.frustumCulled = false;
+              }
+            });
+
+            const box = new THREE.Box3().setFromObject(rawModel);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+
+            const targetWidth = 10.5;
+            const targetDepth = SIDE_GRASS_LENGTH;
+            const sx = size.x > 0.001 ? targetWidth / size.x : 1;
+            const sz = size.z > 0.001 ? targetDepth / size.z : 1;
+            const sy = Math.min(sx, sz) || 1;
+
+            const normalizedBase = new THREE.Group();
+            rawModel.scale.set(sx, sy, sz);
+            normalizedBase.add(rawModel);
+            normalizedBase.updateMatrixWorld(true);
+
+            const normBox = new THREE.Box3().setFromObject(normalizedBase);
+            const normCenter = new THREE.Vector3();
+            normBox.getCenter(normCenter);
+            rawModel.position.x -= normCenter.x;
+            rawModel.position.z -= normCenter.z;
+            rawModel.position.y -= normBox.min.y;
+
+            const sideOffsetX = roadWidth * 0.5 + targetWidth * 0.5 + 0.15;
+
+            for (let i = 0; i < SIDE_GRASS_COUNT_PER_SIDE; i++) {
+              const zPos = 16 - i * SIDE_GRASS_LENGTH;
+
+              const leftTile = normalizedBase.clone(true);
+              leftTile.position.set(-sideOffsetX, -0.02, zPos);
+              scene.add(leftTile);
+              sideGrassTiles.push(leftTile);
+
+              const rightTile = normalizedBase.clone(true);
+              rightTile.position.set(sideOffsetX, -0.02, zPos);
+              scene.add(rightTile);
+              sideGrassTiles.push(rightTile);
+            }
+
+            sideGrassLoaded = true;
+            showToast('🌿 Césped 3D cargado a los lados');
+          },
+          undefined,
+          function (err) {
+            console.warn('No se pudo cargar cespedtest2.glb:', err);
+          }
+        );
       }
 
       function initThree() {
@@ -1265,6 +1333,8 @@
         groundRightMesh.position.set(roadWidth * 0.5 + 70, -0.04, -90);
         groundRightMesh.receiveShadow = true;
         scene.add(groundRightMesh);
+
+        initSideGrassModel(roadWidth);
 
         const stripeGeo = new THREE.PlaneGeometry(0.18, 3.2);
         const stripeMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc, transparent: true, opacity: 0.82 });
@@ -2059,7 +2129,7 @@
           slideTimer: 0, invulnTimer: 0, shieldActive: false, shieldTimer: 0,
           bikeActive: false, bikeTimer: 0, currentSeasonIndex: 0, isNight: false,
           isStorm: false, stormSeverity: 0, isCity: false, stormFlash: 0,
-          lightningTimer: 5.5, difficultyLevel: 1, spawnTimer: 0.7, coinSpawnTimer: 0.45,
+          lightningTimer: 5.5, lastThunderTime: 0, difficultyLevel: 1, spawnTimer: 0.7, coinSpawnTimer: 0.45,
           trafficSpawnTimer: 1.6, magnetSpawnTimer: 8.5, cameraShake: 0
         });
 
@@ -2664,6 +2734,17 @@
           runState.distance += distDelta;
           runState.score += distDelta * 0.65 * (1 + (runState.difficultyLevel - 1) * 0.15) * (runState.bikeActive ? 1.25 : 1);
 
+          if (sideGrassLoaded && sideGrassTiles.length > 0) {
+            const totalGrassLoop = SIDE_GRASS_COUNT_PER_SIDE * SIDE_GRASS_LENGTH;
+            for (let g = 0; g < sideGrassTiles.length; g++) {
+              const tile = sideGrassTiles[g];
+              tile.position.z += distDelta;
+              if (tile.position.z > 24) {
+                tile.position.z -= totalGrassLoop;
+              }
+            }
+          }
+
           if (runState.comboTimer > 0) {
             runState.comboTimer = Math.max(0, runState.comboTimer - dt);
             if (runState.comboTimer === 0) runState.comboCount = 0;
@@ -2888,6 +2969,17 @@
           document.getElementById('hud-score').textContent = Math.floor(runState.score);
           document.getElementById('hud-speed').textContent = (runState.speed / 25).toFixed(1) + 'x';
         } else if (runState.mode !== 'paused') {
+          if (sideGrassLoaded && sideGrassTiles.length > 0) {
+            const lobbyGrassSpeed = 8 * dt;
+            const totalGrassLoop = SIDE_GRASS_COUNT_PER_SIDE * SIDE_GRASS_LENGTH;
+            for (let g = 0; g < sideGrassTiles.length; g++) {
+              const tile = sideGrassTiles[g];
+              tile.position.z += lobbyGrassSpeed;
+              if (tile.position.z > 24) {
+                tile.position.z -= totalGrassLoop;
+              }
+            }
+          }
           playerRoot.position.set(0, 0, 0);
           playerRoot.rotation.set(0, 0, 0);
           if (glbLoadedOk && animActions.run && currentAnimName !== 'run') {
