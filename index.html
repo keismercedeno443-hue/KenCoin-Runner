@@ -1339,11 +1339,11 @@
 
         const maxXZ = Math.max(size.x || 0.1, size.z || 0.1);
         const heightY = Math.max(size.y || 0.1, 0.1);
-        const desiredHeight = isGroupModel ? 1.35 : 1.05;
-        const desiredMaxWidth = isGroupModel ? 2.1 : 0.9;
+        const desiredHeight = isGroupModel ? 4.2 : 1.55;
+        const desiredMaxWidth = isGroupModel ? 6.2 : 1.35;
         const scaleByH = desiredHeight / heightY;
         const scaleByW = desiredMaxWidth / maxXZ;
-        const finalScale = Math.max(0.005, Math.min(20, Math.min(scaleByH, scaleByW)));
+        const finalScale = Math.max(0.005, Math.min(25, Math.min(scaleByH, scaleByW)));
         copy.scale.setScalar(finalScale);
         if (isGroupModel) {
           copy.rotation.y = Math.PI * 0.5;
@@ -1405,10 +1405,10 @@
             return { mat: entry.mat, baseColor: entry.baseColor };
           });
           if (template.userData.isGroupModel) {
-            instance.scale.set(0.88, 0.88, 0.88);
+            instance.scale.set(1.35, 1.35, 1.35);
             instance.rotation.y = side < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
           } else {
-            const jitterScale = 0.62 + ((idx * 3) % 3) * 0.06;
+            const jitterScale = 0.82 + ((idx * 3) % 3) * 0.08;
             instance.scale.setScalar(jitterScale);
             instance.rotation.y = ((idx * 1.15) % (Math.PI * 2));
           }
@@ -1416,7 +1416,7 @@
           prop.userData.foliageEntries = instance.userData.foliageEntries;
         } else {
           const fallbackTree = createFallbackTreeMesh(idx);
-          fallbackTree.group.scale.setScalar(0.68);
+          fallbackTree.group.scale.setScalar(0.85);
           prop.add(fallbackTree.group);
           prop.userData.crownMat = fallbackTree.crownMat;
         }
@@ -1443,7 +1443,7 @@
         function onTreeTemplateReady() {
           if (!loadedAny) {
             loadedAny = true;
-            showToast('🌿 Árboles ajustados a menor tamaño');
+            showToast('🌳 Árboles (arboles.glb) ajustados a buen tamaño');
           }
           for (let i = 0; i < sceneryProps.length; i++) {
             populateSceneryPropAt(sceneryProps[i], i, roadWidth);
@@ -1485,7 +1485,7 @@
         );
       }
 
-      function prepareHouseTemplate(rawModel, isLeftSide) {
+      function prepareHouseTemplate(rawModel, isLeftSide, heightOverride, widthOverride) {
         const wrapper = new THREE.Group();
         const copy = rawModel.clone(true);
         copy.position.set(0, 0, 0);
@@ -1530,11 +1530,11 @@
 
         const maxXZ = Math.max(size.x || 0.1, size.z || 0.1);
         const heightY = Math.max(size.y || 0.1, 0.1);
-        const desiredHeight = 8.4;
-        const desiredMaxWidth = 9.8;
+        const desiredHeight = heightOverride || 8.4;
+        const desiredMaxWidth = widthOverride || 9.8;
         const scaleByH = desiredHeight / heightY;
         const scaleByW = desiredMaxWidth / maxXZ;
-        const finalScale = Math.max(0.01, Math.min(40, Math.min(scaleByH, scaleByW)));
+        const finalScale = Math.max(0.01, Math.min(45, Math.min(scaleByH, scaleByW)));
         copy.scale.setScalar(finalScale);
         copy.updateMatrixWorld(true);
 
@@ -1553,19 +1553,19 @@
       function createFallbackHouse(sideSign, isLeftHouse) {
         const g = new THREE.Group();
         const wall = new THREE.Mesh(
-          new THREE.BoxGeometry(7.2, 5.4, 7.2),
+          new THREE.BoxGeometry(8.6, 6.6, 8.6),
           new THREE.MeshStandardMaterial({ color: isLeftHouse ? 0xf8fafc : 0xe2e8f0, roughness: 0.7 })
         );
-        wall.position.y = 2.7;
+        wall.position.y = 3.3;
         wall.castShadow = true;
         g.add(wall);
 
         const roof = new THREE.Mesh(
-          new THREE.ConeGeometry(5.6, 3.2, 4),
+          new THREE.ConeGeometry(6.8, 3.8, 4),
           new THREE.MeshStandardMaterial({ color: isLeftHouse ? 0x1e293b : 0xb45309, roughness: 0.65 })
         );
         roof.rotation.y = Math.PI * 0.25;
-        roof.position.y = 7.0;
+        roof.position.y = 8.4;
         roof.castShadow = true;
         g.add(roof);
 
@@ -1628,7 +1628,7 @@
           function (gltf) {
             const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
             if (!raw) return;
-            const tpl = prepareHouseTemplate(raw, false);
+            const tpl = prepareHouseTemplate(raw, false, 12.2, 13.8);
             if (tpl) {
               houseTemplates.rightOpt = tpl;
             }
@@ -1644,7 +1644,7 @@
           function (gltf) {
             const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
             if (!raw) return;
-            const tpl = prepareHouseTemplate(raw, true);
+            const tpl = prepareHouseTemplate(raw, true, 8.4, 9.8);
             if (tpl) {
               houseTemplates.leftJp = tpl;
             }
@@ -1695,29 +1695,33 @@
         wrapper.add(copy);
         wrapper.updateMatrixWorld(true);
 
-        const box = new THREE.Box3().setFromObject(copy);
-        const size = new THREE.Vector3();
-        box.getSize(size);
+        const rawBox = new THREE.Box3().setFromObject(copy);
+        const rawSize = new THREE.Vector3();
+        rawBox.getSize(rawSize);
 
-        const desiredWidth = 1.75;
-        const desiredLength = 3.45;
-        const desiredHeight = 1.65;
+        const desiredWidth = 1.85;
+        const desiredLength = 3.85;
+        const desiredHeight = 1.78;
 
-        const isLengthAlongX = (size.x || 0) > (size.z || 0) * 1.12;
+        const isLengthAlongX = (rawSize.x || 0) > (rawSize.z || 0) * 1.12;
         if (isLengthAlongX) {
-          copy.rotation.y = -Math.PI * 0.5;
+          copy.rotation.y = Math.PI * 0.5;
           copy.updateMatrixWorld(true);
         }
 
-        const rotBox = new THREE.Box3().setFromObject(copy);
-        const rotSize = new THREE.Vector3();
-        rotBox.getSize(rotSize);
+        const orientedBox = new THREE.Box3().setFromObject(copy);
+        const orientedSize = new THREE.Vector3();
+        orientedBox.getSize(orientedSize);
 
-        const sx = rotSize.x > 0.001 ? (desiredWidth / rotSize.x) : 1;
-        const sz = rotSize.z > 0.001 ? (desiredLength / rotSize.z) : 1;
-        const sy = rotSize.y > 0.001 ? (desiredHeight / rotSize.y) : 1;
-        const finalScale = Math.max(0.005, Math.min(35, Math.min(sx, sz, sy * 1.15)));
-        copy.scale.setScalar(finalScale);
+        const sx = orientedSize.x > 0.001 ? (desiredWidth / orientedSize.x) : 1;
+        const sz = orientedSize.z > 0.001 ? (desiredLength / orientedSize.z) : 1;
+        const sy = orientedSize.y > 0.001 ? (desiredHeight / orientedSize.y) : 1;
+        const finalScale = Math.max(0.005, Math.min(45, Math.min(sx, sz)));
+        copy.scale.set(
+          finalScale,
+          Math.max(0.005, Math.min(45, Math.min(sy, finalScale * 1.25))),
+          finalScale
+        );
         copy.updateMatrixWorld(true);
 
         const scaledBox = new THREE.Box3().setFromObject(copy);
@@ -1728,27 +1732,26 @@
         if (Number.isFinite(center.z)) copy.position.z = -center.z;
         if (Number.isFinite(scaledBox.min.y)) copy.position.y = -scaledBox.min.y;
 
-        wrapper.add(copy);
         wrapper.updateMatrixWorld(true);
 
         const finalBox = new THREE.Box3().setFromObject(wrapper);
         const finalSize = new THREE.Vector3();
         finalBox.getSize(finalSize);
 
-        wrapper.userData.hitWidth = Math.max(1.35, Math.min(2.05, finalSize.x || 1.75));
-        wrapper.userData.hitHeight = Math.max(1.1, Math.min(2.1, finalSize.y || 1.65));
-        wrapper.userData.hitDepth = Math.max(2.5, Math.min(4.0, finalSize.z || 3.4));
+        wrapper.userData.hitWidth = Math.max(1.45, Math.min(2.1, finalSize.x || 1.85));
+        wrapper.userData.hitHeight = Math.max(1.25, Math.min(2.2, finalSize.y || 1.78));
+        wrapper.userData.hitDepth = Math.max(2.8, Math.min(4.4, finalSize.z || 3.85));
         return wrapper;
       }
 
       function initCarModels() {
         const loader = new GLTFLoader();
-        let notified = false;
+        let loadedCount = 0;
 
         function onCarReady() {
-          if (!notified) {
-            notified = true;
-            showToast('🚗 Carros carro_barbie.glb y carro_kia.glb cargados');
+          loadedCount += 1;
+          if (loadedCount === 1) {
+            showToast('🚗 Carros Barbie y KIA corregidos');
           }
         }
 
@@ -2787,15 +2790,15 @@
         const chosenTpl = pickBarbie ? (carTemplates.barbie || carTemplates.kia) : (carTemplates.kia || carTemplates.barbie);
 
         let carGroup = null;
-        let hitWidth = 1.75;
-        let hitHeight = 1.72;
-        let hitDepth = 3.4;
+        let hitWidth = 1.85;
+        let hitHeight = 1.78;
+        let hitDepth = 3.85;
 
         if (chosenTpl) {
           carGroup = chosenTpl.clone(true);
-          hitWidth = chosenTpl.userData.hitWidth || 1.75;
-          hitHeight = chosenTpl.userData.hitHeight || 1.65;
-          hitDepth = chosenTpl.userData.hitDepth || 3.4;
+          hitWidth = chosenTpl.userData.hitWidth || 1.85;
+          hitHeight = chosenTpl.userData.hitHeight || 1.78;
+          hitDepth = chosenTpl.userData.hitDepth || 3.85;
         } else {
           const bodyColors = [0xec4899, 0x3b82f6, 0x10b981, 0xeab308, 0xa855f7];
           carGroup = createFallbackTrafficCarGroup(bodyColors[Math.floor(Math.random() * bodyColors.length)]);
