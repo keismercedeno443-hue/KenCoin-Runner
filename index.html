@@ -614,6 +614,7 @@
       const CYCLE_SPAN_METERS = 4000;
       const SEASON_SPAN_METERS = 1000;
       const CITY_START_METERS = 12000;
+      const TREE_INTERVAL_METERS = 100;
       const HOUSE_INTERVAL_METERS = 500;
       const STORAGE_KEY = 'kencoin_runner_3d_save_v1';
       const ACCOUNTS_KEY = 'kencoin_runner_3d_accounts_v1';
@@ -767,7 +768,7 @@
         bikeActive: false, bikeTimer: 0, currentSeasonIndex: 0, isNight: false,
         isStorm: false, stormSeverity: 0, isCity: false, stormFlash: 0,
         lightningTimer: 5.5, lastThunderTime: 0, difficultyLevel: 1,
-        lastHouseMilestone: 0, spawnTimer: 0.7, coinSpawnTimer: 0.45,
+        lastTreeMilestone: 0, lastHouseMilestone: 0, spawnTimer: 0.7, coinSpawnTimer: 0.45,
         trafficSpawnTimer: 1.6, magnetSpawnTimer: 8.5, cameraShake: 0
       };
 
@@ -1029,7 +1030,7 @@
       let roadMesh, roadEdgeL, roadEdgeR, groundLeftMesh, groundRightMesh;
       let sidewalkLeftMesh, sidewalkRightMesh;
       let sideGrassTiles = [], sideGrassMaterials = [], sideGrassLoaded = false;
-      let laneStripes = [], sceneryProps = [], cityBuildings = [];
+      let laneStripes = [], milestoneTrees = [], cityBuildings = [];
       let customTreeTemplates = { single: null, group: null };
       let houseTemplates = { rightOpt: null, leftJp: null };
       let milestoneHouses = [];
@@ -1386,16 +1387,10 @@
         });
       }
 
-      function populateSceneryPropAt(prop, idx, roadWidth) {
-        const side = idx % 2 === 0 ? -1 : 1;
+      function buildTreeVisual(idx, sideSign) {
+        const holder = new THREE.Group();
         const useGroup = (idx % 3 === 1) && customTreeTemplates.group;
         const useSingle = customTreeTemplates.single;
-
-        while (prop.children.length > 0) {
-          prop.remove(prop.children[0]);
-        }
-        prop.userData.foliageEntries = null;
-        prop.userData.crownMat = null;
 
         if (useGroup || useSingle) {
           const template = useGroup ? customTreeTemplates.group : customTreeTemplates.single;
@@ -1405,48 +1400,64 @@
           });
           if (template.userData.isGroupModel) {
             instance.scale.set(1, 1, 1);
-            instance.rotation.y = side < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
+            instance.rotation.y = sideSign < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
           } else {
             const jitterScale = 0.8 + ((idx * 3) % 3) * 0.06;
             instance.scale.setScalar(jitterScale);
             instance.rotation.y = ((idx * 1.15) % (Math.PI * 2));
           }
-          prop.add(instance);
-          prop.userData.foliageEntries = instance.userData.foliageEntries;
+          holder.add(instance);
+          holder.userData.foliageEntries = instance.userData.foliageEntries;
         } else {
           const fallbackTree = createFallbackTreeMesh(idx);
-          prop.add(fallbackTree.group);
-          prop.userData.crownMat = fallbackTree.crownMat;
+          holder.add(fallbackTree.group);
+          holder.userData.crownMat = fallbackTree.crownMat;
         }
 
-        const onGrassOffset = useGroup
-          ? (roadWidth * 0.5 + SIDE_GRASS_WIDTH * 0.5 + 0.08)
-          : (roadWidth * 0.5 + 3.2 + ((idx * 1.9) % Math.max(1.5, SIDE_GRASS_WIDTH - 5.4)));
-        prop.position.set(side * onGrassOffset, 0.02, -idx * SCENERY_SPACING);
-        prop.visible = !runState.isCity;
-
-        applyGlbTreeSeasonTint(prop, runState.currentSeasonIndex, runState.isNight, runState.isStorm);
-        if (prop.userData.crownMat) {
-          const s = SEASONS[runState.currentSeasonIndex] || SEASONS[0];
-          prop.userData.crownMat.color.setHex(
+        const s = SEASONS[runState.currentSeasonIndex] || SEASONS[0];
+        applyGlbTreeSeasonTint(holder, runState.currentSeasonIndex, runState.isNight, runState.isStorm);
+        if (holder.userData.crownMat) {
+          holder.userData.crownMat.color.setHex(
             runState.isStorm ? 0x334155 : (runState.isNight ? s.foliageNight : s.foliageDay)
           );
         }
+        return holder;
+      }
+
+      function clearMilestoneTrees() {
+        milestoneTrees.forEach(function (t) {
+          if (t && t.mesh && scene) {
+            scene.remove(t.mesh);
+          }
+        });
+        milestoneTrees = [];
+      }
+
+      function spawnMilestoneTrees(milestoneIndex) {
+        if (runState.isCity || runState.distance >= CITY_START_METERS) return;
+        const alreadySpawned = milestoneTrees.some(function (t) {
+          return t.milestoneIndex === milestoneIndex;
+        });
+        if (alreadySpawned) return;
+
+        const roadWidth = LANE_WIDTH * 3 + 2.2;
+        const sideSign = milestoneIndex % 2 === 1 ? -1 : 1;
+        const treeMesh = buildTreeVisual(milestoneIndex, sideSign);
+        const onGrassOffset = roadWidth * 0.5 + 3.2 + ((milestoneIndex * 1.9) % Math.max(1.5, SIDE_GRASS_WIDTH - 5.4));
+
+        treeMesh.position.set(sideSign * onGrassOffset, 0.02, -118);
+        treeMesh.visible = true;
+        scene.add(treeMesh);
+
+        milestoneTrees.push({
+          milestoneIndex: milestoneIndex,
+          sideSign: sideSign,
+          mesh: treeMesh
+        });
       }
 
       function initCustomTrees(roadWidth) {
         const loader = new GLTFLoader();
-        let loadedAny = false;
-
-        function onTreeTemplateReady() {
-          if (!loadedAny) {
-            loadedAny = true;
-            showToast('🌿 arboles.glb volteado en el césped');
-          }
-          for (let i = 0; i < sceneryProps.length; i++) {
-            populateSceneryPropAt(sceneryProps[i], i, roadWidth);
-          }
-        }
 
         loader.load(
           TREE_SINGLE_URL,
@@ -1456,7 +1467,6 @@
             const tpl = prepareGlbTreeTemplate(raw, false);
             if (tpl) {
               customTreeTemplates.single = tpl;
-              onTreeTemplateReady();
             }
           },
           undefined,
@@ -1473,7 +1483,6 @@
             const tpl = prepareGlbTreeTemplate(raw, true);
             if (tpl) {
               customTreeTemplates.group = tpl;
-              onTreeTemplateReady();
             }
           },
           undefined,
@@ -1528,11 +1537,11 @@
 
         const maxXZ = Math.max(size.x || 0.1, size.z || 0.1);
         const heightY = Math.max(size.y || 0.1, 0.1);
-        const desiredHeight = 4.6;
-        const desiredMaxWidth = 5.4;
+        const desiredHeight = 10.5;
+        const desiredMaxWidth = 11.5;
         const scaleByH = desiredHeight / heightY;
         const scaleByW = desiredMaxWidth / maxXZ;
-        const finalScale = Math.max(0.01, Math.min(25, Math.min(scaleByH, scaleByW)));
+        const finalScale = Math.max(0.01, Math.min(35, Math.min(scaleByH, scaleByW)));
         copy.scale.setScalar(finalScale);
         copy.updateMatrixWorld(true);
 
@@ -1551,19 +1560,19 @@
       function createFallbackHouse(sideSign, isLeftHouse) {
         const g = new THREE.Group();
         const wall = new THREE.Mesh(
-          new THREE.BoxGeometry(4.2, 3.1, 4.2),
+          new THREE.BoxGeometry(8.5, 6.2, 8.5),
           new THREE.MeshStandardMaterial({ color: isLeftHouse ? 0xf8fafc : 0xe2e8f0, roughness: 0.7 })
         );
-        wall.position.y = 1.55;
+        wall.position.y = 3.1;
         wall.castShadow = true;
         g.add(wall);
 
         const roof = new THREE.Mesh(
-          new THREE.ConeGeometry(3.3, 1.9, 4),
+          new THREE.ConeGeometry(6.6, 3.8, 4),
           new THREE.MeshStandardMaterial({ color: isLeftHouse ? 0x1e293b : 0xb45309, roughness: 0.65 })
         );
         roof.rotation.y = Math.PI * 0.25;
-        roof.position.y = 4.05;
+        roof.position.y = 8.1;
         roof.castShadow = true;
         g.add(roof);
 
@@ -1612,6 +1621,7 @@
 
         milestoneHouses.push({
           milestoneIndex: milestoneIndex,
+          sideSign: sideSign,
           mesh: houseMesh
         });
 
@@ -1872,11 +1882,6 @@
         });
 
         for (let i = 0; i < SCENERY_COUNT; i++) {
-          const prop = new THREE.Group();
-          populateSceneryPropAt(prop, i, roadWidth);
-          sceneryProps.push(prop);
-          scene.add(prop);
-
           const side = i % 2 === 0 ? -1 : 1;
           const building = createCityBuildingProp(i);
           building.position.set(side * (roadWidth * 0.5 + 7.2 + (i % 2) * 2.4), 0, -i * SCENERY_SPACING);
@@ -2434,6 +2439,7 @@
         }
 
         if (cityActive) {
+          clearMilestoneTrees();
           clearMilestoneHouses();
         }
 
@@ -2477,20 +2483,22 @@
           }
         }
 
-        sceneryProps.forEach(function (prop, idx) {
-          prop.visible = !cityActive;
-          applyGlbTreeSeasonTint(prop, seasonIndex, isNight, stormActive);
-          if (prop.userData && prop.userData.crownMat) {
-            prop.userData.crownMat.color.setHex(
-              stormActive ? 0x334155 : (isNight ? s.foliageNight : s.foliageDay)
-            );
+        milestoneTrees.forEach(function (tItem) {
+          if (tItem && tItem.mesh) {
+            tItem.mesh.visible = !cityActive;
+            applyGlbTreeSeasonTint(tItem.mesh, seasonIndex, isNight, stormActive);
+            if (tItem.mesh.userData && tItem.mesh.userData.crownMat) {
+              tItem.mesh.userData.crownMat.color.setHex(
+                stormActive ? 0x334155 : (isNight ? s.foliageNight : s.foliageDay)
+              );
+            }
           }
-          const bGroup = cityBuildings[idx];
-          if (bGroup) {
-            bGroup.visible = cityActive;
-            if (bGroup.userData.wallMat) bGroup.userData.wallMat.color.setHex((isNight || stormActive) ? 0x1e293b : 0x64748b);
-            if (bGroup.userData.winMat) bGroup.userData.winMat.color.setHex((isNight || stormActive) ? 0xfef08a : 0xbae6fd);
-          }
+        });
+
+        cityBuildings.forEach(function (bGroup) {
+          bGroup.visible = cityActive;
+          if (bGroup.userData.wallMat) bGroup.userData.wallMat.color.setHex((isNight || stormActive) ? 0x1e293b : 0x64748b);
+          if (bGroup.userData.winMat) bGroup.userData.winMat.color.setHex((isNight || stormActive) ? 0xfef08a : 0xbae6fd);
         });
 
         updateHudBadges();
@@ -2511,6 +2519,7 @@
         magnets.forEach(function (m) { scene.remove(m.mesh); }); magnets = [];
         trafficCars.forEach(function (t) { scene.remove(t.mesh); }); trafficCars = [];
         burstParticles.forEach(function (p) { scene.remove(p.mesh); }); burstParticles = [];
+        clearMilestoneTrees();
         clearMilestoneHouses();
       }
 
@@ -2670,7 +2679,7 @@
           bikeActive: false, bikeTimer: 0, currentSeasonIndex: 0, isNight: false,
           isStorm: false, stormSeverity: 0, isCity: false, stormFlash: 0,
           lightningTimer: 5.5, lastThunderTime: 0, difficultyLevel: 1,
-          lastHouseMilestone: 0, spawnTimer: 0.7, coinSpawnTimer: 0.45,
+          lastTreeMilestone: 0, lastHouseMilestone: 0, spawnTimer: 0.7, coinSpawnTimer: 0.45,
           trafficSpawnTimer: 1.6, magnetSpawnTimer: 8.5, cameraShake: 0
         });
 
@@ -3032,7 +3041,7 @@
             speed: 25, lane: 0, laneX: 0, playerY: 0, velocityY: 0, isGrounded: true,
             onObstacleTop: false, isSliding: false, shieldActive: false, bikeActive: false,
             bikeTimer: 0, isStorm: false, stormSeverity: 0, isCity: false, stormFlash: 0,
-            lastHouseMilestone: 0
+            lastTreeMilestone: 0, lastHouseMilestone: 0
           });
           if (bikeGroup) bikeGroup.visible = false;
           if (lightningBoltMesh) lightningBoltMesh.visible = false;
@@ -3277,10 +3286,16 @@
           runState.score += distDelta * 0.65 * (1 + (runState.difficultyLevel - 1) * 0.15) * (runState.bikeActive ? 1.25 : 1);
 
           if (!runState.isCity && runState.distance < CITY_START_METERS) {
-            const currentMilestone = Math.floor(runState.distance / HOUSE_INTERVAL_METERS);
-            if (currentMilestone > runState.lastHouseMilestone) {
-              runState.lastHouseMilestone = currentMilestone;
-              spawnMilestoneHouse(currentMilestone);
+            const currentTreeMilestone = Math.floor(runState.distance / TREE_INTERVAL_METERS);
+            if (currentTreeMilestone > runState.lastTreeMilestone) {
+              runState.lastTreeMilestone = currentTreeMilestone;
+              spawnMilestoneTrees(currentTreeMilestone);
+            }
+
+            const currentHouseMilestone = Math.floor(runState.distance / HOUSE_INTERVAL_METERS);
+            if (currentHouseMilestone > runState.lastHouseMilestone) {
+              runState.lastHouseMilestone = currentHouseMilestone;
+              spawnMilestoneHouse(currentHouseMilestone);
             }
           }
 
@@ -3296,6 +3311,33 @@
               if (hItem.mesh.position.z > 24) {
                 scene.remove(hItem.mesh);
                 milestoneHouses.splice(hIdx, 1);
+              }
+            }
+          }
+
+          if (milestoneTrees.length > 0) {
+            for (let tIdx = milestoneTrees.length - 1; tIdx >= 0; tIdx--) {
+              const tItem = milestoneTrees[tIdx];
+              if (runState.isCity || runState.distance >= CITY_START_METERS) {
+                scene.remove(tItem.mesh);
+                milestoneTrees.splice(tIdx, 1);
+                continue;
+              }
+              tItem.mesh.position.z += distDelta;
+
+              let overlapsHouse = false;
+              for (let hIdx = 0; hIdx < milestoneHouses.length; hIdx++) {
+                const hItem = milestoneHouses[hIdx];
+                if (hItem.sideSign === tItem.sideSign && Math.abs(tItem.mesh.position.z - hItem.mesh.position.z) < 22) {
+                  overlapsHouse = true;
+                  break;
+                }
+              }
+              tItem.mesh.visible = !overlapsHouse;
+
+              if (tItem.mesh.position.z > 24) {
+                scene.remove(tItem.mesh);
+                milestoneTrees.splice(tIdx, 1);
               }
             }
           }
@@ -3446,10 +3488,9 @@
           }
 
           laneStripes.forEach(function (st) { st.position.z += distDelta; if (st.position.z > 14) st.position.z -= 160; });
-          sceneryProps.forEach(function (prop, idx) {
-            prop.position.z += distDelta;
-            if (prop.position.z > 16) prop.position.z -= SCENERY_LOOP_SPAN;
-            if (cityBuildings[idx]) cityBuildings[idx].position.z = prop.position.z;
+          cityBuildings.forEach(function (bGroup) {
+            bGroup.position.z += distDelta;
+            if (bGroup.position.z > 16) bGroup.position.z -= SCENERY_LOOP_SPAN;
           });
 
           runState.spawnTimer -= dt;
