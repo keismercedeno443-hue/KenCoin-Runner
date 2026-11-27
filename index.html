@@ -482,7 +482,7 @@
           <div>• Teclado: <strong>A/D</strong> o <strong>←/→</strong> mover, <strong>W/↑/Espacio</strong> saltar, <strong>S/↓</strong> deslizar, <strong>P/Esc</strong> pausar.</div>
           <div>• Táctil/Ratón: Desliza sobre la pantalla para moverte, saltar o deslizarte.</div>
           <div>• Nv.1–8: 4 estaciones de <strong>DÍA</strong> y 4 de <strong>NOCHE</strong>. Nv.9: Tormenta (8,000m), Nv.10: Día calmado, Nv.11: Tormenta severa, Nv.12: Cierre.</div>
-          <div>• Desde los <strong>12,000m</strong>: <strong>Ciudad</strong> con su ciclo de 4 estaciones de día, 4 de noche y tormentas.</div>
+          <div>• Desde los <strong>12,000m</strong>: <strong>Ciudad</strong> con asfalto, aceras y edificios.</div>
         </div>
 
         <button
@@ -636,25 +636,25 @@
           name: 'Primavera', icon: '🌸',
           dayZenith: 0x165294, dayHorizon: 0x8cc6f2, dayFog: 0x7cb8e8,
           nightZenith: 0x071124, nightHorizon: 0x1e3a5f, nightFog: 0x0f172a,
-          roadColor: 0x3b4859, groundDay: 0x3f8f4d, groundNight: 0x143326, particleColor: 0xffb7d5
+          roadColor: 0x2b3442, groundDay: 0x1e5c2b, groundNight: 0x0d261a, particleColor: 0xffb7d5
         },
         {
           name: 'Verano', icon: '☀️',
           dayZenith: 0x0e6ba8, dayHorizon: 0x7dd3fc, dayFog: 0x67c3f0,
           nightZenith: 0x09132c, nightHorizon: 0x1d3557, nightFog: 0x0f1b33,
-          roadColor: 0x475569, groundDay: 0x2f855a, groundNight: 0x13382c, particleColor: 0xfef08a
+          roadColor: 0x2f3b4c, groundDay: 0x19572f, groundNight: 0x0c281d, particleColor: 0xfef08a
         },
         {
           name: 'Otoño', icon: '🍂',
           dayZenith: 0x9a3412, dayHorizon: 0xfdba74, dayFog: 0xe89b54,
           nightZenith: 0x1c1024, nightHorizon: 0x4a2545, nightFog: 0x1e1326,
-          roadColor: 0x4a3f35, groundDay: 0xb45309, groundNight: 0x3b1f12, particleColor: 0xfb923c
+          roadColor: 0x3b322a, groundDay: 0x7a3407, groundNight: 0x261209, particleColor: 0xfb923c
         },
         {
           name: 'Invierno', icon: '❄️',
           dayZenith: 0x1e3a8a, dayHorizon: 0xbae6fd, dayFog: 0x9dd6f5,
           nightZenith: 0x060d1f, nightHorizon: 0x172554, nightFog: 0x0b132b,
-          roadColor: 0x334155, groundDay: 0xcbd5e1, groundNight: 0x1e293b, particleColor: 0xf8fafc
+          roadColor: 0x273244, groundDay: 0x7e90a6, groundNight: 0x151e2e, particleColor: 0xf8fafc
         }
       ];
 
@@ -1015,6 +1015,7 @@
       let ambientLight, hemiLight, dirLight, moonLight, playerGlowLight;
       let cloudBanks = [];
       let roadMesh, roadEdgeL, roadEdgeR, groundLeftMesh, groundRightMesh;
+      let sidewalkLeftMesh, sidewalkRightMesh;
       let sideGrassTiles = [], sideGrassMaterials = [], sideGrassLoaded = false;
       let laneStripes = [], sceneryProps = [], cityBuildings = [];
       let obstacles = [], coins = [], magnets = [], trafficCars = [], burstParticles = [];
@@ -1084,90 +1085,138 @@
         return tex;
       }
 
-      function createCespedGlbTexture() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 256;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#3c9646';
-        ctx.fillRect(0, 0, 256, 256);
+      function clearSideGrassTiles() {
+        sideGrassTiles.forEach(function (tile) {
+          scene.remove(tile);
+        });
+        sideGrassTiles = [];
+        sideGrassMaterials = [];
+        sideGrassLoaded = false;
+      }
 
-        let seed = 2112;
+      function createGrassTileFromSource(sourceObject, roadWidth, isFallback) {
+        const wrapper = new THREE.Group();
+        wrapper.name = isFallback ? 'Cesped_Fallback_Tile' : 'Cesped_3D_Tile';
+
+        const modelCopy = sourceObject.clone(true);
+        modelCopy.position.set(0, 0, 0);
+        modelCopy.rotation.set(0, 0, 0);
+        modelCopy.scale.set(1, 1, 1);
+
+        modelCopy.traverse(function (child) {
+          if (child.isMesh) {
+            child.visible = true;
+            child.castShadow = !isFallback;
+            child.receiveShadow = true;
+            child.frustumCulled = false;
+
+            if (child.material) {
+              const mats = Array.isArray(child.material) ? child.material : [child.material];
+              mats.forEach(function (m) {
+                if (m) {
+                  m.side = THREE.DoubleSide;
+                  if (m.transparent && m.opacity < 0.15) {
+                    m.transparent = false;
+                    m.opacity = 1;
+                  }
+                  m.needsUpdate = true;
+                  if (sideGrassMaterials.indexOf(m) === -1) {
+                    sideGrassMaterials.push(m);
+                  }
+                }
+              });
+            }
+          }
+        });
+
+        wrapper.add(modelCopy);
+        wrapper.updateMatrixWorld(true);
+
+        const box = new THREE.Box3().setFromObject(modelCopy);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+
+        const sx = size.x > 0.001 ? (SIDE_GRASS_WIDTH / size.x) : 1;
+        const sz = size.z > 0.001 ? (SIDE_GRASS_LENGTH / size.z) : 1;
+        const sy = Math.max(0.25, Math.min(2.5, (sx + sz) * 0.5));
+        modelCopy.scale.set(sx, sy, sz);
+        modelCopy.updateMatrixWorld(true);
+
+        const scaledBox = new THREE.Box3().setFromObject(modelCopy);
+        const center = new THREE.Vector3();
+        scaledBox.getCenter(center);
+
+        if (Number.isFinite(center.x)) modelCopy.position.x = -center.x;
+        if (Number.isFinite(center.z)) modelCopy.position.z = -center.z;
+        if (Number.isFinite(scaledBox.min.y)) modelCopy.position.y = -scaledBox.min.y;
+
+        const sideOffsetX = roadWidth * 0.5 + SIDE_GRASS_WIDTH * 0.5 + 0.08;
+        const grassY = -0.01;
+
+        for (let i = 0; i < SIDE_GRASS_COUNT_PER_SIDE; i++) {
+          const zPos = 18 - i * SIDE_GRASS_LENGTH;
+
+          const leftTile = wrapper.clone(true);
+          leftTile.position.set(-sideOffsetX, grassY, zPos);
+          scene.add(leftTile);
+          sideGrassTiles.push(leftTile);
+
+          const rightTile = wrapper.clone(true);
+          rightTile.position.set(sideOffsetX, grassY, zPos);
+          scene.add(rightTile);
+          sideGrassTiles.push(rightTile);
+        }
+      }
+
+      function buildCespedFallbackGeometry(roadWidth) {
+        clearSideGrassTiles();
+
+        const fallbackGroup = new THREE.Group();
+        const baseMat = new THREE.MeshStandardMaterial({
+          color: 0x226832,
+          roughness: 0.85,
+          metalness: 0.0,
+          side: THREE.DoubleSide
+        });
+        const basePlane = new THREE.Mesh(
+          new THREE.PlaneGeometry(SIDE_GRASS_WIDTH, SIDE_GRASS_LENGTH, 1, 1).rotateX(-Math.PI / 2),
+          baseMat
+        );
+        basePlane.receiveShadow = true;
+        fallbackGroup.add(basePlane);
+
+        const tuftMat = new THREE.MeshStandardMaterial({
+          color: 0x2e853c,
+          roughness: 0.78,
+          metalness: 0.0
+        });
+        const tuftGeo = new THREE.ConeGeometry(0.24, 0.55, 5);
+        tuftGeo.translate(0, 0.275, 0);
+
+        let seed = 4099;
         function rand() {
           seed = (seed * 16807) % 2147483647;
           return (seed - 1) / 2147483646;
         }
 
-        for (let i = 0; i < 420; i++) {
-          const x = rand() * 256;
-          const y = rand() * 256;
-          const w = 2 + rand() * 5;
-          const h = 4 + rand() * 10;
-          const shade = rand();
-          ctx.fillStyle = shade < 0.35
-            ? 'rgba(34, 118, 46, 0.42)'
-            : (shade < 0.75 ? 'rgba(92, 184, 72, 0.36)' : 'rgba(154, 214, 92, 0.25)');
-          ctx.fillRect(x, y, w, h);
+        for (let i = 0; i < 140; i++) {
+          const tuft = new THREE.Mesh(tuftGeo, tuftMat);
+          tuft.position.set(
+            (rand() - 0.5) * (SIDE_GRASS_WIDTH - 0.8),
+            0,
+            (rand() - 0.5) * (SIDE_GRASS_LENGTH - 0.8)
+          );
+          tuft.rotation.y = rand() * Math.PI * 2;
+          tuft.scale.setScalar(0.75 + rand() * 0.75);
+          fallbackGroup.add(tuft);
         }
 
-        const tex = new THREE.CanvasTexture(canvas);
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(6, 16);
-        tex.needsUpdate = true;
-        return tex;
-      }
-
-      function buildCespedGlbBase(roadWidth) {
-        const cespedTex = createCespedGlbTexture();
-        const geo = new THREE.PlaneGeometry(2, 2, 1, 1);
-        geo.rotateX(-Math.PI / 2);
-
-        const mat = new THREE.MeshStandardMaterial({
-          map: cespedTex,
-          color: 0xffffff,
-          roughness: 0.72,
-          metalness: 0.0,
-          side: THREE.DoubleSide
-        });
-        sideGrassMaterials.push(mat);
-
-        const planeMesh = new THREE.Mesh(geo, mat);
-        planeMesh.name = 'Plane_0';
-        planeMesh.receiveShadow = false;
-        planeMesh.castShadow = false;
-        planeMesh.frustumCulled = false;
-
-        const baseGroup = new THREE.Group();
-        baseGroup.name = 'Sketchfab_Scene_Cesped';
-        baseGroup.add(planeMesh);
-
-        const scaleX = SIDE_GRASS_WIDTH / 2;
-        const scaleZ = SIDE_GRASS_LENGTH / 2;
-        baseGroup.scale.set(scaleX, 1, scaleZ);
-
-        const sideOffsetX = roadWidth * 0.5 + SIDE_GRASS_WIDTH * 0.5 + 0.08;
-        const grassY = -0.015;
-
-        for (let i = 0; i < SIDE_GRASS_COUNT_PER_SIDE; i++) {
-          const zPos = 18 - i * SIDE_GRASS_LENGTH;
-
-          const leftTile = baseGroup.clone(true);
-          leftTile.position.set(-sideOffsetX, grassY, zPos);
-          scene.add(leftTile);
-          sideGrassTiles.push(leftTile);
-
-          const rightTile = baseGroup.clone(true);
-          rightTile.position.set(sideOffsetX, grassY, zPos);
-          scene.add(rightTile);
-          sideGrassTiles.push(rightTile);
-        }
-
+        createGrassTileFromSource(fallbackGroup, roadWidth, true);
         sideGrassLoaded = true;
       }
 
       function initSideGrassModel(roadWidth) {
-        buildCespedGlbBase(roadWidth);
+        buildCespedFallbackGeometry(roadWidth);
 
         const loader = new GLTFLoader();
         loader.load(
@@ -1176,31 +1225,36 @@
             const rawModel = gltf.scene || (gltf.scenes && gltf.scenes[0]);
             if (!rawModel) return;
 
-            let extractedTex = null;
+            let hasMeshes = false;
             rawModel.traverse(function (child) {
-              if (child.isMesh && child.material) {
-                const mats = Array.isArray(child.material) ? child.material : [child.material];
-                mats.forEach(function (m) {
-                  if (m && m.map && !extractedTex) {
-                    extractedTex = m.map.clone();
-                    extractedTex.wrapS = THREE.RepeatWrapping;
-                    extractedTex.wrapT = THREE.RepeatWrapping;
-                    extractedTex.repeat.set(6, 16);
-                    extractedTex.needsUpdate = true;
-                  }
-                });
+              if (child.isMesh) {
+                hasMeshes = true;
+                child.visible = true;
+                child.castShadow = true;
+                child.receiveShadow = true;
+                child.frustumCulled = false;
               }
             });
 
-            if (extractedTex) {
-              sideGrassMaterials.forEach(function (m) {
-                m.map = extractedTex;
-                m.needsUpdate = true;
-              });
-            }
+            if (!hasMeshes) return;
+
+            clearSideGrassTiles();
+            createGrassTileFromSource(rawModel, roadWidth, false);
+            sideGrassLoaded = true;
+            applyAtmosphereForCycle(
+              runState.currentSeasonIndex,
+              runState.isNight,
+              true,
+              runState.isStorm,
+              runState.stormSeverity,
+              runState.isCity
+            );
+            showToast('✅ Césped 3D cargado');
           },
           undefined,
-          function () {}
+          function (err) {
+            console.warn('No se pudo cargar césped.glb:', err);
+          }
         );
       }
 
@@ -1219,7 +1273,7 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
         renderer.setSize(w, h);
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.1;
+        renderer.toneMappingExposure = 1.0;
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -1338,13 +1392,13 @@
           scene.add(bank);
         }
 
-        ambientLight = new THREE.AmbientLight(0x93c5fd, 1.05);
+        ambientLight = new THREE.AmbientLight(0x93c5fd, 0.85);
         scene.add(ambientLight);
 
-        hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x3f6212, 1.15);
+        hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x1e4620, 0.92);
         scene.add(hemiLight);
 
-        dirLight = new THREE.DirectionalLight(0xfff1c2, 2.2);
+        dirLight = new THREE.DirectionalLight(0xfff1c2, 1.85);
         dirLight.position.set(18, 32, 16);
         dirLight.castShadow = true;
         dirLight.shadow.mapSize.width = 1024;
@@ -1362,7 +1416,7 @@
         const roadWidth = LANE_WIDTH * 3 + 2.2;
         roadMesh = new THREE.Mesh(
           new THREE.PlaneGeometry(roadWidth, 240),
-          new THREE.MeshStandardMaterial({ color: 0x3b4859, roughness: 0.8, metalness: 0.12 })
+          new THREE.MeshStandardMaterial({ color: 0x2b3442, roughness: 0.8, metalness: 0.12 })
         );
         roadMesh.rotation.x = -Math.PI / 2;
         roadMesh.position.set(0, 0, -90);
@@ -1378,18 +1432,32 @@
         roadEdgeR.position.set(roadWidth * 0.5 - 0.12, 0.05, -90);
         scene.add(roadEdgeR);
 
-        const groundMat = new THREE.MeshStandardMaterial({ color: 0x3f8f4d, roughness: 0.9 });
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x1e5c2b, roughness: 0.92 });
         groundLeftMesh = new THREE.Mesh(new THREE.PlaneGeometry(140, 240), groundMat);
         groundLeftMesh.rotation.x = -Math.PI / 2;
-        groundLeftMesh.position.set(-roadWidth * 0.5 - 70, -0.04, -90);
+        groundLeftMesh.position.set(-roadWidth * 0.5 - 70, -0.05, -90);
         groundLeftMesh.receiveShadow = true;
         scene.add(groundLeftMesh);
 
         groundRightMesh = new THREE.Mesh(new THREE.PlaneGeometry(140, 240), groundMat);
         groundRightMesh.rotation.x = -Math.PI / 2;
-        groundRightMesh.position.set(roadWidth * 0.5 + 70, -0.04, -90);
+        groundRightMesh.position.set(roadWidth * 0.5 + 70, -0.05, -90);
         groundRightMesh.receiveShadow = true;
         scene.add(groundRightMesh);
+
+        const sidewalkWidth = 4.2;
+        const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.85, metalness: 0.05 });
+        sidewalkLeftMesh = new THREE.Mesh(new THREE.BoxGeometry(sidewalkWidth, 0.18, 240), sidewalkMat);
+        sidewalkLeftMesh.position.set(-roadWidth * 0.5 - sidewalkWidth * 0.5, 0.06, -90);
+        sidewalkLeftMesh.receiveShadow = true;
+        sidewalkLeftMesh.visible = false;
+        scene.add(sidewalkLeftMesh);
+
+        sidewalkRightMesh = new THREE.Mesh(new THREE.BoxGeometry(sidewalkWidth, 0.18, 240), sidewalkMat);
+        sidewalkRightMesh.position.set(roadWidth * 0.5 + sidewalkWidth * 0.5, 0.06, -90);
+        sidewalkRightMesh.receiveShadow = true;
+        sidewalkRightMesh.visible = false;
+        scene.add(sidewalkRightMesh);
 
         initSideGrassModel(roadWidth);
 
@@ -1486,7 +1554,7 @@
 
         const crown = new THREE.Mesh(
           new THREE.ConeGeometry(1.45, 3.4, 7),
-          new THREE.MeshStandardMaterial({ color: 0x226b38, roughness: 0.8 })
+          new THREE.MeshStandardMaterial({ color: 0x1b5e2b, roughness: 0.82 })
         );
         crown.position.y = 3.1; crown.castShadow = true; g.add(crown);
         return g;
@@ -1951,23 +2019,33 @@
         }
 
         if (roadMesh && roadMesh.material) {
-          roadMesh.material.color.setHex(cityActive ? 0x262f3d : (stormActive ? 0x182232 : s.roadColor));
+          roadMesh.material.color.setHex(cityActive ? 0x1e293b : (stormActive ? 0x182232 : s.roadColor));
           roadMesh.material.roughness = stormActive ? 0.25 : 0.8;
         }
 
         const groundHex = cityActive
-          ? (isNight ? 0x111827 : 0x475569)
+          ? (isNight ? 0x0f172a : 0x334155)
           : (stormActive ? 0x0f172a : (isNight ? s.groundNight : s.groundDay));
         if (groundLeftMesh && groundLeftMesh.material) groundLeftMesh.material.color.setHex(groundHex);
         if (groundRightMesh && groundRightMesh.material) groundRightMesh.material.color.setHex(groundHex);
 
-        if (sideGrassMaterials.length > 0) {
-          const grassTintHex = stormActive
-            ? 0x475569
-            : (isNight ? 0x4b7c62 : (seasonIndex === 3 ? 0xdbeafe : (seasonIndex === 2 ? 0xf59e0b : 0xffffff)));
-          sideGrassMaterials.forEach(function (m) {
-            m.color.setHex(grassTintHex);
-          });
+        if (sidewalkLeftMesh) {
+          sidewalkLeftMesh.visible = cityActive;
+          if (sidewalkLeftMesh.material) {
+            sidewalkLeftMesh.material.color.setHex((isNight || stormActive) ? 0x475569 : 0x94a3b8);
+          }
+        }
+        if (sidewalkRightMesh) {
+          sidewalkRightMesh.visible = cityActive;
+          if (sidewalkRightMesh.material) {
+            sidewalkRightMesh.material.color.setHex((isNight || stormActive) ? 0x475569 : 0x94a3b8);
+          }
+        }
+
+        if (sideGrassTiles.length > 0) {
+          for (let i = 0; i < sideGrassTiles.length; i++) {
+            sideGrassTiles[i].visible = !cityActive;
+          }
         }
 
         if (sunMesh) sunMesh.visible = !isNight && !stormActive;
@@ -1988,15 +2066,15 @@
 
         if (ambientLight) {
           ambientLight.color.setHex(stormActive ? 0x64748b : (isNight ? 0x60a5fa : 0x93c5fd));
-          ambientLight.intensity = stormActive ? 0.75 : (isNight ? 0.92 : 1.05);
+          ambientLight.intensity = stormActive ? 0.72 : (isNight ? 0.82 : 0.85);
         }
         if (hemiLight) {
           hemiLight.color.setHex(stormActive ? 0x94a3b8 : (isNight ? 0x93c5fd : 0xbae6fd));
-          hemiLight.groundColor.setHex(stormActive ? 0x0f172a : (isNight ? 0x1e293b : 0x3f6212));
-          hemiLight.intensity = stormActive ? 0.82 : (isNight ? 0.95 : 1.15);
+          hemiLight.groundColor.setHex(stormActive ? 0x0f172a : (isNight ? 0x1e293b : 0x1e4620));
+          hemiLight.intensity = stormActive ? 0.78 : (isNight ? 0.85 : 0.92);
         }
-        if (dirLight) dirLight.intensity = stormActive ? 0.35 : (isNight ? 0.45 : 2.2);
-        if (moonLight) moonLight.intensity = stormActive ? 0.4 : (isNight ? 1.4 : 0.0);
+        if (dirLight) dirLight.intensity = stormActive ? 0.35 : (isNight ? 0.45 : 1.85);
+        if (moonLight) moonLight.intensity = stormActive ? 0.4 : (isNight ? 1.3 : 0.0);
 
         if (weatherPoints && weatherPoints.material) {
           if (stormActive) {
@@ -2800,7 +2878,7 @@
           runState.distance += distDelta;
           runState.score += distDelta * 0.65 * (1 + (runState.difficultyLevel - 1) * 0.15) * (runState.bikeActive ? 1.25 : 1);
 
-          if (sideGrassLoaded && sideGrassTiles.length > 0) {
+          if (!runState.isCity && sideGrassLoaded && sideGrassTiles.length > 0) {
             const totalGrassLoop = SIDE_GRASS_COUNT_PER_SIDE * SIDE_GRASS_LENGTH;
             for (let g = 0; g < sideGrassTiles.length; g++) {
               const tile = sideGrassTiles[g];
@@ -2857,10 +2935,10 @@
             }
             if (runState.stormFlash > 0) {
               runState.stormFlash = Math.max(0, runState.stormFlash - dt);
-              if (ambientLight) ambientLight.intensity = 0.75 + (runState.stormFlash / 0.16) * 0.95;
+              if (ambientLight) ambientLight.intensity = 0.72 + (runState.stormFlash / 0.16) * 0.95;
               if (lightningBoltMesh && runState.stormFlash < 0.06) lightningBoltMesh.visible = false;
-            } else if (ambientLight && ambientLight.intensity > 0.8) {
-              ambientLight.intensity = 0.75;
+            } else if (ambientLight && ambientLight.intensity > 0.78) {
+              ambientLight.intensity = 0.72;
             }
           }
 
@@ -3035,7 +3113,7 @@
           document.getElementById('hud-score').textContent = Math.floor(runState.score);
           document.getElementById('hud-speed').textContent = (runState.speed / 25).toFixed(1) + 'x';
         } else if (runState.mode !== 'paused') {
-          if (sideGrassLoaded && sideGrassTiles.length > 0) {
+          if (!runState.isCity && sideGrassLoaded && sideGrassTiles.length > 0) {
             const lobbyGrassSpeed = 8 * dt;
             const totalGrassLoop = SIDE_GRASS_COUNT_PER_SIDE * SIDE_GRASS_LENGTH;
             for (let g = 0; g < sideGrassTiles.length; g++) {
