@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KenCoin Runner 3D</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -12,362 +12,524 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #020617;
       user-select: none;
       -webkit-user-select: none;
       touch-action: none;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #0b2545;
     }
-    .glass-panel {
-      background: rgba(15, 23, 42, 0.72);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.14);
+
+    #game-viewport {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
     }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .glass-pill {
+      background: rgba(8, 22, 42, 0.52);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(186, 220, 255, 0.24);
+    }
+
+    .title-gold-black {
+      background: linear-gradient(180deg, #fef08a 0%, #f59e0b 52%, #b45309 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      -webkit-text-stroke: 2px #090d16;
+      filter: drop-shadow(0 4px 0 #090d16) drop-shadow(0 10px 18px rgba(0, 0, 0, 0.55));
+    }
+
     .btn-bubble {
-      transition: transform 0.12s ease, filter 0.15s ease;
+      transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1), filter 0.14s ease, box-shadow 0.14s ease;
     }
-    .btn-bubble:active {
-      transform: scale(0.95);
+
+    .btn-bubble:hover:not(:disabled) {
+      filter: brightness(1.07);
+      transform: translateY(-1px);
     }
-    @keyframes comboPop {
-      0% { transform: scale(0.75) translateY(8px); opacity: 0; }
-      20% { transform: scale(1.08) translateY(0); opacity: 1; }
-      80% { transform: scale(1) translateY(-4px); opacity: 1; }
-      100% { transform: scale(0.94) translateY(-10px); opacity: 0; }
+
+    .btn-bubble:active:not(:disabled) {
+      transform: scale(0.94);
     }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .animate-float-slow {
+      animation: floatSlow 3.6s ease-in-out infinite;
+    }
+
+    @keyframes popCombo {
+      0% { transform: translate(-50%, 6px) scale(0.82); opacity: 0; }
+      20% { transform: translate(-50%, 0) scale(1.06); opacity: 1; }
+      80% { transform: translate(-50%, -4px) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -10px) scale(0.95); opacity: 0; }
+    }
+
     .combo-anim {
-      animation: comboPop 0.95s ease-out forwards;
+      animation: popCombo 1.15s ease-out forwards;
     }
   </style>
 </head>
-<body class="relative h-screen w-screen overflow-hidden bg-slate-950 text-white">
-  <div id="game-viewport" class="absolute inset-0 h-full w-full"></div>
+<body>
+  <div id="game-viewport"></div>
 
-  <!-- HUD Superior -->
-  <header id="hud-top" class="pointer-events-none fixed top-0 left-0 right-0 z-20 flex flex-wrap items-start justify-between gap-2 p-3 sm:p-4">
-    <div class="pointer-events-auto flex flex-wrap items-center gap-2">
+  <header id="hud-top" class="pointer-events-none fixed top-2.5 left-2.5 right-2.5 sm:top-3 sm:left-3 sm:right-3 z-20 flex items-start justify-between gap-1.5 pr-12 sm:pr-14">
+    <div class="pointer-events-auto flex flex-col gap-1.5">
+      <div class="glass-pill flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-amber-200 shadow-lg">
+        <span class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[10px] font-black text-slate-950 shadow-sm">K</span>
+        <span>CKN</span>
+        <span id="hud-ckn" class="font-mono text-white">0</span>
+      </div>
+
+      <div class="glass-pill flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-yellow-200 shadow-lg">
+        <span class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-[10px] font-black text-slate-950 shadow-sm">¢</span>
+        <span id="hud-coins" class="font-mono text-white">0</span>
+      </div>
+
+      <div class="glass-pill flex flex-wrap items-center gap-1.5 sm:gap-2 rounded-full px-2.5 py-1 text-[11px] font-semibold text-sky-100 shadow-lg">
+        <span title="Corazones">♥ <strong id="hud-hearts" class="text-rose-300">1</strong></span>
+        <span class="opacity-40">|</span>
+        <span title="Escudos">🛡️ <strong id="hud-shields" class="text-sky-300">0</strong></span>
+        <span class="opacity-40">|</span>
+        <span title="Motos">🏍️ <strong id="hud-bikes" class="text-orange-300">0</strong></span>
+        <span class="opacity-40">|</span>
+        <span title="Llaves">🔑 <strong id="hud-keys" class="text-amber-300">0</strong></span>
+      </div>
+    </div>
+
+    <div class="flex flex-col items-center gap-1.5 min-w-0">
+      <div id="hud-run-stats" class="glass-pill hidden items-center justify-center gap-1.5 sm:gap-2 rounded-full px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] font-bold text-sky-100 whitespace-nowrap shadow-lg">
+        <span>📏 <strong id="hud-dist" class="font-mono text-white">0m</strong></span>
+        <span class="opacity-40">|</span>
+        <span>⭐ <strong id="hud-score" class="font-mono text-amber-200">0</strong></span>
+        <span class="opacity-40">|</span>
+        <span>⚡ <strong id="hud-speed" class="font-mono text-emerald-300">1.0x</strong></span>
+      </div>
+
+      <div id="hud-phase-season-capsule" class="glass-pill pointer-events-auto hidden flex-nowrap items-center justify-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] font-bold whitespace-nowrap shadow-lg">
+        <span id="hud-phase-badge" class="rounded-full border border-amber-300/35 bg-amber-400/20 px-2 py-0.5 text-amber-200">☀️ DÍA</span>
+        <span id="hud-season-badge" class="rounded-full border border-sky-300/35 bg-sky-400/20 px-2 py-0.5 text-sky-200">🌸 Primavera · Nv.1</span>
+      </div>
+
+      <div id="hud-active-buffs" class="hidden flex-wrap items-center justify-center gap-1.5">
+        <span id="buff-shield-pill" class="glass-pill hidden rounded-full px-2.5 py-0.5 text-[10px] font-bold text-sky-200">
+          🛡️ Escudo <strong id="buff-shield-time" class="font-mono text-white">0.0s</strong>
+        </span>
+        <span id="buff-bike-pill" class="glass-pill hidden rounded-full border border-orange-300/40 bg-orange-500/20 px-2.5 py-0.5 text-[10px] font-bold text-orange-200">
+          🏍️ Moto <strong id="buff-bike-time" class="font-mono text-white">15.0s</strong>
+        </span>
+        <span id="buff-magnet-pill" class="glass-pill hidden rounded-full px-2.5 py-0.5 text-[10px] font-bold text-fuchsia-200">
+          🧲 Imán <strong id="buff-magnet-time" class="font-mono text-white">0.0s</strong>
+        </span>
+      </div>
+    </div>
+
+    <div class="pointer-events-auto fixed top-2.5 right-2 sm:top-3 sm:right-2.5 z-20 flex flex-col items-end gap-1.5">
       <button
         id="btn-open-auth"
         type="button"
-        class="glass-panel btn-bubble flex items-center gap-1.5 rounded-2xl px-3 py-1.5 text-xs font-bold text-sky-200 shadow-lg"
+        aria-label="Cuenta y usuario"
+        class="glass-pill btn-bubble flex h-9 sm:h-10 items-center gap-1.5 rounded-full px-2.5 sm:px-3 text-xs font-bold text-amber-200 shadow-lg"
       >
         <span>👤</span>
-        <span id="hud-username">Login</span>
+        <span id="hud-username" class="max-w-[76px] sm:max-w-[104px] truncate text-white">Login</span>
       </button>
 
-      <div class="glass-panel flex items-center gap-1.5 rounded-2xl px-3 py-1.5 text-xs font-extrabold text-amber-300 shadow-lg">
-        <span>🪙</span>
-        <span>CKN</span>
-        <span id="hud-ckn">0</span>
-      </div>
+      <button
+        id="btn-hud-shop"
+        type="button"
+        aria-label="Abrir tienda"
+        class="glass-pill btn-bubble flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full text-sm text-amber-200 shadow-lg"
+      >
+        🛒
+      </button>
 
-      <div class="glass-panel flex items-center gap-1.5 rounded-2xl px-3 py-1.5 text-xs font-extrabold text-yellow-300 shadow-lg">
-        <span>¢</span>
-        <span id="hud-coins">0</span>
-      </div>
+      <button
+        id="btn-open-settings"
+        type="button"
+        aria-label="Configuración"
+        class="glass-pill btn-bubble flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full text-sm text-sky-100 shadow-lg"
+      >
+        ⚙️
+      </button>
 
-      <div id="hud-phase-season-capsule" class="glass-panel hidden items-center gap-2 rounded-2xl px-3 py-1.5 text-xs font-extrabold text-sky-100 shadow-lg">
-        <span id="hud-phase-badge">☀️ DÍA</span>
-        <span class="text-slate-400">•</span>
-        <span id="hud-season-badge">🌸 Primavera · Nv.1</span>
-      </div>
-    </div>
-
-    <div id="hud-run-stats" class="glass-panel hidden items-center gap-3 rounded-2xl px-3.5 py-1.5 text-xs font-extrabold text-white shadow-lg">
-      <div><span class="text-sky-300">DIST</span> <span id="hud-dist">0m</span></div>
-      <div><span class="text-amber-300">PTS</span> <span id="hud-score">0</span></div>
-      <div><span class="text-emerald-300">VEL</span> <span id="hud-speed">1.0x</span></div>
-    </div>
-
-    <div class="pointer-events-auto flex items-center gap-2">
       <button
         id="btn-pause-run"
         type="button"
         aria-label="Pausar partida"
-        class="glass-panel btn-bubble hidden h-10 w-10 items-center justify-center rounded-2xl text-sm font-black text-amber-300 shadow-lg"
+        class="glass-pill btn-bubble hidden h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full text-sm text-amber-200 shadow-lg"
       >
-        II
-      </button>
-      <button
-        id="btn-open-settings"
-        type="button"
-        aria-label="Ajustes"
-        class="glass-panel btn-bubble flex h-10 w-10 items-center justify-center rounded-2xl text-base shadow-lg"
-      >
-        ⚙️
+        ⏸
       </button>
     </div>
   </header>
 
-  <!-- Inventario rápido y buffs activos -->
-  <div id="hud-inventory-strip" class="pointer-events-none fixed top-16 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 sm:left-4 sm:right-4">
-    <div class="pointer-events-auto glass-panel flex items-center gap-2.5 rounded-2xl px-3 py-1 text-[11px] font-bold text-slate-200 shadow">
-      <span title="Vidas extra">♥ <strong id="hud-hearts" class="text-rose-400">1</strong></span>
-      <span title="Escudos">🛡️ <strong id="hud-shields" class="text-sky-300">0</strong></span>
-      <span title="Motos">🏍️ <strong id="hud-bikes" class="text-amber-300">0</strong></span>
-      <span title="Llaves">🔑 <strong id="hud-keys" class="text-yellow-300">0</strong></span>
-    </div>
+  <div
+    id="toast-banner"
+    class="glass-pill pointer-events-none fixed top-24 left-1/2 z-30 hidden -translate-x-1/2 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-xl whitespace-nowrap"
+  ></div>
 
-    <div id="hud-active-buffs" class="hidden flex-wrap items-center gap-1.5">
-      <div id="buff-shield-pill" class="glass-panel hidden items-center gap-1 rounded-full border-sky-400/40 px-2.5 py-1 text-[11px] font-extrabold text-sky-200 shadow">
-        <span>🛡️ Escudo</span>
-        <span id="buff-shield-time" class="text-white">0.0s</span>
-      </div>
-      <div id="buff-bike-pill" class="glass-panel hidden items-center gap-1 rounded-full border-amber-400/40 px-2.5 py-1 text-[11px] font-extrabold text-amber-200 shadow">
-        <span>🏍️ Moto</span>
-        <span id="buff-bike-time" class="text-white">0.0s</span>
-      </div>
-      <div id="buff-magnet-pill" class="glass-panel hidden items-center gap-1 rounded-full border-fuchsia-400/40 px-2.5 py-1 text-[11px] font-extrabold text-fuchsia-200 shadow">
-        <span>🧲 Imán</span>
-        <span id="buff-magnet-time" class="text-white">0.0s</span>
+  <div
+    id="combo-popup"
+    class="pointer-events-none fixed top-32 left-1/2 z-30 hidden -translate-x-1/2 rounded-full border border-amber-300/45 bg-amber-950/80 px-3.5 py-1 text-xs font-extrabold text-amber-200 shadow-lg whitespace-nowrap"
+  ></div>
+
+  <div id="ingame-controls" class="pointer-events-none fixed inset-x-0 bottom-3 sm:bottom-4 z-20 hidden px-3 sm:px-4">
+    <div class="mx-auto flex max-w-2xl items-end justify-end gap-2 sm:gap-3">
+      <div class="pointer-events-auto rounded-full bg-slate-950/55 px-3 py-1.5 text-[11px] font-medium text-sky-100/90 backdrop-blur-sm">
+        Desliza o usa teclado para moverte
       </div>
     </div>
   </div>
 
-  <!-- Toast y Combo -->
-  <div id="toast-banner" class="pointer-events-none fixed top-24 left-1/2 z-30 hidden -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-1.5 text-xs font-bold text-amber-200 shadow-xl border border-amber-400/30"></div>
-  <div id="combo-popup" class="pointer-events-none fixed top-32 left-1/2 z-30 hidden -translate-x-1/2 rounded-full bg-gradient-to-r from-amber-500/90 to-orange-500/90 px-4 py-1 text-xs font-black text-slate-950 shadow-xl"></div>
-
-  <!-- Lobby -->
-  <main id="lobby-overlay" class="pointer-events-none fixed inset-0 z-10 flex flex-col justify-end p-4 pb-7 sm:p-6">
-    <div class="pointer-events-auto mx-auto flex w-full max-w-md flex-col items-center gap-3">
-      <div class="flex w-full items-center gap-2.5">
-        <button
-          id="btn-hud-shop"
-          type="button"
-          class="glass-panel btn-bubble flex-1 rounded-2xl py-3 text-xs font-extrabold text-amber-300 shadow-xl"
-        >
-          🛒 Tienda
-        </button>
-        <button
-          id="btn-start-run"
-          type="button"
-          class="btn-bubble flex-[2] rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 py-3.5 text-sm font-black tracking-wide text-slate-950 shadow-xl shadow-amber-500/25"
-        >
-          ▶ CORRER AHORA
-        </button>
+  <section id="lobby-overlay" class="pointer-events-none fixed inset-0 z-20 flex flex-col justify-between pt-24 pb-5 px-3 sm:px-5">
+    <div class="relative flex flex-col items-center justify-center text-center pointer-events-none mt-24 sm:mt-32 md:mt-40">
+      <div class="animate-float-slow absolute z-0 flex items-center justify-center w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-full opacity-65 drop-shadow-[0_14px_30px_rgba(0,0,0,0.65)]">
+        <svg viewBox="0 0 220 220" class="w-full h-full" aria-label="Emblema KenCoin CKN">
+          <defs>
+            <linearGradient id="cknGoldRing" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fef9c3" />
+              <stop offset="45%" stop-color="#f59e0b" />
+              <stop offset="100%" stop-color="#78350f" />
+            </linearGradient>
+            <linearGradient id="cknSilverText" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="55%" stop-color="#cbd5e1" />
+              <stop offset="100%" stop-color="#64748b" />
+            </linearGradient>
+            <linearGradient id="cknBlueFlame" x1="0%" y1="100%" x2="0%" y2="0%">
+              <stop offset="0%" stop-color="#0284c7" />
+              <stop offset="55%" stop-color="#38bdf8" />
+              <stop offset="100%" stop-color="#e0f2fe" />
+            </linearGradient>
+            <radialGradient id="cknStoneCore" cx="50%" cy="50%" r="58%">
+              <stop offset="0%" stop-color="#1e293b" />
+              <stop offset="100%" stop-color="#050811" />
+            </radialGradient>
+          </defs>
+          <circle cx="110" cy="110" r="106" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="18 8" opacity="0.55" />
+          <circle cx="110" cy="110" r="99" fill="url(#cknGoldRing)" fill-opacity="0.72" stroke="#fef08a" stroke-opacity="0.82" stroke-width="3" />
+          <circle cx="110" cy="110" r="88" fill="none" stroke="#451a03" stroke-opacity="0.7" stroke-width="5" />
+          <circle cx="110" cy="110" r="82" fill="none" stroke="#fde68a" stroke-opacity="0.75" stroke-width="1.8" stroke-dasharray="8 6" />
+          <circle cx="110" cy="110" r="76" fill="url(#cknStoneCore)" fill-opacity="0.62" stroke="url(#cknGoldRing)" stroke-opacity="0.82" stroke-width="4" />
+          <path d="M 110 38 C 102 48, 96 55, 100 65 C 94 61, 90 56, 88 52 C 85 62, 92 72, 110 74 C 128 72, 135 62, 132 52 C 130 56, 126 61, 120 65 C 124 55, 118 48, 110 38 Z" fill="url(#cknBlueFlame)" fill-opacity="0.85" />
+          <path d="M 110 148 L 122 160 L 110 172 L 98 160 Z M 82 154 C 90 156, 95 162, 92 168 C 84 166, 78 160, 82 154 Z M 138 154 C 130 156, 125 162, 128 168 C 136 166, 142 160, 138 154 Z" fill="url(#cknBlueFlame)" fill-opacity="0.85" />
+          <text x="110" y="125" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="900" font-size="52" letter-spacing="2" fill="url(#cknSilverText)" fill-opacity="0.88" stroke="#020617" stroke-opacity="0.85" stroke-width="3.2" paint-order="stroke fill">
+            CKN
+          </text>
+        </svg>
+      </div>
+      <div class="relative z-10 flex flex-col items-center leading-none">
+        <h1 class="title-gold-black -mt-4 sm:-mt-8 md:-mt-10 text-6xl sm:text-8xl md:text-[7.5rem] font-black tracking-tight leading-none">
+          KenCoin
+        </h1>
+        <span class="title-gold-black mt-16 sm:mt-24 md:mt-28 text-5xl sm:text-7xl md:text-[5.5rem] font-black tracking-wide leading-none">
+          Runner
+        </span>
       </div>
     </div>
-  </main>
 
-  <!-- Controles en partida -->
-  <div id="ingame-controls" class="pointer-events-none fixed bottom-4 left-4 right-4 z-20 hidden justify-between items-end">
-    <div class="glass-panel rounded-2xl px-3 py-2 text-[11px] font-semibold text-slate-200">
-      Desliza o usa teclado para moverte
+    <div class="flex-1"></div>
+
+    <div class="flex flex-col items-center gap-1.5 pointer-events-auto">
+      <button
+        id="btn-start-run"
+        type="button"
+        class="btn-bubble rounded-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-8 py-3 text-sm sm:text-base font-black text-slate-950 border-2 border-slate-950 shadow-xl"
+      >
+        ▶ JUGAR AHORA
+      </button>
     </div>
-  </div>
+  </section>
 
-  <!-- Game Over -->
-  <section id="gameover-overlay" class="fixed inset-0 z-30 hidden items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-    <div class="glass-panel w-full max-w-sm rounded-3xl p-5 text-center shadow-2xl">
-      <p class="text-xs font-extrabold uppercase tracking-widest text-rose-400">Fin de la carrera</p>
-      <h2 class="mt-1 text-2xl font-black text-white">¡Buen intento!</h2>
+  <section id="gameover-overlay" class="fixed inset-0 z-30 hidden items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-sm rounded-3xl border border-sky-200/20 bg-slate-900/95 p-5 text-center text-white shadow-2xl">
+      <div class="mb-1 text-xs font-bold tracking-wider text-rose-300 uppercase">Fin de la carrera</div>
+      <h2 class="mb-3 text-2xl font-black">¡Buen intento!</h2>
 
-      <div class="mt-4 grid grid-cols-2 gap-2.5 text-xs">
-        <div class="rounded-2xl bg-slate-900/80 p-3">
+      <div class="mb-4 grid grid-cols-2 gap-2 rounded-2xl bg-slate-950/75 p-3 text-xs">
+        <div>
           <div class="text-slate-400">Distancia</div>
-          <div id="go-dist" class="mt-0.5 text-base font-black text-sky-300">0m</div>
+          <div id="go-dist" class="font-mono text-base font-bold text-sky-300">0m</div>
         </div>
-        <div class="rounded-2xl bg-slate-900/80 p-3">
-          <div class="text-slate-400">Puntaje</div>
-          <div id="go-score" class="mt-0.5 text-base font-black text-amber-300">0</div>
+        <div>
+          <div class="text-slate-400">Puntos</div>
+          <div id="go-score" class="font-mono text-base font-bold text-amber-300">0</div>
         </div>
-        <div class="rounded-2xl bg-slate-900/80 p-3">
+        <div>
           <div class="text-slate-400">Monedas ¢</div>
-          <div id="go-coins" class="mt-0.5 text-base font-black text-yellow-300">+0</div>
+          <div id="go-coins" class="font-mono text-sm font-bold text-yellow-300">+0</div>
         </div>
-        <div class="rounded-2xl bg-slate-900/80 p-3">
-          <div class="text-slate-400">Recompensa CKN</div>
-          <div id="go-ckn" class="mt-0.5 text-base font-black text-emerald-300">+0</div>
+        <div>
+          <div class="text-slate-400">CKN ganados</div>
+          <div id="go-ckn" class="font-mono text-sm font-bold text-emerald-300">+0</div>
         </div>
       </div>
 
-      <div class="mt-4 flex flex-col gap-2">
+      <div class="flex flex-col gap-2">
         <button
           id="btn-revive-key"
           type="button"
-          class="btn-bubble w-full rounded-2xl bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-xs font-black text-slate-950 shadow-lg"
+          class="btn-bubble rounded-2xl bg-amber-400/20 border border-amber-300/40 py-2.5 text-xs font-bold text-amber-200"
         >
           🔑 Revivir con Llave
         </button>
         <div class="flex gap-2">
           <button
-            id="btn-restart-run"
-            type="button"
-            class="btn-bubble flex-1 rounded-2xl bg-sky-400 py-3 text-xs font-black text-slate-950 shadow-lg"
-          >
-            ↻ Reintentar
-          </button>
-          <button
             id="btn-back-lobby"
             type="button"
-            class="btn-bubble flex-1 rounded-2xl bg-slate-800 py-3 text-xs font-extrabold text-slate-200"
+            class="btn-bubble flex-1 rounded-2xl border border-slate-700 bg-slate-800 py-2.5 text-xs font-bold text-slate-200"
           >
-            Lobby
+            Inicio
+          </button>
+          <button
+            id="btn-restart-run"
+            type="button"
+            class="btn-bubble flex-1 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 py-2.5 text-xs font-black text-slate-950"
+          >
+            ↻ Reintentar
           </button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Pausa -->
-  <section id="pause-modal" class="fixed inset-0 z-30 hidden items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
-    <div class="glass-panel w-full max-w-xs rounded-3xl p-5 text-center shadow-2xl">
-      <h2 class="text-xl font-black text-white">Juego en pausa</h2>
-      <p class="mt-1 text-xs text-slate-300">Tu carrera está detenida</p>
-      <div class="mt-4 flex flex-col gap-2">
+  <section id="pause-modal" class="fixed inset-0 z-30 hidden items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-sm rounded-3xl border border-sky-200/20 bg-slate-900/95 p-5 text-center text-white shadow-2xl">
+      <div class="mb-1 text-xs font-bold tracking-wider text-amber-300 uppercase">Partida en pausa</div>
+      <h2 class="mb-4 text-2xl font-black">Pausa</h2>
+      <div class="flex flex-col gap-2">
         <button
           id="btn-resume-run"
           type="button"
-          class="btn-bubble w-full rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-300 py-3 text-xs font-black text-slate-950 shadow-lg"
+          class="btn-bubble rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 py-3 text-xs font-black text-slate-950"
         >
           ▶ Continuar
         </button>
         <button
           id="btn-restart-from-pause"
           type="button"
-          class="btn-bubble w-full rounded-2xl bg-sky-400 py-2.5 text-xs font-black text-slate-950"
+          class="btn-bubble rounded-2xl border border-slate-700 bg-slate-800 py-2.5 text-xs font-bold text-slate-200"
         >
           ↻ Reiniciar carrera
         </button>
         <button
           id="btn-lobby-from-pause"
           type="button"
-          class="btn-bubble w-full rounded-2xl bg-slate-800 py-2.5 text-xs font-extrabold text-slate-200"
+          class="btn-bubble rounded-2xl border border-slate-700 bg-slate-800 py-2.5 text-xs font-bold text-slate-300"
         >
-          Ir al lobby
+          Ir al inicio
         </button>
       </div>
     </div>
   </section>
 
-  <!-- Tienda -->
   <section id="shop-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-    <div class="glass-panel max-h-[86vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 shadow-2xl">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-black text-amber-300">🛒 Tienda KenCoin</h2>
-        <button id="btn-close-shop" type="button" class="btn-bubble rounded-xl bg-slate-800 px-3 py-1 text-xs font-bold text-slate-200">Cerrar</button>
+    <div class="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl border border-sky-200/20 bg-slate-900 p-5 text-white shadow-2xl">
+      <div class="mb-4 flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h2 class="text-lg font-extrabold">Tienda KenCoin</h2>
+          <p class="text-xs text-slate-400">Mejoras, recursos y personajes</p>
+        </div>
+        <button
+          id="btn-close-shop"
+          type="button"
+          class="btn-bubble rounded-xl bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-200"
+        >
+          ✕ Cerrar
+        </button>
       </div>
 
-      <h3 class="mt-4 text-xs font-extrabold uppercase tracking-wider text-sky-300">Personajes</h3>
-      <div id="shop-characters-list" class="mt-2 space-y-2 text-xs"></div>
-
-      <h3 class="mt-5 text-xs font-extrabold uppercase tracking-wider text-sky-300">Mejoras y objetos</h3>
-      <div class="mt-2 space-y-2 text-xs">
+      <div class="mb-4 space-y-2 text-xs">
         <div class="flex items-center justify-between rounded-2xl bg-slate-950/75 p-3">
           <div>
-            <div class="font-bold text-white">🛡️ Escudo protector</div>
-            <div class="text-[11px] text-slate-400">Absorbe 1 choque en partida</div>
+            <div class="font-bold text-sky-200">🛡️ Escudo</div>
+            <div class="text-[11px] text-slate-400">Salva 1 choque durante la carrera</div>
           </div>
-          <button id="shop-buy-shield" type="button" class="btn-bubble rounded-xl bg-amber-400 px-3 py-1.5 font-bold text-slate-950">25 ¢</button>
+          <button
+            id="shop-buy-shield"
+            type="button"
+            class="btn-bubble rounded-xl bg-sky-400 px-3 py-1.5 font-bold text-slate-950"
+          >
+            25 ¢
+          </button>
         </div>
 
         <div class="flex items-center justify-between rounded-2xl bg-slate-950/75 p-3">
           <div>
-            <div class="font-bold text-white">🏍️ Moto turbo (15s)</div>
-            <div class="text-[11px] text-slate-400">Más velocidad y protección al chocar</div>
+            <div class="font-bold text-orange-200">🏍️ Moto Turbo (15s)</div>
+            <div class="text-[11px] text-slate-400">Va más rápido y si chocas solo pierdes la moto</div>
           </div>
-          <button id="shop-buy-bike" type="button" class="btn-bubble rounded-xl bg-amber-400 px-3 py-1.5 font-bold text-slate-950">45 ¢</button>
+          <button
+            id="shop-buy-bike"
+            type="button"
+            class="btn-bubble rounded-xl bg-orange-400 px-3 py-1.5 font-bold text-slate-950"
+          >
+            45 ¢
+          </button>
         </div>
 
         <div class="flex items-center justify-between rounded-2xl bg-slate-950/75 p-3">
           <div>
-            <div class="font-bold text-white">🔑 Llave de rescate</div>
-            <div class="text-[11px] text-slate-400">Revive al terminar una carrera</div>
+            <div class="font-bold text-amber-200">🔑 Llave de Rescate</div>
+            <div class="text-[11px] text-slate-400">Permite revivir tras chocar</div>
           </div>
-          <button id="shop-buy-key" type="button" class="btn-bubble rounded-xl bg-emerald-400 px-3 py-1.5 font-bold text-slate-950">35 CKN</button>
+          <button
+            id="shop-buy-key"
+            type="button"
+            class="btn-bubble rounded-xl bg-amber-400 px-3 py-1.5 font-bold text-slate-950"
+          >
+            35 CKN
+          </button>
         </div>
 
         <div class="flex items-center justify-between rounded-2xl bg-slate-950/75 p-3">
           <div>
-            <div class="font-bold text-white">♥ Corazón extra</div>
-            <div class="text-[11px] text-slate-400">Vida adicional para tus carreras</div>
+            <div class="font-bold text-rose-200">♥ Corazón Extra</div>
+            <div class="text-[11px] text-slate-400">Añade un corazón de respaldo</div>
           </div>
-          <button id="shop-buy-heart" type="button" class="btn-bubble rounded-xl bg-amber-400 px-3 py-1.5 font-bold text-slate-950">40 ¢</button>
+          <button
+            id="shop-buy-heart"
+            type="button"
+            class="btn-bubble rounded-xl bg-rose-400 px-3 py-1.5 font-bold text-slate-950"
+          >
+            40 ¢
+          </button>
         </div>
       </div>
+
+      <div class="mb-2 text-xs font-bold tracking-wider text-slate-400 uppercase">Personajes</div>
+      <div id="shop-characters-list" class="space-y-2 text-xs"></div>
     </div>
   </section>
 
-  <!-- Ajustes -->
   <section id="settings-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-    <div class="glass-panel w-full max-w-sm rounded-3xl p-5 shadow-2xl">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-black text-white">⚙️ Ajustes</h2>
-        <button id="btn-close-settings" type="button" class="btn-bubble rounded-xl bg-slate-800 px-3 py-1 text-xs font-bold text-slate-200">Cerrar</button>
+    <div class="w-full max-w-sm rounded-3xl border border-sky-200/20 bg-slate-900 p-5 text-white shadow-2xl">
+      <div class="mb-4 flex items-center justify-between border-b border-slate-800 pb-3">
+        <h2 class="text-base font-extrabold">⚙️ Configuración</h2>
+        <button
+          id="btn-close-settings"
+          type="button"
+          class="btn-bubble rounded-xl bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-200"
+        >
+          ✕ Cerrar
+        </button>
       </div>
 
-      <div class="mt-4 space-y-3 text-xs">
+      <div class="space-y-4 text-xs">
         <div class="flex items-center justify-between rounded-2xl bg-slate-950/75 p-3">
           <div>
-            <div class="font-bold text-white">Sonido y música</div>
-            <div class="text-[11px] text-slate-400">Efectos y ritmo en partida</div>
+            <div class="font-bold text-white">Música y Efectos</div>
+            <div class="text-[11px] text-slate-400">Activar o silenciar todo el audio</div>
           </div>
-          <button id="btn-toggle-audio" type="button" class="btn-bubble rounded-xl bg-emerald-400 px-3 py-1.5 font-bold text-slate-950">Activado</button>
+          <button
+            id="btn-toggle-audio"
+            type="button"
+            class="btn-bubble rounded-xl bg-emerald-400 px-3 py-1.5 font-bold text-slate-950"
+          >
+            Activado
+          </button>
         </div>
 
-        <div class="rounded-2xl bg-slate-950/75 p-3">
-          <div class="flex items-center justify-between font-bold text-white">
-            <span>🎵 Volumen música</span>
-            <span id="label-music-vol" class="text-amber-300">70%</span>
-          </div>
-          <input
-            id="slider-music-vol"
-            type="range"
-            min="0"
-            max="100"
-            value="70"
-            class="mt-2 h-2 w-full cursor-pointer accent-amber-400"
-          />
-        </div>
-
-        <div class="rounded-2xl bg-slate-950/75 p-3">
-          <div class="flex items-center justify-between font-bold text-white">
-            <span>🔊 Volumen efectos (SFX)</span>
-            <span id="label-sfx-vol" class="text-sky-300">85%</span>
-          </div>
-          <input
-            id="slider-sfx-vol"
-            type="range"
-            min="0"
-            max="100"
-            value="85"
-            class="mt-2 h-2 w-full cursor-pointer accent-sky-400"
-          />
-        </div>
-
-        <div class="flex items-center justify-between rounded-2xl bg-slate-950/75 p-3">
+        <div class="space-y-3 rounded-2xl bg-slate-950/75 p-3">
           <div>
-            <div class="font-bold text-white">Reiniciar progreso</div>
-            <div class="text-[11px] text-slate-400">Borra monedas, CKN y mejoras</div>
+            <div class="mb-1 flex items-center justify-between font-bold text-sky-200">
+              <span>🎵 Volumen de música</span>
+              <span id="label-music-vol" class="font-mono text-white">70%</span>
+            </div>
+            <input
+              id="slider-music-vol"
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value="70"
+              class="w-full accent-amber-400 cursor-pointer"
+            />
           </div>
-          <button id="btn-reset-save" type="button" class="btn-bubble rounded-xl bg-rose-500 px-3 py-1.5 font-bold text-white">Reiniciar</button>
+
+          <div>
+            <div class="mb-1 flex items-center justify-between font-bold text-emerald-200">
+              <span>✨ Volumen de efectos</span>
+              <span id="label-sfx-vol" class="font-mono text-white">85%</span>
+            </div>
+            <input
+              id="slider-sfx-vol"
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value="85"
+              class="w-full accent-emerald-400 cursor-pointer"
+            />
+          </div>
         </div>
+
+        <div class="rounded-2xl bg-slate-950/75 p-3 text-[11px] text-slate-300 space-y-1">
+          <div class="font-bold text-sky-200">Controles y Reglas:</div>
+          <div>• Teclado: <strong>A/D</strong> o <strong>←/→</strong> mover, <strong>W/↑/Espacio</strong> saltar, <strong>S/↓</strong> deslizar, <strong>P/Esc</strong> pausar.</div>
+          <div>• Táctil/Ratón: Desliza sobre la pantalla para moverte, saltar o deslizarte.</div>
+          <div>• Nv.1–8: 4 estaciones de <strong>DÍA</strong> y 4 de <strong>NOCHE</strong>. Nv.9: Tormenta (8,000m), Nv.10: Día calmado, Nv.11: Tormenta severa, Nv.12: Cierre.</div>
+          <div>• Desde los <strong>12,000m</strong>: <strong>Ciudad</strong> con asfalto, aceras y edificios.</div>
+        </div>
+
+        <button
+          id="btn-reset-save"
+          type="button"
+          class="btn-bubble w-full rounded-2xl border border-rose-400/30 bg-rose-950/50 py-2.5 text-xs font-bold text-rose-200"
+        >
+          Reiniciar progreso guardado
+        </button>
       </div>
     </div>
   </section>
 
-  <!-- Modal Login / Cuenta -->
   <section id="auth-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-    <div class="glass-panel w-full max-w-sm rounded-3xl p-5 shadow-2xl">
-      <div class="flex items-center justify-between">
+    <div class="w-full max-w-sm rounded-3xl border border-sky-200/20 bg-slate-900 p-5 text-white shadow-2xl">
+      <div class="mb-4 flex items-center justify-between border-b border-slate-800 pb-3">
         <div>
-          <h2 id="auth-modal-title" class="text-lg font-black text-amber-300">Iniciar sesión</h2>
-          <p id="auth-modal-subtitle" class="text-[11px] text-slate-300">Ingresa con tu correo y contraseña para conocer tu usuario</p>
+          <h2 id="auth-modal-title" class="text-base font-extrabold text-amber-200">Iniciar sesión</h2>
+          <p id="auth-modal-subtitle" class="text-[11px] text-slate-400">Asocia tu progreso a un nombre de usuario</p>
         </div>
-        <button id="btn-close-auth" type="button" class="btn-bubble rounded-xl bg-slate-800 px-3 py-1 text-xs font-bold text-slate-200">Cerrar</button>
+        <button
+          id="btn-close-auth"
+          type="button"
+          class="btn-bubble rounded-xl bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-200"
+        >
+          ✕ Cerrar
+        </button>
       </div>
 
-      <div id="auth-active-session-box" class="mt-3 hidden items-center justify-between rounded-2xl border border-emerald-400/30 bg-emerald-950/40 px-3 py-2 text-[11px]">
-        <div>
-          <div class="font-bold text-emerald-200">Sesión activa: <span id="auth-session-user"></span></div>
-          <div id="auth-session-email" class="text-emerald-300/80"></div>
+      <div id="auth-active-session-box" class="mb-4 hidden rounded-2xl border border-emerald-400/30 bg-emerald-950/30 p-3 text-xs">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <div class="text-[10px] font-bold tracking-wider text-emerald-300 uppercase">Sesión activa</div>
+            <div id="auth-session-user" class="text-sm font-black text-white">Jugador</div>
+            <div id="auth-session-email" class="text-[11px] text-slate-300">correo@ejemplo.com</div>
+          </div>
+          <button
+            id="btn-logout-account"
+            type="button"
+            class="btn-bubble rounded-xl border border-rose-400/35 bg-rose-950/60 px-3 py-1.5 text-[11px] font-bold text-rose-200"
+          >
+            Cerrar sesión
+          </button>
         </div>
-        <button id="btn-logout-account" type="button" class="btn-bubble rounded-xl bg-slate-800 px-2.5 py-1 font-bold text-rose-200">Salir</button>
       </div>
 
-      <div class="mt-3 grid grid-cols-2 gap-1.5 rounded-2xl bg-slate-950/80 p-1 text-xs font-extrabold">
+      <div class="mb-3 grid grid-cols-2 gap-1.5 rounded-2xl bg-slate-950/80 p-1 text-xs font-bold">
         <button
           id="tab-auth-login"
           type="button"
@@ -384,7 +546,7 @@
         </button>
       </div>
 
-      <form id="auth-form" class="mt-3 space-y-3 text-xs" novalidate>
+      <form id="auth-form" class="space-y-3 text-xs" novalidate>
         <div id="auth-username-field" class="hidden">
           <label for="auth-username-input" class="mb-1 block font-bold text-sky-200">Nombre de usuario</label>
           <input
@@ -462,8 +624,8 @@
       const TREE_GROUP_URL = './arboles.glb';
       const HOUSE_OPT_URL = './casa-opt.glb';
       const HOUSE_JP_URL = './casa_japonesa.glb';
-      const SCENERY_COUNT = 14;
-      const SCENERY_SPACING = 22.0;
+      const SCENERY_COUNT = 6;
+      const SCENERY_SPACING = 46.0;
       const SCENERY_LOOP_SPAN = SCENERY_COUNT * SCENERY_SPACING;
       const SIDE_GRASS_LENGTH = 30.11;
       const SIDE_GRASS_WIDTH = 12.5;
@@ -867,7 +1029,7 @@
       let roadMesh, roadEdgeL, roadEdgeR, groundLeftMesh, groundRightMesh;
       let sidewalkLeftMesh, sidewalkRightMesh;
       let sideGrassTiles = [], sideGrassMaterials = [], sideGrassLoaded = false;
-      let laneStripes = [], sceneryTrees = [], cityBuildings = [];
+      let laneStripes = [], sceneryProps = [], cityBuildings = [];
       let customTreeTemplates = { single: null, group: null };
       let houseTemplates = { rightOpt: null, leftJp: null };
       let milestoneHouses = [];
@@ -1149,10 +1311,6 @@
                 if (!m) return m;
                 const mc = m.clone();
                 mc.side = THREE.DoubleSide;
-                if (mc.transparent && mc.opacity < 0.15) {
-                  mc.transparent = false;
-                  mc.opacity = 1;
-                }
                 mc.needsUpdate = true;
                 if (!isWoodOrTrunkMaterial(mc, child.name) && mc.color) {
                   foliageMats.push({
@@ -1176,15 +1334,19 @@
         const size = new THREE.Vector3();
         box.getSize(size);
 
-        const maxXZ = Math.max(size.x || 0.1, size.z || 0.1);
-        const heightY = Math.max(size.y || 0.1, 0.1);
-        // Tamaño reducido para que no se vean gigantes frente a las casas
-        const desiredHeight = isGroupModel ? 2.85 : 2.95;
-        const desiredMaxWidth = isGroupModel ? 3.2 : 2.35;
-        const scaleByH = desiredHeight / heightY;
-        const scaleByW = desiredMaxWidth / maxXZ;
-        const finalScale = Math.max(0.01, Math.min(20, Math.min(scaleByH, scaleByW)));
-        copy.scale.setScalar(finalScale);
+        if (isGroupModel) {
+          copy.scale.set(1, 1, 1);
+          copy.rotation.y = Math.PI * 0.5;
+        } else {
+          const maxXZ = Math.max(size.x || 0.1, size.z || 0.1);
+          const heightY = Math.max(size.y || 0.1, 0.1);
+          const desiredHeight = 1.45;
+          const desiredMaxWidth = 1.25;
+          const scaleByH = desiredHeight / heightY;
+          const scaleByW = desiredMaxWidth / maxXZ;
+          const finalScale = Math.max(0.01, Math.min(20, Math.min(scaleByH, scaleByW)));
+          copy.scale.setScalar(finalScale);
+        }
         copy.updateMatrixWorld(true);
 
         const scaledBox = new THREE.Box3().setFromObject(copy);
@@ -1195,14 +1357,8 @@
         if (Number.isFinite(center.z)) copy.position.z = -center.z;
         if (Number.isFinite(scaledBox.min.y)) copy.position.y = -scaledBox.min.y;
 
-        wrapper.updateMatrixWorld(true);
-        const finalBox = new THREE.Box3().setFromObject(wrapper);
-        const finalSize = new THREE.Vector3();
-        finalBox.getSize(finalSize);
-
         wrapper.userData.foliageEntries = foliageMats;
         wrapper.userData.isGroupModel = Boolean(isGroupModel);
-        wrapper.userData.footprintRadius = Math.max(finalSize.x || 1.6, finalSize.z || 1.6) * 0.55;
         return wrapper;
       }
 
@@ -1230,10 +1386,16 @@
         });
       }
 
-      function buildTreeVisual(idx, sideSign) {
-        const holder = new THREE.Group();
-        const useGroup = (idx % 2 === 1) && customTreeTemplates.group;
+      function populateSceneryPropAt(prop, idx, roadWidth) {
+        const side = idx % 2 === 0 ? -1 : 1;
+        const useGroup = (idx % 3 === 1) && customTreeTemplates.group;
         const useSingle = customTreeTemplates.single;
+
+        while (prop.children.length > 0) {
+          prop.remove(prop.children[0]);
+        }
+        prop.userData.foliageEntries = null;
+        prop.userData.crownMat = null;
 
         if (useGroup || useSingle) {
           const template = useGroup ? customTreeTemplates.group : customTreeTemplates.single;
@@ -1241,73 +1403,50 @@
           instance.userData.foliageEntries = (template.userData.foliageEntries || []).map(function (entry) {
             return { mat: entry.mat, baseColor: entry.baseColor };
           });
-          const scaleFactor = template.userData.isGroupModel
-            ? (0.72 + ((idx * 5) % 3) * 0.06)
-            : (0.74 + ((idx * 3) % 4) * 0.06);
-          instance.scale.setScalar(scaleFactor);
-          instance.rotation.y = template.userData.isGroupModel
-            ? (sideSign < 0 ? Math.PI * 0.5 : -Math.PI * 0.5)
-            : (((idx * 1.15) % (Math.PI * 2)));
-
-          holder.add(instance);
-          holder.userData.foliageEntries = instance.userData.foliageEntries;
-          holder.userData.footprintRadius = (template.userData.footprintRadius || 1.6) * scaleFactor;
+          if (template.userData.isGroupModel) {
+            instance.scale.set(1, 1, 1);
+            instance.rotation.y = side < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
+          } else {
+            const jitterScale = 0.8 + ((idx * 3) % 3) * 0.06;
+            instance.scale.setScalar(jitterScale);
+            instance.rotation.y = ((idx * 1.15) % (Math.PI * 2));
+          }
+          prop.add(instance);
+          prop.userData.foliageEntries = instance.userData.foliageEntries;
         } else {
           const fallbackTree = createFallbackTreeMesh(idx);
-          fallbackTree.group.scale.setScalar(1.0 + (idx % 3) * 0.15);
-          holder.add(fallbackTree.group);
-          holder.userData.crownMat = fallbackTree.crownMat;
-          holder.userData.footprintRadius = 1.6;
+          prop.add(fallbackTree.group);
+          prop.userData.crownMat = fallbackTree.crownMat;
         }
 
-        const s = SEASONS[runState.currentSeasonIndex] || SEASONS[0];
-        applyGlbTreeSeasonTint(holder, runState.currentSeasonIndex, runState.isNight, runState.isStorm);
-        if (holder.userData.crownMat) {
-          holder.userData.crownMat.color.setHex(
+        const onGrassOffset = useGroup
+          ? (roadWidth * 0.5 + SIDE_GRASS_WIDTH * 0.5 + 0.08)
+          : (roadWidth * 0.5 + 3.2 + ((idx * 1.9) % Math.max(1.5, SIDE_GRASS_WIDTH - 5.4)));
+        prop.position.set(side * onGrassOffset, 0.02, -idx * SCENERY_SPACING);
+        prop.visible = !runState.isCity;
+
+        applyGlbTreeSeasonTint(prop, runState.currentSeasonIndex, runState.isNight, runState.isStorm);
+        if (prop.userData.crownMat) {
+          const s = SEASONS[runState.currentSeasonIndex] || SEASONS[0];
+          prop.userData.crownMat.color.setHex(
             runState.isStorm ? 0x334155 : (runState.isNight ? s.foliageNight : s.foliageDay)
           );
-        }
-        return holder;
-      }
-
-      function rebuildSceneryTrees(roadWidth) {
-        sceneryTrees.forEach(function (t) {
-          if (t && t.mesh && scene) {
-            scene.remove(t.mesh);
-          }
-        });
-        sceneryTrees = [];
-
-        const grassCenterX = roadWidth * 0.5 + SIDE_GRASS_WIDTH * 0.5 + 0.08;
-        for (let i = 0; i < SCENERY_COUNT; i++) {
-          const sideSign = i % 2 === 0 ? -1 : 1;
-          const treeMesh = buildTreeVisual(i, sideSign);
-          const treeRadius = (treeMesh.userData && treeMesh.userData.footprintRadius) || 1.6;
-          const jitterX = (((i * 1.9) % 3.6) - 1.8) * 0.55;
-          const minSafeX = roadWidth * 0.5 + treeRadius + 1.1;
-          const maxSafeX = roadWidth * 0.5 + SIDE_GRASS_WIDTH - treeRadius - 0.9;
-          const clampedX = sideSign * Math.max(
-            minSafeX,
-            Math.min(Math.max(minSafeX + 0.4, maxSafeX), Math.abs(grassCenterX) + jitterX)
-          );
-          const zPos = -i * SCENERY_SPACING;
-          treeMesh.position.set(clampedX, 0.02, zPos);
-          treeMesh.visible = !runState.isCity;
-          scene.add(treeMesh);
-
-          sceneryTrees.push({
-            index: i,
-            sideSign: sideSign,
-            baseX: clampedX,
-            radius: treeRadius,
-            mesh: treeMesh
-          });
         }
       }
 
       function initCustomTrees(roadWidth) {
-        rebuildSceneryTrees(roadWidth);
         const loader = new GLTFLoader();
+        let loadedAny = false;
+
+        function onTreeTemplateReady() {
+          if (!loadedAny) {
+            loadedAny = true;
+            showToast('🌿 arboles.glb volteado en el césped');
+          }
+          for (let i = 0; i < sceneryProps.length; i++) {
+            populateSceneryPropAt(sceneryProps[i], i, roadWidth);
+          }
+        }
 
         loader.load(
           TREE_SINGLE_URL,
@@ -1317,7 +1456,7 @@
             const tpl = prepareGlbTreeTemplate(raw, false);
             if (tpl) {
               customTreeTemplates.single = tpl;
-              rebuildSceneryTrees(roadWidth);
+              onTreeTemplateReady();
             }
           },
           undefined,
@@ -1334,7 +1473,7 @@
             const tpl = prepareGlbTreeTemplate(raw, true);
             if (tpl) {
               customTreeTemplates.group = tpl;
-              rebuildSceneryTrees(roadWidth);
+              onTreeTemplateReady();
             }
           },
           undefined,
@@ -1389,12 +1528,11 @@
 
         const maxXZ = Math.max(size.x || 0.1, size.z || 0.1);
         const heightY = Math.max(size.y || 0.1, 0.1);
-        // Casas más grandes y notorias en el césped
-        const desiredHeight = 19.5;
-        const desiredMaxWidth = 20.5;
+        const desiredHeight = 4.6;
+        const desiredMaxWidth = 5.4;
         const scaleByH = desiredHeight / heightY;
         const scaleByW = desiredMaxWidth / maxXZ;
-        const finalScale = Math.max(0.01, Math.min(40, Math.min(scaleByH, scaleByW)));
+        const finalScale = Math.max(0.01, Math.min(25, Math.min(scaleByH, scaleByW)));
         copy.scale.setScalar(finalScale);
         copy.updateMatrixWorld(true);
 
@@ -1406,37 +1544,30 @@
         if (Number.isFinite(center.z)) copy.position.z = -center.z;
         if (Number.isFinite(scaledBox.min.y)) copy.position.y = -scaledBox.min.y;
 
-        wrapper.updateMatrixWorld(true);
-        const finalBox = new THREE.Box3().setFromObject(wrapper);
-        const finalSize = new THREE.Vector3();
-        finalBox.getSize(finalSize);
-
         wrapper.rotation.y = isLeftSide ? Math.PI * 0.5 : -Math.PI * 0.5;
-        wrapper.userData.clearanceZ = Math.max(finalSize.x || 14, finalSize.z || 14) * 0.5 + 8.5;
         return wrapper;
       }
 
       function createFallbackHouse(sideSign, isLeftHouse) {
         const g = new THREE.Group();
         const wall = new THREE.Mesh(
-          new THREE.BoxGeometry(15.0, 11.2, 15.0),
+          new THREE.BoxGeometry(4.2, 3.1, 4.2),
           new THREE.MeshStandardMaterial({ color: isLeftHouse ? 0xf8fafc : 0xe2e8f0, roughness: 0.7 })
         );
-        wall.position.y = 5.6;
+        wall.position.y = 1.55;
         wall.castShadow = true;
         g.add(wall);
 
         const roof = new THREE.Mesh(
-          new THREE.ConeGeometry(11.6, 6.8, 4),
+          new THREE.ConeGeometry(3.3, 1.9, 4),
           new THREE.MeshStandardMaterial({ color: isLeftHouse ? 0x1e293b : 0xb45309, roughness: 0.65 })
         );
         roof.rotation.y = Math.PI * 0.25;
-        roof.position.y = 14.6;
+        roof.position.y = 4.05;
         roof.castShadow = true;
         g.add(roof);
 
         g.rotation.y = sideSign < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
-        g.userData.clearanceZ = 16.5;
         return g;
       }
 
@@ -1456,6 +1587,8 @@
         });
         if (alreadySpawned) return;
 
+        // 500m (impar 1): derecha (+1) -> casa-opt.glb
+        // 1000m (par 2): izquierda (-1) -> casa_japonesa.glb
         const isOddMilestone = milestoneIndex % 2 === 1;
         const sideSign = isOddMilestone ? 1 : -1;
         const roadWidth = LANE_WIDTH * 3 + 2.2;
@@ -1466,24 +1599,19 @@
         if (isOddMilestone && houseTemplates.rightOpt) {
           houseMesh = houseTemplates.rightOpt.clone(true);
           houseMesh.rotation.y = sideSign < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
-          houseMesh.userData.clearanceZ = houseTemplates.rightOpt.userData.clearanceZ || 18.0;
         } else if (!isOddMilestone && houseTemplates.leftJp) {
           houseMesh = houseTemplates.leftJp.clone(true);
           houseMesh.rotation.y = sideSign < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
-          houseMesh.userData.clearanceZ = houseTemplates.leftJp.userData.clearanceZ || 18.0;
         } else {
           houseMesh = createFallbackHouse(sideSign, !isOddMilestone);
         }
 
-        const clearanceZ = (houseMesh.userData && houseMesh.userData.clearanceZ) || 18.0;
-        houseMesh.position.set(posX, 0.02, -124);
+        houseMesh.position.set(posX, 0.02, -118);
         houseMesh.visible = true;
         scene.add(houseMesh);
 
         milestoneHouses.push({
           milestoneIndex: milestoneIndex,
-          sideSign: sideSign,
-          clearanceZ: clearanceZ,
           mesh: houseMesh
         });
 
@@ -1744,6 +1872,11 @@
         });
 
         for (let i = 0; i < SCENERY_COUNT; i++) {
+          const prop = new THREE.Group();
+          populateSceneryPropAt(prop, i, roadWidth);
+          sceneryProps.push(prop);
+          scene.add(prop);
+
           const side = i % 2 === 0 ? -1 : 1;
           const building = createCityBuildingProp(i);
           building.position.set(side * (roadWidth * 0.5 + 7.2 + (i % 2) * 2.4), 0, -i * SCENERY_SPACING);
@@ -2344,22 +2477,20 @@
           }
         }
 
-        sceneryTrees.forEach(function (tItem) {
-          if (tItem && tItem.mesh) {
-            tItem.mesh.visible = !cityActive;
-            applyGlbTreeSeasonTint(tItem.mesh, seasonIndex, isNight, stormActive);
-            if (tItem.mesh.userData && tItem.mesh.userData.crownMat) {
-              tItem.mesh.userData.crownMat.color.setHex(
-                stormActive ? 0x334155 : (isNight ? s.foliageNight : s.foliageDay)
-              );
-            }
+        sceneryProps.forEach(function (prop, idx) {
+          prop.visible = !cityActive;
+          applyGlbTreeSeasonTint(prop, seasonIndex, isNight, stormActive);
+          if (prop.userData && prop.userData.crownMat) {
+            prop.userData.crownMat.color.setHex(
+              stormActive ? 0x334155 : (isNight ? s.foliageNight : s.foliageDay)
+            );
           }
-        });
-
-        cityBuildings.forEach(function (bGroup) {
-          bGroup.visible = cityActive;
-          if (bGroup.userData.wallMat) bGroup.userData.wallMat.color.setHex((isNight || stormActive) ? 0x1e293b : 0x64748b);
-          if (bGroup.userData.winMat) bGroup.userData.winMat.color.setHex((isNight || stormActive) ? 0xfef08a : 0xbae6fd);
+          const bGroup = cityBuildings[idx];
+          if (bGroup) {
+            bGroup.visible = cityActive;
+            if (bGroup.userData.wallMat) bGroup.userData.wallMat.color.setHex((isNight || stormActive) ? 0x1e293b : 0x64748b);
+            if (bGroup.userData.winMat) bGroup.userData.winMat.color.setHex((isNight || stormActive) ? 0xfef08a : 0xbae6fd);
+          }
         });
 
         updateHudBadges();
@@ -3146,10 +3277,10 @@
           runState.score += distDelta * 0.65 * (1 + (runState.difficultyLevel - 1) * 0.15) * (runState.bikeActive ? 1.25 : 1);
 
           if (!runState.isCity && runState.distance < CITY_START_METERS) {
-            const currentHouseMilestone = Math.floor(runState.distance / HOUSE_INTERVAL_METERS);
-            if (currentHouseMilestone > runState.lastHouseMilestone) {
-              runState.lastHouseMilestone = currentHouseMilestone;
-              spawnMilestoneHouse(currentHouseMilestone);
+            const currentMilestone = Math.floor(runState.distance / HOUSE_INTERVAL_METERS);
+            if (currentMilestone > runState.lastHouseMilestone) {
+              runState.lastHouseMilestone = currentMilestone;
+              spawnMilestoneHouse(currentMilestone);
             }
           }
 
@@ -3162,38 +3293,10 @@
                 continue;
               }
               hItem.mesh.position.z += distDelta;
-              if (hItem.mesh.position.z > 28) {
+              if (hItem.mesh.position.z > 24) {
                 scene.remove(hItem.mesh);
                 milestoneHouses.splice(hIdx, 1);
               }
-            }
-          }
-
-          if (sceneryTrees.length > 0) {
-            for (let tIdx = 0; tIdx < sceneryTrees.length; tIdx++) {
-              const tItem = sceneryTrees[tIdx];
-              if (!tItem || !tItem.mesh) continue;
-              if (runState.isCity) {
-                tItem.mesh.visible = false;
-                continue;
-              }
-              tItem.mesh.position.z += distDelta;
-              if (tItem.mesh.position.z > 16) {
-                tItem.mesh.position.z -= SCENERY_LOOP_SPAN;
-              }
-
-              let overlapsHouse = false;
-              for (let hIdx = 0; hIdx < milestoneHouses.length; hIdx++) {
-                const hItem = milestoneHouses[hIdx];
-                if (hItem.sideSign === tItem.sideSign) {
-                  const safeGapZ = (hItem.clearanceZ || 18.0) + (tItem.radius || 1.6) + 2.5;
-                  if (Math.abs(tItem.mesh.position.z - hItem.mesh.position.z) < safeGapZ) {
-                    overlapsHouse = true;
-                    break;
-                  }
-                }
-              }
-              tItem.mesh.visible = !overlapsHouse;
             }
           }
 
@@ -3343,9 +3446,10 @@
           }
 
           laneStripes.forEach(function (st) { st.position.z += distDelta; if (st.position.z > 14) st.position.z -= 160; });
-          cityBuildings.forEach(function (bGroup) {
-            bGroup.position.z += distDelta;
-            if (bGroup.position.z > 16) bGroup.position.z -= SCENERY_LOOP_SPAN;
+          sceneryProps.forEach(function (prop, idx) {
+            prop.position.z += distDelta;
+            if (prop.position.z > 16) prop.position.z -= SCENERY_LOOP_SPAN;
+            if (cityBuildings[idx]) cityBuildings[idx].position.z = prop.position.z;
           });
 
           runState.spawnTimer -= dt;
@@ -3439,18 +3543,6 @@
               tile.position.z += lobbyGrassSpeed;
               if (tile.position.z > 24) {
                 tile.position.z -= totalGrassLoop;
-              }
-            }
-          }
-          if (!runState.isCity && sceneryTrees.length > 0) {
-            const lobbyTreeSpeed = 8 * dt;
-            for (let tIdx = 0; tIdx < sceneryTrees.length; tIdx++) {
-              const tItem = sceneryTrees[tIdx];
-              if (!tItem || !tItem.mesh) continue;
-              tItem.mesh.visible = true;
-              tItem.mesh.position.z += lobbyTreeSpeed;
-              if (tItem.mesh.position.z > 16) {
-                tItem.mesh.position.z -= SCENERY_LOOP_SPAN;
               }
             }
           }
