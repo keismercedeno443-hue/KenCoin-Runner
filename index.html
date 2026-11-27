@@ -624,6 +624,8 @@
         slide: './Running Slide.glb'
       };
       const TARGET_CHAR_HEIGHT = 2.15;
+      const SLIDE_DROP_GLB = 0.52;
+      const SLIDE_DROP_FALLBACK = 0.45;
 
       const SEASONS = [
         {
@@ -1594,7 +1596,6 @@
         glbOrientGroup.position.z = Number.isFinite(center.z) ? -center.z : 0;
         glbOrientGroup.position.y = Number.isFinite(box.min.y) ? (-box.min.y + 0.02) : 0.02;
 
-        // Voltea el personaje 180° para que mire y corra hacia el fondo (-Z) en vez de hacia la cámara (+Z)
         glbOrientGroup.rotation.y += Math.PI;
         glbOrientGroup.updateMatrixWorld(true);
 
@@ -1979,6 +1980,7 @@
             new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xca8a04, emissiveIntensity: 0.4, roughness: 0.25, metalness: 0.72 })
           );
           coinMesh.rotation.z = Math.PI / 2;
+          coinMesh.scale.set(1, 1, 1);
           coinMesh.position.set(lane * LANE_WIDTH, baseY, -115 - i * 2.6);
           scene.add(coinMesh);
           coins.push({ mesh: coinMesh, collected: false });
@@ -2123,6 +2125,9 @@
           if (runState.isSliding) {
             runState.isSliding = false; runState.slideTimer = 0;
             playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = 0;
+            if (!glbLoadedOk && torsoMesh && legL && legR) {
+              torsoMesh.rotation.x = 0; legL.rotation.x = 0; legR.rotation.x = 0;
+            }
           }
           playGlbAnimation('jump', 0.08, 1);
           sfxJump();
@@ -2136,6 +2141,7 @@
         }
         runState.isSliding = true;
         runState.slideTimer = 0.65;
+        playerBodyGroup.position.y = glbLoadedOk ? -SLIDE_DROP_GLB : -SLIDE_DROP_FALLBACK;
         playGlbAnimation('slide', 0.08, 1);
         sfxSlide();
       }
@@ -2659,6 +2665,19 @@
           runState.distance += distDelta;
           runState.score += distDelta * 0.65 * (1 + (runState.difficultyLevel - 1) * 0.15) * (runState.bikeActive ? 1.25 : 1);
 
+          if (runState.comboTimer > 0) {
+            runState.comboTimer = Math.max(0, runState.comboTimer - dt);
+            if (runState.comboTimer === 0) runState.comboCount = 0;
+          }
+
+          if (runState.magnetTimer > 0) {
+            runState.magnetTimer = Math.max(0, runState.magnetTimer - dt);
+          }
+          if (magnetRingMesh) {
+            magnetRingMesh.visible = runState.magnetTimer > 0;
+            if (magnetRingMesh.visible) magnetRingMesh.rotation.z += dt * 4;
+          }
+
           const cycle = computeCycleFromDistance(runState.distance);
           if (
             cycle.seasonIndex !== runState.currentSeasonIndex ||
@@ -2708,6 +2727,9 @@
             if (runState.slideTimer <= 0) {
               runState.isSliding = false; runState.slideTimer = 0;
               playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = 0;
+              if (!glbLoadedOk && torsoMesh && legL && legR) {
+                torsoMesh.rotation.x = 0; legL.rotation.x = 0; legR.rotation.x = 0;
+              }
               if (glbLoadedOk && (runState.isGrounded || runState.onObstacleTop)) {
                 playGlbAnimation('run', 0.14, 1);
               }
@@ -2744,8 +2766,9 @@
           playerRoot.position.set(runState.laneX, runState.playerY, 0);
           playerRoot.rotation.set(0, 0, 0);
 
+          const slideDropOffset = runState.isSliding ? (glbLoadedOk ? -SLIDE_DROP_GLB : -SLIDE_DROP_FALLBACK) : 0;
           if (shadowDisc) {
-            shadowDisc.position.y = 0.02 - runState.playerY;
+            shadowDisc.position.y = 0.02 - runState.playerY - slideDropOffset;
             const sScale = Math.max(0.4, 1 - runState.playerY * 0.14);
             shadowDisc.scale.set(sScale, sScale, 1);
           }
@@ -2756,13 +2779,18 @@
 
           if (!glbLoadedOk) {
             if (runState.isSliding) {
-              playerBodyGroup.position.y = 0; torsoMesh.rotation.x = -0.55; legL.rotation.x = -0.95; legR.rotation.x = 0.25;
+              playerBodyGroup.position.y = -SLIDE_DROP_FALLBACK;
+              torsoMesh.rotation.x = -0.65;
+              legL.rotation.x = -1.05;
+              legR.rotation.x = 0.25;
             } else {
-              playerBodyGroup.position.y = bounce * 0.08; torsoMesh.rotation.x = -0.08;
-              armL.rotation.x = -stride * 0.85; armR.rotation.x = stride * 0.85; legL.rotation.x = stride * 0.85; legR.rotation.x = -stride * 0.85;
+              playerBodyGroup.position.y = bounce * 0.08;
+              torsoMesh.rotation.x = -0.08;
+              armL.rotation.x = -stride * 0.85; armR.rotation.x = stride * 0.85;
+              legL.rotation.x = stride * 0.85; legR.rotation.x = -stride * 0.85;
             }
           } else {
-            playerBodyGroup.position.y = runState.isSliding ? 0 : (runState.isGrounded ? bounce * 0.02 : 0);
+            playerBodyGroup.position.y = runState.isSliding ? -SLIDE_DROP_GLB : (runState.isGrounded ? bounce * 0.02 : 0);
             glbModelGroup.rotation.x = 0;
           }
 
@@ -2792,7 +2820,7 @@
           }
 
           const footY = runState.playerY;
-          const topY = runState.playerY + (runState.isSliding ? 0.88 : 2.15);
+          const topY = runState.playerY + (runState.isSliding ? 0.82 : 2.15);
 
           for (let i = obstacles.length - 1; i >= 0; i--) {
             const obs = obstacles[i];
@@ -2817,14 +2845,20 @@
 
           for (let i = coins.length - 1; i >= 0; i--) {
             const c = coins[i];
-            c.mesh.position.z += distDelta; c.mesh.rotation.y += dt * 4;
-            if (!c.collected && runState.magnetTimer > 0 && c.mesh.position.z > -32 && c.mesh.position.z < 10) {
-              const pf = Math.min(1, dt * 11);
+            c.mesh.position.z += distDelta;
+            c.mesh.rotation.y += dt * 4;
+            if (!c.collected && runState.magnetTimer > 0 && c.mesh.position.z > -34 && c.mesh.position.z < 12) {
+              const pf = Math.min(1, dt * 14);
               c.mesh.position.x += (runState.laneX - c.mesh.position.x) * pf;
-              c.mesh.position.y += ((runState.playerY + 1.05) - c.mesh.position.y) * pf;
-              c.mesh.position.z += (0.4 - c.mesh.position.z) * Math.min(1, dt * 7);
+              c.mesh.position.y += ((runState.playerY + 1.0) - c.mesh.position.y) * pf;
+              c.mesh.position.z += (0 - c.mesh.position.z) * Math.min(1, dt * 11);
             }
-            if (!c.collected && Math.abs(c.mesh.position.x - runState.laneX) < 1.15 && Math.abs(c.mesh.position.y - (runState.playerY + 1.0)) < 1.4 && Math.abs(c.mesh.position.z) < 1.3) {
+            if (
+              !c.collected &&
+              Math.abs(c.mesh.position.x - runState.laneX) < 1.25 &&
+              Math.abs(c.mesh.position.y - (runState.playerY + 1.0)) < 1.55 &&
+              Math.abs(c.mesh.position.z) < 1.75
+            ) {
               c.collected = true; saveData.coins += 1; runState.runCoins += 1; runState.comboCount += 1; runState.comboTimer = 2.2;
               const comboBonus = runState.comboCount >= 3 ? Math.min(50, runState.comboCount * 5) : 0;
               runState.score += 15 + comboBonus;
