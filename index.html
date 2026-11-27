@@ -619,8 +619,8 @@
       const SESSION_KEY = 'kencoin_runner_3d_session_v1';
       const MODEL_URL = './character-opt.glb';
       const GRASS_MODEL_URL = './cespedtest2.glb';
-      const SIDE_GRASS_LENGTH = 16;
-      const SIDE_GRASS_COUNT_PER_SIDE = 12;
+      const SIDE_GRASS_LENGTH = 32;
+      const SIDE_GRASS_COUNT_PER_SIDE = 6;
       const ANIM_URLS = {
         run: './Running.glb',
         jump: './Jump.glb',
@@ -1093,8 +1093,8 @@
 
             rawModel.traverse(function (child) {
               if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
+                child.castShadow = false;
+                child.receiveShadow = false;
                 child.frustumCulled = false;
               }
             });
@@ -1107,7 +1107,7 @@
             const targetDepth = SIDE_GRASS_LENGTH;
             const sx = size.x > 0.001 ? targetWidth / size.x : 1;
             const sz = size.z > 0.001 ? targetDepth / size.z : 1;
-            const sy = Math.min(sx, sz) || 1;
+            const sy = size.y > 0.001 ? Math.max(0.08, (Math.min(sx, sz) || 1) * 0.28) : 0.25;
 
             const normalizedBase = new THREE.Group();
             rawModel.scale.set(sx, sy, sz);
@@ -1127,18 +1127,18 @@
               const zPos = 16 - i * SIDE_GRASS_LENGTH;
 
               const leftTile = normalizedBase.clone(true);
-              leftTile.position.set(-sideOffsetX, -0.02, zPos);
+              leftTile.position.set(-sideOffsetX, -0.28, zPos);
               scene.add(leftTile);
               sideGrassTiles.push(leftTile);
 
               const rightTile = normalizedBase.clone(true);
-              rightTile.position.set(sideOffsetX, -0.02, zPos);
+              rightTile.position.set(sideOffsetX, -0.28, zPos);
               scene.add(rightTile);
               sideGrassTiles.push(rightTile);
             }
 
             sideGrassLoaded = true;
-            showToast('🌿 Césped 3D cargado a los lados');
+            showToast('🌿 Césped 3D bajo y optimizado');
           },
           undefined,
           function (err) {
@@ -1159,7 +1159,7 @@
         camera.lookAt(0, 1.8, -14);
 
         renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
         renderer.setSize(w, h);
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.1;
