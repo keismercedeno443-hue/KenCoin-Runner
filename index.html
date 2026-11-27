@@ -621,8 +621,8 @@
       const GRASS_MODEL_URL = './césped.glb';
       const TREE_SINGLE_URL = './arbol_tree.glb';
       const TREE_GROUP_URL = './arboles.glb';
-      const SCENERY_COUNT = 20;
-      const SCENERY_SPACING = 16.0;
+      const SCENERY_COUNT = 10;
+      const SCENERY_SPACING = 30.0;
       const SCENERY_LOOP_SPAN = SCENERY_COUNT * SCENERY_SPACING;
       const SIDE_GRASS_LENGTH = 30.11;
       const SIDE_GRASS_WIDTH = 12.5;
@@ -1329,16 +1329,18 @@
         const size = new THREE.Vector3();
         box.getSize(size);
 
-        const maxXZ = Math.max(size.x || 0.1, size.z || 0.1);
-        const heightY = Math.max(size.y || 0.1, 0.1);
-        const desiredHeight = isGroupModel ? 2.85 : 2.65;
-        const desiredMaxWidth = isGroupModel ? 3.5 : 2.25;
-
-        const scaleByH = desiredHeight / heightY;
-        const scaleByW = desiredMaxWidth / maxXZ;
-        const finalScale = Math.max(0.01, Math.min(20, Math.min(scaleByH, scaleByW)));
-
-        copy.scale.setScalar(finalScale);
+        if (isGroupModel) {
+          copy.scale.set(1, 1, 1);
+        } else {
+          const maxXZ = Math.max(size.x || 0.1, size.z || 0.1);
+          const heightY = Math.max(size.y || 0.1, 0.1);
+          const desiredHeight = 2.45;
+          const desiredMaxWidth = 1.95;
+          const scaleByH = desiredHeight / heightY;
+          const scaleByW = desiredMaxWidth / maxXZ;
+          const finalScale = Math.max(0.01, Math.min(20, Math.min(scaleByH, scaleByW)));
+          copy.scale.setScalar(finalScale);
+        }
         copy.updateMatrixWorld(true);
 
         const scaledBox = new THREE.Box3().setFromObject(copy);
@@ -1350,6 +1352,7 @@
         if (Number.isFinite(scaledBox.min.y)) copy.position.y = -scaledBox.min.y;
 
         wrapper.userData.foliageEntries = foliageMats;
+        wrapper.userData.isGroupModel = Boolean(isGroupModel);
         return wrapper;
       }
 
@@ -1394,8 +1397,12 @@
           instance.userData.foliageEntries = (template.userData.foliageEntries || []).map(function (entry) {
             return { mat: entry.mat, baseColor: entry.baseColor };
           });
-          const jitterScale = 0.85 + ((idx * 7) % 4) * 0.06;
-          instance.scale.setScalar(jitterScale);
+          if (template.userData.isGroupModel) {
+            instance.scale.set(1, 1, 1);
+          } else {
+            const jitterScale = 0.88 + ((idx * 5) % 3) * 0.06;
+            instance.scale.setScalar(jitterScale);
+          }
           instance.rotation.y = ((idx * 1.15) % (Math.PI * 2));
           prop.add(instance);
           prop.userData.foliageEntries = instance.userData.foliageEntries;
@@ -1405,8 +1412,8 @@
           prop.userData.crownMat = fallbackTree.crownMat;
         }
 
-        const behindGrassOffset = roadWidth * 0.5 + SIDE_GRASS_WIDTH + 3.2 + ((idx * 2.3) % 4.5);
-        prop.position.set(side * behindGrassOffset, 0, -idx * SCENERY_SPACING);
+        const justBehindGrassOffset = roadWidth * 0.5 + SIDE_GRASS_WIDTH + 0.85 + ((idx * 0.37) % 1.1);
+        prop.position.set(side * justBehindGrassOffset, 0, -idx * SCENERY_SPACING);
         prop.visible = !runState.isCity;
 
         applyGlbTreeSeasonTint(prop, runState.currentSeasonIndex, runState.isNight, runState.isStorm);
@@ -1425,7 +1432,7 @@
         function onTreeTemplateReady() {
           if (!loadedAny) {
             loadedAny = true;
-            showToast('🌲 Árboles 3D ajustados detrás del césped');
+            showToast('🌲 arbol_tree.glb reducido · arboles.glb intacto');
           }
           for (let i = 0; i < sceneryProps.length; i++) {
             populateSceneryPropAt(sceneryProps[i], i, roadWidth);
