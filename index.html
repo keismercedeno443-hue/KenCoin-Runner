@@ -194,8 +194,65 @@
     </div>
   </div>
 
+  <!-- SELECTOR DE PERSONAJES 3D (flotante sobre el escenario en vivo) -->
+  <section id="char-picker-3d-bar" class="pointer-events-none fixed inset-x-0 bottom-20 z-20 hidden px-3 sm:px-5">
+    <div class="pointer-events-auto mx-auto flex max-w-md flex-col items-center gap-2 rounded-3xl border border-sky-200/25 bg-slate-950/70 p-3 text-white shadow-2xl backdrop-blur-md">
+      <div class="flex w-full items-center justify-between gap-2">
+        <button
+          id="btn-char-prev"
+          type="button"
+          aria-label="Personaje anterior"
+          class="btn-bubble flex h-10 w-10 items-center justify-center rounded-2xl border border-sky-200/20 bg-slate-800/90 text-base font-black text-sky-200"
+        >
+          ◀
+        </button>
+
+        <div class="flex flex-1 flex-col items-center text-center">
+          <span class="text-[10px] font-bold tracking-wider text-amber-300 uppercase">Selector 3D · Arrastra para girar</span>
+          <strong id="char-3d-name" class="text-sm font-black text-white">Ken Clásico</strong>
+          <span id="char-3d-status" class="text-[11px] font-semibold text-sky-200">Equipado</span>
+        </div>
+
+        <button
+          id="btn-char-next"
+          type="button"
+          aria-label="Siguiente personaje"
+          class="btn-bubble flex h-10 w-10 items-center justify-center rounded-2xl border border-sky-200/20 bg-slate-800/90 text-base font-black text-sky-200"
+        >
+          ▶
+        </button>
+      </div>
+
+      <div class="flex w-full items-center justify-between gap-2">
+        <button
+          id="btn-char-spin"
+          type="button"
+          class="btn-bubble rounded-2xl border border-slate-700 bg-slate-800/90 px-3 py-2 text-[11px] font-bold text-slate-200"
+        >
+          🔄 Girar 360°
+        </button>
+
+        <button
+          id="btn-char-action"
+          type="button"
+          class="btn-bubble flex-1 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 py-2 text-xs font-black text-slate-950"
+        >
+          Equipado
+        </button>
+
+        <button
+          id="btn-char-close"
+          type="button"
+          class="btn-bubble rounded-2xl border border-slate-700 bg-slate-800/90 px-3 py-2 text-[11px] font-bold text-rose-200"
+        >
+          Listo
+        </button>
+      </div>
+    </div>
+  </section>
+
   <section id="lobby-overlay" class="pointer-events-none fixed inset-0 z-20 flex flex-col justify-between pt-24 pb-5 px-3 sm:px-5">
-    <div class="relative flex flex-col items-center justify-center text-center pointer-events-none mt-24 sm:mt-32 md:mt-40">
+    <div id="lobby-title-block" class="relative flex flex-col items-center justify-center text-center pointer-events-none mt-24 sm:mt-32 md:mt-40">
       <div class="animate-float-slow absolute z-0 flex items-center justify-center w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-full opacity-65 drop-shadow-[0_14px_30px_rgba(0,0,0,0.65)]">
         <svg viewBox="0 0 220 220" class="w-full h-full" aria-label="Emblema KenCoin CKN">
           <defs>
@@ -243,7 +300,15 @@
 
     <div class="flex-1"></div>
 
-    <div class="flex flex-col items-center gap-1.5 pointer-events-auto">
+    <div class="flex flex-wrap items-center justify-center gap-2 pointer-events-auto">
+      <button
+        id="btn-open-char-3d"
+        type="button"
+        class="glass-pill btn-bubble rounded-full px-5 py-3 text-xs sm:text-sm font-extrabold text-sky-200 shadow-xl"
+      >
+        🧍 Personajes 3D
+      </button>
+
       <button
         id="btn-start-run"
         type="button"
@@ -624,8 +689,8 @@
       const TREE_GROUP_URL = './arboles.glb';
       const HOUSE_OPT_URL = './casa-opt.glb';
       const HOUSE_JP_URL = './casa_japonesa.glb';
-      const CAR_BARBIE_URL = './carro_barbie.glb';
       const CAR_KIA_URL = './carro_kia.glb';
+      const CAR_MAIN_URL = './carro.glb';
       const SCENERY_COUNT = 6;
       const SCENERY_SPACING = 46.0;
       const SCENERY_LOOP_SPAN = SCENERY_COUNT * SCENERY_SPACING;
@@ -673,9 +738,42 @@
       ];
 
       const CHARACTERS = [
-        { id: 'ken', name: 'Ken Clásico', priceCoins: 0, head: 0xf6d852, torso: 0x25b7e8, limbs: 0x1b4f9c, accent: 0xf59e0b },
-        { id: 'sol', name: 'Sol Solar', priceCoins: 60, head: 0xfde047, torso: 0xf97316, limbs: 0x9a3412, accent: 0xfef08a },
-        { id: 'cyber', name: 'Neo Ken', priceCoins: 120, head: 0x67e8f9, torso: 0x7c3aed, limbs: 0x1e1b4b, accent: 0x22d3ee }
+        {
+          id: 'ken',
+          name: 'Ken Clásico',
+          priceCoins: 0,
+          head: 0xf6d852,
+          torso: 0x25b7e8,
+          limbs: 0x1b4f9c,
+          accent: 0xf59e0b,
+          glbTint: 0xffffff,
+          glbEmissive: 0x000000,
+          glbEmissiveIntensity: 0
+        },
+        {
+          id: 'sol',
+          name: 'Sol Solar',
+          priceCoins: 60,
+          head: 0xfde047,
+          torso: 0xf97316,
+          limbs: 0x9a3412,
+          accent: 0xfef08a,
+          glbTint: 0xffd180,
+          glbEmissive: 0x5c1d00,
+          glbEmissiveIntensity: 0.22
+        },
+        {
+          id: 'cyber',
+          name: 'Neo Ken',
+          priceCoins: 120,
+          head: 0x67e8f9,
+          torso: 0x7c3aed,
+          limbs: 0x1e1b4b,
+          accent: 0x22d3ee,
+          glbTint: 0xc4b5fd,
+          glbEmissive: 0x2e1065,
+          glbEmissiveIntensity: 0.28
+        }
       ];
 
       function getDefaultSaveData() {
@@ -762,7 +860,8 @@
       }
 
       const runState = {
-        mode: 'lobby', pausedFromSettings: false, distance: 0, score: 0, runCoins: 0,
+        mode: 'lobby', charPickerOpen: false, previewYawOffset: 0, spinBoostTimer: 0,
+        pausedFromSettings: false, distance: 0, score: 0, runCoins: 0,
         comboCount: 0, comboTimer: 0, magnetTimer: 0, speed: 25, lane: 0, laneX: 0,
         playerY: 0, velocityY: 0, isGrounded: true, onObstacleTop: false, isSliding: false,
         slideTimer: 0, invulnTimer: 0, shieldActive: false, shieldTimer: 0,
@@ -772,6 +871,8 @@
         lastHouseMilestone: 0, spawnTimer: 0.7, coinSpawnTimer: 0.45,
         trafficSpawnTimer: 1.6, magnetSpawnTimer: 8.5, cameraShake: 0
       };
+
+      let previewIndex = Math.max(0, CHARACTERS.findIndex(function (c) { return c.id === saveData.selectedChar; }));
 
       let audioCtx = null, musicGainNode = null, sfxGainNode = null, bgmTimerId = null, bgmStep = 0;
 
@@ -1034,12 +1135,13 @@
       let laneStripes = [], sceneryProps = [], cityBuildings = [];
       let customTreeTemplates = { single: null, group: null };
       let houseTemplates = { rightOpt: null, leftJp: null };
-      let carTemplates = { barbie: null, kia: null };
+      let carTemplates = { kia: null, mainCar: null };
       let milestoneHouses = [];
       let obstacles = [], coins = [], magnets = [], trafficCars = [], burstParticles = [];
       let weatherPoints, weatherGeo, lightningBoltMesh;
 
       let playerRoot, playerBodyGroup, fallbackBoxGroup, glbModelGroup, glbOrientGroup, activeGlbModel = null;
+      let glbMaterialEntries = [];
       let headMesh, capVisorMesh, torsoMesh, armL, armR, legL, legR;
       let bikeGroup, shieldBubbleMesh, magnetRingMesh, shadowDisc;
       let glbLoadedOk = false;
@@ -1656,23 +1758,14 @@
         );
       }
 
-      function prepareCarTemplate(rawModel, options) {
-        const opts = options || {};
-        const isBarbie = Boolean(opts.isBarbie);
-        const preserveOriginalMaterials = Boolean(opts.preserveOriginalMaterials);
-
+      function prepareCarTemplate(rawModel) {
         const wrapper = new THREE.Group();
         const copy = rawModel.clone(true);
         copy.position.set(0, 0, 0);
         copy.rotation.set(0, 0, 0);
         copy.scale.set(1, 1, 1);
 
-        const barbieMainPink = new THREE.Color(0xff69b4);
-        const barbieSoftPink = new THREE.Color(0xf9a8d4);
-        const barbieTrimWhite = new THREE.Color(0xf8fafc);
-
         let hasMeshes = false;
-
         copy.traverse(function (child) {
           if (child.isMesh) {
             hasMeshes = true;
@@ -1691,40 +1784,10 @@
                 if (!m) return m;
                 const mc = m.clone();
                 mc.side = THREE.DoubleSide;
-
-                if (isBarbie) {
-                  const matName = String(mc.name || child.name || '').toLowerCase();
-                  const isTireOrWheel = matName.includes('tire') || matName.includes('wheel') || matName.includes('llanta') || matName.includes('rim');
-
-                  if (!isTireOrWheel) {
-                    mc.map = null;
-                    if (!mc.color) mc.color = new THREE.Color(0xffffff);
-
-                    if (matName.includes('white') || matName.includes('seat') || matName.includes('trim') || matName.includes('side')) {
-                      mc.color.copy(barbieTrimWhite);
-                    } else {
-                      mc.color.copy(barbieMainPink).lerp(barbieSoftPink, 0.25);
-                    }
-
-                    mc.roughness = 0.35;
-                    mc.metalness = 0.1;
-                    if ('emissive' in mc && mc.emissive) {
-                      mc.emissive.setHex(0x2a0818);
-                      mc.emissiveIntensity = 0.08;
-                    }
-                  } else {
-                    mc.map = null;
-                    mc.color = new THREE.Color(0x1e293b);
-                    mc.roughness = 0.7;
-                    mc.metalness = 0.15;
-                  }
-                } else if (!preserveOriginalMaterials) {
-                  if (mc.transparent && mc.opacity < 0.15) {
-                    mc.transparent = false;
-                    mc.opacity = 1;
-                  }
+                if (mc.transparent && mc.opacity < 0.15) {
+                  mc.transparent = false;
+                  mc.opacity = 1;
                 }
-
                 mc.needsUpdate = true;
                 return mc;
               });
@@ -1742,26 +1805,11 @@
         const rawSize = new THREE.Vector3();
         rawBox.getSize(rawSize);
 
-        const desiredWidth = isBarbie ? 2.55 : 1.85;
-        const desiredLength = isBarbie ? 5.4 : 3.85;
-        const desiredHeight = isBarbie ? 2.35 : 1.78;
-        const extraBoost = isBarbie ? 2.15 : 1.0;
-        const maxScaleCap = isBarbie ? 1500 : 400;
-
+        const desiredWidth = 1.85;
+        const desiredLength = 3.85;
+        const desiredHeight = 1.78;
         const maxRaw = Math.max(rawSize.x || 0, rawSize.y || 0, rawSize.z || 0);
-        if (!Number.isFinite(maxRaw) || maxRaw <= 0.00001) {
-          const fallbackBody = new THREE.Mesh(
-            new THREE.BoxGeometry(desiredWidth, desiredHeight * 0.75, desiredLength),
-            new THREE.MeshStandardMaterial({ color: isBarbie ? 0xff69b4 : 0x3b82f6, roughness: 0.35, metalness: 0.1 })
-          );
-          fallbackBody.position.y = desiredHeight * 0.375 + 0.05;
-          fallbackBody.castShadow = true;
-          wrapper.add(fallbackBody);
-          wrapper.userData.hitWidth = desiredWidth;
-          wrapper.userData.hitHeight = desiredHeight;
-          wrapper.userData.hitDepth = desiredLength;
-          return wrapper;
-        }
+        if (!Number.isFinite(maxRaw) || maxRaw <= 0.00001) return null;
 
         const isLengthAlongX = (rawSize.x || 0) > (rawSize.z || 0) * 1.12;
         if (isLengthAlongX) {
@@ -1773,13 +1821,13 @@
         const orientedSize = new THREE.Vector3();
         orientedBox.getSize(orientedSize);
 
-        const sx = orientedSize.x > 0.0001 ? ((desiredWidth * extraBoost) / orientedSize.x) : 1;
-        const sz = orientedSize.z > 0.0001 ? ((desiredLength * extraBoost) / orientedSize.z) : 1;
-        const sy = orientedSize.y > 0.0001 ? ((desiredHeight * extraBoost) / orientedSize.y) : 1;
-        const baseScale = Math.max(0.002, Math.min(maxScaleCap, Math.min(sx, sz)));
+        const sx = orientedSize.x > 0.0001 ? (desiredWidth / orientedSize.x) : 1;
+        const sz = orientedSize.z > 0.0001 ? (desiredLength / orientedSize.z) : 1;
+        const sy = orientedSize.y > 0.0001 ? (desiredHeight / orientedSize.y) : 1;
+        const baseScale = Math.max(0.002, Math.min(400, Math.min(sx, sz)));
         copy.scale.set(
           baseScale,
-          Math.max(0.002, Math.min(maxScaleCap, Math.min(sy, baseScale * 1.25))),
+          Math.max(0.002, Math.min(400, Math.min(sy, baseScale * 1.25))),
           baseScale
         );
         copy.updateMatrixWorld(true);
@@ -1793,42 +1841,33 @@
         if (Number.isFinite(scaledBox.min.y)) copy.position.y = -scaledBox.min.y + 0.05;
 
         wrapper.updateMatrixWorld(true);
-
         const finalBox = new THREE.Box3().setFromObject(wrapper);
         const finalSize = new THREE.Vector3();
         finalBox.getSize(finalSize);
 
-        wrapper.userData.hitWidth = isBarbie ? Math.max(1.85, Math.min(2.45, finalSize.x || desiredWidth)) : Math.max(1.45, Math.min(2.15, finalSize.x || desiredWidth));
-        wrapper.userData.hitHeight = isBarbie ? Math.max(1.7, Math.min(2.6, finalSize.y || desiredHeight)) : Math.max(1.25, Math.min(2.25, finalSize.y || desiredHeight));
-        wrapper.userData.hitDepth = isBarbie ? Math.max(3.8, Math.min(5.2, finalSize.z || desiredLength)) : Math.max(2.8, Math.min(4.5, finalSize.z || desiredLength));
+        wrapper.userData.hitWidth = Math.max(1.45, Math.min(2.15, finalSize.x || desiredWidth));
+        wrapper.userData.hitHeight = Math.max(1.25, Math.min(2.25, finalSize.y || desiredHeight));
+        wrapper.userData.hitDepth = Math.max(2.8, Math.min(4.5, finalSize.z || desiredLength));
         return wrapper;
       }
 
       function initCarModels() {
         const loader = new GLTFLoader();
-        let loadedCount = 0;
-
-        function onCarReady() {
-          loadedCount += 1;
-          if (loadedCount === 1) {
-            showToast('🩷 Carro Barbie rosado sin parpadeo listo');
-          }
-        }
 
         loader.load(
-          CAR_BARBIE_URL,
+          CAR_MAIN_URL,
           function (gltf) {
             const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
             if (!raw) return;
-            const tpl = prepareCarTemplate(raw, { isBarbie: true, preserveOriginalMaterials: false });
+            const tpl = prepareCarTemplate(raw);
             if (tpl) {
-              carTemplates.barbie = tpl;
-              onCarReady();
+              carTemplates.mainCar = tpl;
+              showToast('🚗 Carro (carro.glb) listo');
             }
           },
           undefined,
           function (err) {
-            console.warn('No se pudo cargar carro_barbie.glb:', err);
+            console.warn('No se pudo cargar carro.glb:', err);
           }
         );
 
@@ -1837,10 +1876,9 @@
           function (gltf) {
             const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
             if (!raw) return;
-            const tpl = prepareCarTemplate(raw, { isBarbie: false, preserveOriginalMaterials: true });
+            const tpl = prepareCarTemplate(raw);
             if (tpl) {
               carTemplates.kia = tpl;
-              onCarReady();
             }
           },
           undefined,
@@ -2322,6 +2360,7 @@
         activeGlbModel.rotation.set(0, 0, 0);
         activeGlbModel.scale.set(1, 1, 1);
 
+        glbMaterialEntries = [];
         activeGlbModel.traverse(function (child) {
           if (child.isMesh) {
             child.visible = true;
@@ -2329,11 +2368,18 @@
             if (child.material) {
               const mats = Array.isArray(child.material) ? child.material : [child.material];
               mats.forEach(function (m) {
-                if (m && m.transparent && m.opacity < 0.15) {
+                if (!m) return;
+                if (m.transparent && m.opacity < 0.15) {
                   m.opacity = 1;
                   m.transparent = false;
                 }
-                if (m) m.needsUpdate = true;
+                m.needsUpdate = true;
+                glbMaterialEntries.push({
+                  mat: m,
+                  baseColor: m.color ? m.color.clone() : null,
+                  baseEmissive: ('emissive' in m && m.emissive) ? m.emissive.clone() : null,
+                  baseEmissiveIntensity: ('emissiveIntensity' in m && typeof m.emissiveIntensity === 'number') ? m.emissiveIntensity : 0
+                });
               });
             }
           }
@@ -2448,6 +2494,7 @@
                 if (normalizeGlbModelTransform()) {
                   glbLoadedOk = true;
                   if (fallbackBoxGroup) fallbackBoxGroup.visible = false;
+                  applyCharacterAppearance(getActivePreviewOrSelectedCharId());
                 } else {
                   glbLoadedOk = false;
                   forceFallbackVisible('animación alteró tamaño GLB');
@@ -2458,7 +2505,7 @@
                 if (runState.mode === 'playing') {
                   playGlbAnimation('run', 0.1, 1);
                 } else if (runState.mode === 'lobby') {
-                  playGlbAnimation('run', 0.15, 0.35);
+                  playGlbAnimation('run', 0.15, runState.charPickerOpen ? 0.65 : 0.35);
                 }
               }
             },
@@ -2510,6 +2557,7 @@
 
             glbLoadedOk = true;
             if (fallbackBoxGroup) fallbackBoxGroup.visible = false;
+            applyCharacterAppearance(getActivePreviewOrSelectedCharId());
             loadAnimationClips(loader, model);
             showToast('✅ Personaje GLB listo');
           },
@@ -2522,6 +2570,14 @@
             showToast('⚠️ Usando personaje clásico');
           }
         );
+      }
+
+      function getActivePreviewOrSelectedCharId() {
+        if (runState.mode === 'lobby' && runState.charPickerOpen) {
+          const ch = CHARACTERS[previewIndex] || CHARACTERS[0];
+          return ch.id;
+        }
+        return saveData.selectedChar;
       }
 
       function applyCharacterAppearance(charId) {
@@ -2537,6 +2593,85 @@
         if (legL && legL.children[0]) legL.children[0].material.color.setHex(ch.limbs);
         if (legR && legR.children[0]) legR.children[0].material.color.setHex(ch.limbs);
         if (playerGlowLight) playerGlowLight.color.setHex(ch.accent);
+
+        if (glbMaterialEntries && glbMaterialEntries.length) {
+          const tintCol = new THREE.Color(ch.glbTint || 0xffffff);
+          glbMaterialEntries.forEach(function (entry) {
+            if (!entry.mat) return;
+            if (entry.baseColor && entry.mat.color) {
+              entry.mat.color.copy(entry.baseColor).multiply(tintCol);
+            }
+            if ('emissive' in entry.mat && entry.mat.emissive && entry.baseEmissive) {
+              entry.mat.emissive.copy(entry.baseEmissive);
+              if (ch.glbEmissiveIntensity && ch.glbEmissiveIntensity > 0) {
+                entry.mat.emissive.lerp(new THREE.Color(ch.glbEmissive), 0.75);
+                entry.mat.emissiveIntensity = Math.max(entry.baseEmissiveIntensity, ch.glbEmissiveIntensity);
+              } else {
+                entry.mat.emissiveIntensity = entry.baseEmissiveIntensity;
+              }
+            }
+          });
+        }
+      }
+
+      function syncCharPicker3DUI() {
+        const barEl = document.getElementById('char-picker-3d-bar');
+        const titleBlock = document.getElementById('lobby-title-block');
+        const nameEl = document.getElementById('char-3d-name');
+        const statusEl = document.getElementById('char-3d-status');
+        const actionBtn = document.getElementById('btn-char-action');
+
+        const isOpen = runState.mode === 'lobby' && runState.charPickerOpen;
+        if (barEl) barEl.classList.toggle('hidden', !isOpen);
+        if (titleBlock) titleBlock.classList.toggle('opacity-25', isOpen);
+
+        const ch = CHARACTERS[previewIndex] || CHARACTERS[0];
+        const unlocked = saveData.unlockedChars.indexOf(ch.id) !== -1;
+        const selected = saveData.selectedChar === ch.id;
+
+        if (nameEl) nameEl.textContent = ch.name;
+        if (statusEl) {
+          statusEl.textContent = selected
+            ? 'Equipado actualmente'
+            : (unlocked ? 'Desbloqueado · Listo para equipar' : 'Costo: ' + ch.priceCoins + ' ¢');
+        }
+
+        if (actionBtn) {
+          if (selected) {
+            actionBtn.textContent = '✓ Equipado';
+            actionBtn.className = 'btn-bubble flex-1 rounded-2xl border border-emerald-400/40 bg-emerald-500/25 py-2 text-xs font-black text-emerald-200';
+          } else if (unlocked) {
+            actionBtn.textContent = 'Equipar personaje';
+            actionBtn.className = 'btn-bubble flex-1 rounded-2xl bg-sky-400 py-2 text-xs font-black text-slate-950';
+          } else {
+            actionBtn.textContent = 'Comprar (' + ch.priceCoins + ' ¢)';
+            actionBtn.className = 'btn-bubble flex-1 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 py-2 text-xs font-black text-slate-950';
+          }
+        }
+
+        applyCharacterAppearance(getActivePreviewOrSelectedCharId());
+      }
+
+      function setCharPicker3DOpen(open) {
+        if (runState.mode !== 'lobby') {
+          runState.charPickerOpen = false;
+          syncCharPicker3DUI();
+          return;
+        }
+        runState.charPickerOpen = Boolean(open);
+        if (runState.charPickerOpen) {
+          const idx = CHARACTERS.findIndex(function (c) { return c.id === saveData.selectedChar; });
+          previewIndex = idx >= 0 ? idx : 0;
+          runState.previewYawOffset = 0.45;
+          runState.spinBoostTimer = 0.85;
+          playGlbAnimation('run', 0.12, 0.7);
+        } else {
+          runState.previewYawOffset = 0;
+          runState.spinBoostTimer = 0;
+          applyCharacterAppearance(saveData.selectedChar);
+          playGlbAnimation('run', 0.15, 0.35);
+        }
+        syncCharPicker3DUI();
       }
 
       function computeCycleFromDistance(dist) {
@@ -2846,21 +2981,22 @@
         });
         if (nearObs) return;
 
-        const pickBarbie = Math.random() < 0.5;
-        const chosenTpl = pickBarbie ? (carTemplates.barbie || carTemplates.kia) : (carTemplates.kia || carTemplates.barbie);
-
         let carGroup = null;
         let hitWidth = 1.85;
         let hitHeight = 1.78;
         let hitDepth = 3.85;
 
-        if (chosenTpl) {
-          carGroup = chosenTpl.clone(true);
-          hitWidth = chosenTpl.userData.hitWidth || 1.85;
-          hitHeight = chosenTpl.userData.hitHeight || 1.78;
-          hitDepth = chosenTpl.userData.hitDepth || 3.85;
+        const chosenTemplate = (carTemplates.mainCar && carTemplates.kia)
+          ? (Math.random() < 0.65 ? carTemplates.mainCar : carTemplates.kia)
+          : (carTemplates.mainCar || carTemplates.kia);
+
+        if (chosenTemplate) {
+          carGroup = chosenTemplate.clone(true);
+          hitWidth = chosenTemplate.userData.hitWidth || 1.85;
+          hitHeight = chosenTemplate.userData.hitHeight || 1.78;
+          hitDepth = chosenTemplate.userData.hitDepth || 3.85;
         } else {
-          const bodyColors = [0xf472b6, 0x3b82f6, 0x10b981, 0xeab308, 0xa855f7];
+          const bodyColors = [0x3b82f6, 0x10b981, 0xeab308, 0xa855f7, 0x06b6d4];
           carGroup = createFallbackTrafficCarGroup(bodyColors[Math.floor(Math.random() * bodyColors.length)]);
         }
 
@@ -2883,7 +3019,8 @@
         pauseModal.classList.add('hidden'); pauseModal.classList.remove('flex');
 
         Object.assign(runState, {
-          mode: 'playing', pausedFromSettings: false, distance: 0, score: 0, runCoins: 0,
+          mode: 'playing', charPickerOpen: false, previewYawOffset: 0, spinBoostTimer: 0,
+          pausedFromSettings: false, distance: 0, score: 0, runCoins: 0,
           comboCount: 0, comboTimer: 0, magnetTimer: 0, speed: 25, lane: 0, laneX: 0,
           playerY: 0, velocityY: 0, isGrounded: true, onObstacleTop: false, isSliding: false,
           slideTimer: 0, invulnTimer: 0, shieldActive: false, shieldTimer: 0,
@@ -2894,6 +3031,7 @@
           trafficSpawnTimer: 1.6, magnetSpawnTimer: 8.5, cameraShake: 0
         });
 
+        applyCharacterAppearance(saveData.selectedChar);
         if (bikeGroup) bikeGroup.visible = false;
         if (lightningBoltMesh) lightningBoltMesh.visible = false;
         shieldBubbleMesh.visible = false;
@@ -2911,6 +3049,7 @@
           } else if (fallbackBoxGroup) {
             fallbackBoxGroup.visible = false;
           }
+          applyCharacterAppearance(saveData.selectedChar);
         } else {
           forceFallbackVisible('startRun sin GLB');
         }
@@ -3054,6 +3193,13 @@
         const phaseSeasonCapsuleEl = document.getElementById('hud-phase-season-capsule');
         const isActiveRun = mode === 'playing' || mode === 'paused';
 
+        if (mode !== 'lobby') {
+          runState.charPickerOpen = false;
+          runState.previewYawOffset = 0;
+          runState.spinBoostTimer = 0;
+          applyCharacterAppearance(saveData.selectedChar);
+        }
+
         lobbyEl.classList.toggle('hidden', mode !== 'lobby');
         ingameEl.classList.toggle('hidden', mode !== 'playing');
         gameoverEl.classList.toggle('hidden', mode !== 'gameover');
@@ -3063,6 +3209,7 @@
         runStatsEl.classList.toggle('hidden', !isActiveRun); runStatsEl.classList.toggle('flex', isActiveRun);
         if (pauseBtnEl) { pauseBtnEl.classList.toggle('hidden', !isActiveRun); pauseBtnEl.classList.toggle('flex', isActiveRun); }
         if (buffsEl) { buffsEl.classList.toggle('hidden', !isActiveRun); buffsEl.classList.toggle('flex', isActiveRun); }
+        syncCharPicker3DUI();
       }
 
       function updateHudBadges() {
@@ -3142,6 +3289,7 @@
         updateHudBadges();
         updateBuffBadges();
         renderShopCharacters();
+        syncCharPicker3DUI();
       }
 
       function renderShopCharacters() {
@@ -3149,7 +3297,7 @@
         if (!container) return;
         container.innerHTML = '';
 
-        CHARACTERS.forEach(function (ch) {
+        CHARACTERS.forEach(function (ch, idx) {
           const unlocked = saveData.unlockedChars.indexOf(ch.id) !== -1;
           const selected = saveData.selectedChar === ch.id;
           const row = document.createElement('div');
@@ -3171,6 +3319,7 @@
             btn.className += 'bg-sky-400 text-slate-950';
             btn.addEventListener('click', function () {
               saveData.selectedChar = ch.id;
+              previewIndex = idx;
               applyCharacterAppearance(ch.id);
               persistSaveData();
               refreshAllUI();
@@ -3184,6 +3333,7 @@
               saveData.coins -= ch.priceCoins;
               saveData.unlockedChars.push(ch.id);
               saveData.selectedChar = ch.id;
+              previewIndex = idx;
               applyCharacterAppearance(ch.id);
               persistSaveData();
               sfxCoin(0);
@@ -3213,20 +3363,89 @@
           }, { passive: true });
         });
 
-        let touchStartX = 0, touchStartY = 0, trackingSwipe = false;
+        let touchStartX = 0, touchStartY = 0, lastDragX = 0, trackingSwipe = false;
         viewportEl.addEventListener('pointerdown', function (e) {
+          if (runState.mode === 'lobby' && runState.charPickerOpen) {
+            lastDragX = e.clientX;
+            trackingSwipe = true;
+            return;
+          }
           if (runState.mode !== 'playing') return;
           touchStartX = e.clientX; touchStartY = e.clientY; trackingSwipe = true;
         });
+        viewportEl.addEventListener('pointermove', function (e) {
+          if (!trackingSwipe) return;
+          if (runState.mode === 'lobby' && runState.charPickerOpen) {
+            const moveDx = e.clientX - lastDragX;
+            lastDragX = e.clientX;
+            runState.previewYawOffset += moveDx * 0.014;
+          }
+        });
         viewportEl.addEventListener('pointerup', function (e) {
-          if (!trackingSwipe || runState.mode !== 'playing') return;
+          if (!trackingSwipe) return;
           trackingSwipe = false;
+          if (runState.mode === 'lobby' && runState.charPickerOpen) return;
+          if (runState.mode !== 'playing') return;
           const dx = e.clientX - touchStartX, dy = e.clientY - touchStartY;
           if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 28) moveLane(dx > 0 ? 1 : -1);
           else if (Math.abs(dy) > 28) {
             if (dy < 0) jumpPlayer();
             else slidePlayer();
           }
+        });
+
+        document.getElementById('btn-open-char-3d').addEventListener('click', function () {
+          setCharPicker3DOpen(!runState.charPickerOpen);
+        });
+        document.getElementById('btn-char-close').addEventListener('click', function () {
+          setCharPicker3DOpen(false);
+        });
+        document.getElementById('btn-char-prev').addEventListener('click', function () {
+          previewIndex = (previewIndex - 1 + CHARACTERS.length) % CHARACTERS.length;
+          runState.previewYawOffset += 0.55;
+          sfxJump();
+          syncCharPicker3DUI();
+        });
+        document.getElementById('btn-char-next').addEventListener('click', function () {
+          previewIndex = (previewIndex + 1) % CHARACTERS.length;
+          runState.previewYawOffset -= 0.55;
+          sfxJump();
+          syncCharPicker3DUI();
+        });
+        document.getElementById('btn-char-spin').addEventListener('click', function () {
+          runState.spinBoostTimer = 0.9;
+          sfxCoin(1);
+        });
+        document.getElementById('btn-char-action').addEventListener('click', function () {
+          const ch = CHARACTERS[previewIndex] || CHARACTERS[0];
+          const unlocked = saveData.unlockedChars.indexOf(ch.id) !== -1;
+          const selected = saveData.selectedChar === ch.id;
+
+          if (selected) {
+            showToast(ch.name + ' ya está equipado');
+            return;
+          }
+          if (unlocked) {
+            saveData.selectedChar = ch.id;
+            applyCharacterAppearance(ch.id);
+            persistSaveData();
+            sfxPowerup();
+            refreshAllUI();
+            showToast('✅ ¡Equipaste a ' + ch.name + '!');
+            return;
+          }
+          if (saveData.coins < ch.priceCoins) {
+            showToast('Necesitas ' + ch.priceCoins + ' ¢ para comprar a ' + ch.name);
+            return;
+          }
+          saveData.coins -= ch.priceCoins;
+          saveData.unlockedChars.push(ch.id);
+          saveData.selectedChar = ch.id;
+          applyCharacterAppearance(ch.id);
+          persistSaveData();
+          sfxPowerup();
+          refreshAllUI();
+          showToast('🎉 ¡Compraste y equipaste a ' + ch.name + '!');
         });
 
         document.getElementById('btn-start-run').addEventListener('click', startRun);
@@ -3248,12 +3467,14 @@
           pauseModal.classList.add('hidden'); pauseModal.classList.remove('flex');
           clearEntities();
           Object.assign(runState, {
-            mode: 'lobby', pausedFromSettings: false, distance: 0, score: 0, magnetTimer: 0,
+            mode: 'lobby', charPickerOpen: false, previewYawOffset: 0, spinBoostTimer: 0,
+            pausedFromSettings: false, distance: 0, score: 0, magnetTimer: 0,
             speed: 25, lane: 0, laneX: 0, playerY: 0, velocityY: 0, isGrounded: true,
             onObstacleTop: false, isSliding: false, shieldActive: false, bikeActive: false,
             bikeTimer: 0, isStorm: false, stormSeverity: 0, isCity: false, stormFlash: 0,
             lastHouseMilestone: 0
           });
+          applyCharacterAppearance(saveData.selectedChar);
           if (bikeGroup) bikeGroup.visible = false;
           if (lightningBoltMesh) lightningBoltMesh.visible = false;
           shieldBubbleMesh.visible = false; magnetRingMesh.visible = false;
@@ -3265,6 +3486,7 @@
               glbLoadedOk = false;
               forceFallbackVisible('returnToLobby sin tamaño GLB');
             }
+            applyCharacterAppearance(saveData.selectedChar);
           } else {
             forceFallbackVisible('returnToLobby');
           }
@@ -3346,6 +3568,7 @@
           try { localStorage.removeItem(STORAGE_KEY); } catch (err) {}
           const currentUsername = saveData.username || 'Corredor';
           saveData = Object.assign({}, getDefaultSaveData(), { username: currentUsername });
+          previewIndex = 0;
           persistSaveData(); applyCharacterAppearance(saveData.selectedChar); refreshAllUI(); showToast('Progreso reiniciado');
         });
 
@@ -3411,6 +3634,7 @@
             saveData = Object.assign({}, getDefaultSaveData(), {
               username: '', audioEnabled: saveData.audioEnabled, musicVolume: saveData.musicVolume, sfxVolume: saveData.sfxVolume
             });
+            previewIndex = 0;
             persistSaveData(); applyCharacterAppearance(saveData.selectedChar); refreshAllUI(); syncAuthModalState();
             showToast('Sesión cerrada · Toca Login para ingresar o registrarte');
           });
@@ -3432,6 +3656,8 @@
               const initialSave = normalizeSaveData(Object.assign({}, saveData, { username }));
               accounts[email] = { username, password, save: initialSave };
               persistAccountsMap(accounts); persistActiveSessionEmail(email); saveData = initialSave; persistSaveData();
+              const idx = CHARACTERS.findIndex(function (c) { return c.id === saveData.selectedChar; });
+              previewIndex = idx >= 0 ? idx : 0;
               applyCharacterAppearance(saveData.selectedChar); refreshAllUI();
               authModal.classList.add('hidden'); authModal.classList.remove('flex');
               showToast('¡Bienvenido, ' + saveData.username + '!');
@@ -3443,6 +3669,8 @@
             persistActiveSessionEmail(email);
             const loadedUser = account.username || (account.save && account.save.username) || email.split('@')[0];
             saveData = normalizeSaveData(Object.assign({}, account.save, { username: loadedUser }));
+            const idx = CHARACTERS.findIndex(function (c) { return c.id === saveData.selectedChar; });
+            previewIndex = idx >= 0 ? idx : 0;
             persistSaveData(); applyCharacterAppearance(saveData.selectedChar); refreshAllUI();
             authModal.classList.add('hidden'); authModal.classList.remove('flex');
             showToast('¡Hola, ' + saveData.username + '! Sesión iniciada');
@@ -3451,6 +3679,10 @@
 
         window.addEventListener('keydown', function (e) {
           if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+            if (runState.mode === 'lobby' && runState.charPickerOpen && e.key === 'Escape') {
+              setCharPicker3DOpen(false);
+              return;
+            }
             if (runState.mode === 'playing') pauseRun(false);
             else if (runState.mode === 'paused' && !runState.pausedFromSettings) resumeRun();
             return;
@@ -3663,6 +3895,7 @@
               ? -SLIDE_DROP_GLB
               : (runState.isGrounded ? bounce * 0.02 : 0);
             glbModelGroup.rotation.x = 0;
+            glbModelGroup.rotation.y = 0;
           }
 
           laneStripes.forEach(function (st) { st.position.z += distDelta; if (st.position.z > 14) st.position.z -= 160; });
@@ -3756,7 +3989,7 @@
           document.getElementById('hud-speed').textContent = (runState.speed / 25).toFixed(1) + 'x';
         } else if (runState.mode !== 'paused') {
           if (!runState.isCity && sideGrassLoaded && sideGrassTiles.length > 0) {
-            const lobbyGrassSpeed = 8 * dt;
+            const lobbyGrassSpeed = (runState.charPickerOpen ? 2.5 : 8) * dt;
             const totalGrassLoop = SIDE_GRASS_COUNT_PER_SIDE * SIDE_GRASS_LENGTH;
             for (let g = 0; g < sideGrassTiles.length; g++) {
               const tile = sideGrassTiles[g];
@@ -3766,21 +3999,32 @@
               }
             }
           }
+
+          if (runState.spinBoostTimer > 0) {
+            runState.spinBoostTimer = Math.max(0, runState.spinBoostTimer - dt);
+            runState.previewYawOffset += dt * 7.5;
+          }
+
           playerRoot.position.set(0, 0, 0);
           playerRoot.rotation.set(0, 0, 0);
           if (glbLoadedOk && animActions.run && currentAnimName !== 'run') {
-            playGlbAnimation('run', 0.15, 0.35);
+            playGlbAnimation('run', 0.15, runState.charPickerOpen ? 0.65 : 0.35);
           }
           if (shadowDisc) { shadowDisc.position.y = 0.02; shadowDisc.scale.set(1, 1, 1); }
           playerBodyGroup.position.y = Math.max(0, Math.sin(elapsed * 3) * 0.02);
+
           if (!glbLoadedOk) {
-            torsoMesh.rotation.x = 0; torsoMesh.rotation.y = Math.sin(elapsed * 2) * 0.12;
-            headMesh.rotation.x = Math.sin(elapsed * 2.5) * 0.08; headMesh.rotation.y = Math.sin(elapsed * 1.7) * 0.25;
-            armL.rotation.x = Math.sin(elapsed * 3) * 0.32; armR.rotation.x = -Math.sin(elapsed * 3) * 0.32;
-            legL.rotation.x = Math.sin(elapsed * 2) * 0.1; legR.rotation.x = -Math.sin(elapsed * 2) * 0.1;
+            torsoMesh.rotation.x = 0;
+            torsoMesh.rotation.y = (runState.charPickerOpen ? runState.previewYawOffset : Math.sin(elapsed * 2) * 0.12);
+            headMesh.rotation.x = Math.sin(elapsed * 2.5) * 0.08;
+            headMesh.rotation.y = Math.sin(elapsed * 1.7) * 0.25;
+            armL.rotation.x = Math.sin(elapsed * 3) * 0.32;
+            armR.rotation.x = -Math.sin(elapsed * 3) * 0.32;
+            legL.rotation.x = Math.sin(elapsed * 2) * 0.1;
+            legR.rotation.x = -Math.sin(elapsed * 2) * 0.1;
           } else {
             glbModelGroup.rotation.x = 0;
-            glbModelGroup.rotation.y = 0;
+            glbModelGroup.rotation.y = runState.charPickerOpen ? runState.previewYawOffset : 0;
           }
         }
 
@@ -3813,7 +4057,7 @@
         }
 
         const speedRatio = Math.max(0, (runState.speed - 25) / 41);
-        const targetFov = runState.mode === 'playing' ? 56 + speedRatio * 7.5 : 54;
+        const targetFov = runState.mode === 'playing' ? 56 + speedRatio * 7.5 : (runState.charPickerOpen ? 46 : 54);
         if (Math.abs(camera.fov - targetFov) > 0.05) {
           camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 5);
           camera.updateProjectionMatrix();
@@ -3823,10 +4067,25 @@
         const shakeX = runState.cameraShake > 0 ? (Math.random() - 0.5) * runState.cameraShake * 0.8 : 0;
         const shakeY = runState.cameraShake > 0 ? (Math.random() - 0.5) * runState.cameraShake * 0.8 : 0;
 
-        const targetCamX = runState.laneX * 0.65;
+        const targetCamX = runState.mode === 'playing' ? runState.laneX * 0.65 : 0;
+        const targetCamY = runState.mode === 'playing'
+          ? (5.6 + runState.playerY * 0.35 + shakeY)
+          : (runState.charPickerOpen ? 2.45 : 5.6);
+        const targetCamZ = runState.mode === 'playing'
+          ? 11.4
+          : (runState.charPickerOpen ? 5.6 : 11.4);
+
         camera.position.x += (targetCamX - camera.position.x) * Math.min(1, dt * 8);
-        camera.position.y = 5.6 + runState.playerY * 0.35 + shakeY;
-        camera.lookAt(camera.position.x * 0.7 + shakeX, 1.45 + runState.playerY * 0.35, -8);
+        camera.position.y += (targetCamY - camera.position.y) * Math.min(1, dt * 7);
+        camera.position.z += (targetCamZ - camera.position.z) * Math.min(1, dt * 7);
+
+        if (runState.mode === 'playing') {
+          camera.lookAt(camera.position.x * 0.7 + shakeX, 1.45 + runState.playerY * 0.35, -8);
+        } else if (runState.charPickerOpen) {
+          camera.lookAt(0, 1.15, 0);
+        } else {
+          camera.lookAt(0, 1.45, -8);
+        }
 
         renderer.render(scene, camera);
       }
