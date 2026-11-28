@@ -1766,7 +1766,7 @@
         if (abandonedBuildingTemplate) {
           ruinMesh = abandonedBuildingTemplate.clone(true);
           ruinMesh.scale.y *= 1.25;
-          orientHouseTowardRoad(ruinMesh, sideSign, 0);
+          orientHouseTowardRoad(ruinMesh, sideSign, Math.PI * 0.5);
         } else {
           ruinMesh = createFallbackHouse(sideSign, false);
           ruinMesh.scale.y *= 1.22;
@@ -1807,9 +1807,9 @@
       }
 
       function prepareCarTemplate(rawModel, kind) {
-        let w = 1.85, h = 1.75, d = 3.85;
+        let w = 1.95, h = 1.82, d = 4.05;
         if (kind === 'camaro') {
-          w = 2.25; h = 1.85; d = 4.65;
+          w = 2.35; h = 1.95; d = 4.85;
         } else if (kind === 'tank') {
           w = 1.65; h = 1.55; d = 3.25;
         }
@@ -1818,19 +1818,20 @@
         if (!tpl) return null;
 
         if (kind === 'camaro') {
-          tpl.scale.setScalar(1.52);
-          tpl.userData.hitWidth = 2.02;
-          tpl.userData.hitHeight = 1.82;
-          tpl.userData.hitDepth = 4.55;
+          tpl.scale.setScalar(2.15);
+          tpl.userData.hitWidth = 2.15;
+          tpl.userData.hitHeight = 1.92;
+          tpl.userData.hitDepth = 4.95;
         } else if (kind === 'tank') {
-          tpl.scale.setScalar(0.56);
-          tpl.userData.hitWidth = 1.52;
-          tpl.userData.hitHeight = 1.48;
-          tpl.userData.hitDepth = 3.05;
+          tpl.scale.setScalar(0.43);
+          tpl.userData.hitWidth = 1.38;
+          tpl.userData.hitHeight = 1.36;
+          tpl.userData.hitDepth = 2.75;
         } else {
-          tpl.userData.hitWidth = Math.max(1.45, Math.min(2.1, tpl.userData.hitWidth || w));
-          tpl.userData.hitHeight = Math.max(1.25, Math.min(2.0, tpl.userData.hitHeight || h));
-          tpl.userData.hitDepth = Math.max(2.8, Math.min(4.3, tpl.userData.hitDepth || d));
+          tpl.scale.setScalar(1.36);
+          tpl.userData.hitWidth = Math.max(1.75, Math.min(2.2, (tpl.userData.hitWidth || w) * 1.18));
+          tpl.userData.hitHeight = Math.max(1.55, Math.min(2.1, (tpl.userData.hitHeight || h) * 1.15));
+          tpl.userData.hitDepth = Math.max(3.6, Math.min(4.7, (tpl.userData.hitDepth || d) * 1.18));
         }
         return tpl;
       }
@@ -1872,11 +1873,11 @@
           const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
           const tpl = raw && prepareNormalizedGlb(raw, 1.15, 1.25, 2.25, true);
           if (tpl && playerRoot) {
-            tpl.rotation.y = Math.PI;
+            tpl.rotation.y = 0;
             customMotoTemplate = tpl;
             if (customMotoMesh) playerRoot.remove(customMotoMesh);
             customMotoMesh = tpl.clone(true);
-            customMotoMesh.rotation.y = Math.PI;
+            customMotoMesh.rotation.y = 0;
             customMotoMesh.visible = runState.bikeActive;
             playerRoot.add(customMotoMesh);
             showToast('🏍️ Moto personalizada (moto-opt.glb) cargada');
@@ -2381,7 +2382,7 @@
         if (customMotoTemplate) {
           if (!customMotoMesh && playerRoot) {
             customMotoMesh = customMotoTemplate.clone(true);
-            customMotoMesh.rotation.y = Math.PI;
+            customMotoMesh.rotation.y = 0;
             playerRoot.add(customMotoMesh);
           }
           if (customMotoMesh) customMotoMesh.visible = Boolean(runState.bikeActive);
