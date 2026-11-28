@@ -1626,7 +1626,7 @@
       }
 
       function prepareHouseTemplate(rawModel, heightOverride, widthOverride) {
-        return prepareNormalizedGlb(rawModel, widthOverride || 9.8, heightOverride || 8.4, widthOverride || 9.8, false);
+        return prepareNormalizedGlb(rawModel, widthOverride || 10.5, heightOverride || 11.5, widthOverride || 10.5, false);
       }
 
       function orientHouseTowardRoad(houseObj, sideSign, extraYaw) {
@@ -1638,16 +1638,16 @@
       function createFallbackHouse(sideSign, isLeftHouse) {
         const g = new THREE.Group();
         const wall = new THREE.Mesh(
-          new THREE.BoxGeometry(8.6, 6.6, 8.6),
+          new THREE.BoxGeometry(8.8, 9.4, 8.8),
           new THREE.MeshStandardMaterial({ color: isLeftHouse ? 0xf8fafc : 0xe2e8f0, roughness: 0.7 })
         );
-        wall.position.y = 3.3; wall.castShadow = true; g.add(wall);
+        wall.position.y = 4.7; wall.castShadow = true; g.add(wall);
 
         const roof = new THREE.Mesh(
-          new THREE.ConeGeometry(6.8, 3.8, 4),
+          new THREE.ConeGeometry(7.0, 4.4, 4),
           new THREE.MeshStandardMaterial({ color: isLeftHouse ? 0x1e293b : 0xb45309, roughness: 0.65 })
         );
-        roof.rotation.y = Math.PI * 0.25; roof.position.y = 8.4; roof.castShadow = true; g.add(roof);
+        roof.rotation.y = Math.PI * 0.25; roof.position.y = 11.6; roof.castShadow = true; g.add(roof);
         orientHouseTowardRoad(g, sideSign, 0);
         return g;
       }
@@ -1701,12 +1701,15 @@
         let houseMesh = null;
         if (!useJapanese && houseTemplates.rightOpt) {
           houseMesh = houseTemplates.rightOpt.clone(true);
+          houseMesh.scale.y *= 1.28;
           orientHouseTowardRoad(houseMesh, sideSign, 0);
         } else if (useJapanese && houseTemplates.leftJp) {
           houseMesh = houseTemplates.leftJp.clone(true);
+          houseMesh.scale.y *= 1.32;
           orientHouseTowardRoad(houseMesh, sideSign, Math.PI * 0.5);
         } else {
           houseMesh = createFallbackHouse(sideSign, useJapanese);
+          houseMesh.scale.y *= 1.22;
         }
 
         houseMesh.position.set(posX, 0.02, baseZ);
@@ -1762,9 +1765,11 @@
         let ruinMesh = null;
         if (abandonedBuildingTemplate) {
           ruinMesh = abandonedBuildingTemplate.clone(true);
+          ruinMesh.scale.y *= 1.25;
           orientHouseTowardRoad(ruinMesh, sideSign, 0);
         } else {
           ruinMesh = createFallbackHouse(sideSign, false);
+          ruinMesh.scale.y *= 1.22;
         }
 
         ruinMesh.position.set(sideSign * grassCenterX, 0.02, -118);
@@ -1778,13 +1783,13 @@
         const loader = new GLTFLoader();
         loader.load(HOUSE_OPT_URL, function (gltf) {
           const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-          const tpl = raw && prepareHouseTemplate(raw, 12.2, 13.8);
+          const tpl = raw && prepareHouseTemplate(raw, 14.5, 13.8);
           if (tpl) houseTemplates.rightOpt = tpl;
         }, undefined, function () {});
 
         loader.load(HOUSE_JP_URL, function (gltf) {
           const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-          const tpl = raw && prepareHouseTemplate(raw, 8.4, 9.8);
+          const tpl = raw && prepareHouseTemplate(raw, 11.4, 10.2);
           if (tpl) houseTemplates.leftJp = tpl;
         }, undefined, function () {});
 
@@ -1796,35 +1801,32 @@
 
         loader.load(ABANDONED_BUILDINGS_URL, function (gltf) {
           const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-          const tpl = raw && prepareNormalizedGlb(raw, 11.5, 10.5, 11.5, false);
+          const tpl = raw && prepareNormalizedGlb(raw, 11.5, 13.5, 11.5, false);
           if (tpl) abandonedBuildingTemplate = tpl;
         }, undefined, function () {});
       }
 
       function prepareCarTemplate(rawModel, kind) {
-        // Ajustes finos de tamaño en pista:
-        // - Camaro: más grande y bien visible
-        // - Antitanque: más compacto y proporcionado para que no se vea gigante
         let w = 1.85, h = 1.75, d = 3.85;
         if (kind === 'camaro') {
-          w = 2.05; h = 1.65; d = 4.25;
+          w = 2.25; h = 1.85; d = 4.65;
         } else if (kind === 'tank') {
-          w = 1.82; h = 1.68; d = 3.65;
+          w = 1.65; h = 1.55; d = 3.25;
         }
 
         const tpl = prepareNormalizedGlb(rawModel, w, h, d, true);
         if (!tpl) return null;
 
         if (kind === 'camaro') {
-          tpl.scale.setScalar(1.18);
-          tpl.userData.hitWidth = 1.85;
-          tpl.userData.hitHeight = 1.65;
-          tpl.userData.hitDepth = 4.1;
+          tpl.scale.setScalar(1.52);
+          tpl.userData.hitWidth = 2.02;
+          tpl.userData.hitHeight = 1.82;
+          tpl.userData.hitDepth = 4.55;
         } else if (kind === 'tank') {
-          tpl.scale.setScalar(0.76);
-          tpl.userData.hitWidth = 1.68;
-          tpl.userData.hitHeight = 1.62;
-          tpl.userData.hitDepth = 3.45;
+          tpl.scale.setScalar(0.56);
+          tpl.userData.hitWidth = 1.52;
+          tpl.userData.hitHeight = 1.48;
+          tpl.userData.hitDepth = 3.05;
         } else {
           tpl.userData.hitWidth = Math.max(1.45, Math.min(2.1, tpl.userData.hitWidth || w));
           tpl.userData.hitHeight = Math.max(1.25, Math.min(2.0, tpl.userData.hitHeight || h));
@@ -1870,9 +1872,11 @@
           const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
           const tpl = raw && prepareNormalizedGlb(raw, 1.15, 1.25, 2.25, true);
           if (tpl && playerRoot) {
+            tpl.rotation.y = Math.PI;
             customMotoTemplate = tpl;
             if (customMotoMesh) playerRoot.remove(customMotoMesh);
             customMotoMesh = tpl.clone(true);
+            customMotoMesh.rotation.y = Math.PI;
             customMotoMesh.visible = runState.bikeActive;
             playerRoot.add(customMotoMesh);
             showToast('🏍️ Moto personalizada (moto-opt.glb) cargada');
@@ -2215,9 +2219,9 @@
           return g;
         }
 
-        const bH = 12 + (index % 5) * 5.5;
-        const bW = 7.2 + (index % 3) * 2.2;
-        const bD = 7.4;
+        const bH = 14 + (index % 5) * 6.0;
+        const bW = 7.4 + (index % 3) * 2.2;
+        const bD = 7.6;
 
         const wallMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.65, metalness: 0.25 });
         const body = new THREE.Mesh(new THREE.BoxGeometry(bW, bH, bD), wallMat);
@@ -2377,6 +2381,7 @@
         if (customMotoTemplate) {
           if (!customMotoMesh && playerRoot) {
             customMotoMesh = customMotoTemplate.clone(true);
+            customMotoMesh.rotation.y = Math.PI;
             playerRoot.add(customMotoMesh);
           }
           if (customMotoMesh) customMotoMesh.visible = Boolean(runState.bikeActive);
@@ -2385,7 +2390,7 @@
           if (bikeGroup) bikeGroup.visible = Boolean(runState.bikeActive);
         }
         if (playerBodyGroup) {
-          playerBodyGroup.position.y = runState.bikeActive ? 0.42 : (runState.isSliding ? -SLIDE_DROP_GLB : 0);
+          playerBodyGroup.position.y = runState.bikeActive ? 0.34 : (runState.isSliding ? -SLIDE_DROP_GLB : 0);
         }
       }
 
@@ -2529,7 +2534,7 @@
             }
 
             if (animKey === 'run' && glbLoadedOk) {
-              if (runState.mode === 'playing') playGlbAnimation('run', 0.1, 1);
+              if (runState.mode === 'playing') playGlbAnimation('run', 0.1, runState.bikeActive ? 0 : 1);
               else if (runState.mode === 'lobby') playGlbAnimation('run', 0.15, runState.charPickerOpen ? 0.65 : 0.35);
             }
           }, undefined, function () {});
@@ -2838,7 +2843,6 @@
         const roll = Math.random();
 
         if (roll < 0.35) {
-          // Obstáculo elevado (deslizarse por debajo) -> down_obstacle.glb limpio (sin tubos amarillos)
           const w = 2.05, h = 1.25, d = 1.25, bottomGap = 0.95;
           const mesh = new THREE.Group();
 
@@ -2860,7 +2864,6 @@
           return;
         }
 
-        // Obstáculo de piso (saltar por encima) -> up_obstacle.glb más grande y claro
         const isMedium = roll >= 0.72;
         const h = isMedium ? 1.65 : 1.15, w = 1.95, d = 1.55;
         const group = new THREE.Group();
@@ -3056,7 +3059,7 @@
           runState.velocityY = 13.5; runState.isGrounded = false; runState.onObstacleTop = false;
           if (runState.isSliding) {
             runState.isSliding = false; runState.slideTimer = 0;
-            playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = runState.bikeActive ? 0.42 : 0;
+            playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = runState.bikeActive ? 0.34 : 0;
             if (!glbLoadedOk && torsoMesh && legL && legR) { torsoMesh.rotation.x = 0; legL.rotation.x = 0; legR.rotation.x = 0; }
           }
           playGlbAnimation('jump', 0.08, 1); sfxJump();
@@ -3627,7 +3630,9 @@
         if (playerBodyGroup) playerBodyGroup.visible = true;
         if (!glbLoadedOk && fallbackBoxGroup && !fallbackBoxGroup.visible) fallbackBoxGroup.visible = true;
 
-        if (animMixer && runState.mode !== 'paused') animMixer.update(dt);
+        if (animMixer && runState.mode !== 'paused') {
+          animMixer.update(runState.bikeActive ? 0 : dt);
+        }
 
         if (runState.mode !== 'paused') {
           cloudBanks.forEach(function (bank) {
@@ -3756,9 +3761,9 @@
             runState.slideTimer -= dt;
             if (runState.slideTimer <= 0) {
               runState.isSliding = false; runState.slideTimer = 0;
-              playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = runState.bikeActive ? 0.42 : 0;
+              playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = runState.bikeActive ? 0.34 : 0;
               if (!glbLoadedOk && torsoMesh && legL && legR) { torsoMesh.rotation.x = 0; legL.rotation.x = 0; legR.rotation.x = 0; }
-              if (glbLoadedOk && (runState.isGrounded || runState.onObstacleTop)) playGlbAnimation('run', 0.14, 1);
+              if (glbLoadedOk && (runState.isGrounded || runState.onObstacleTop)) playGlbAnimation('run', 0.14, runState.bikeActive ? 0 : 1);
             }
           }
 
@@ -3779,7 +3784,7 @@
           if (runState.playerY <= supportTopY) {
             runState.playerY = supportTopY; runState.velocityY = 0;
             runState.onObstacleTop = supportTopY > 0; runState.isGrounded = supportTopY === 0;
-            if (wasAirborne && !runState.isSliding && glbLoadedOk) playGlbAnimation('run', 0.12, 1);
+            if (wasAirborne && !runState.isSliding && glbLoadedOk) playGlbAnimation('run', 0.12, runState.bikeActive ? 0 : 1);
           } else {
             runState.isGrounded = false;
           }
@@ -3800,20 +3805,31 @@
           const bounce = Math.abs(Math.cos(elapsed * runState.speed * 0.95));
 
           if (!glbLoadedOk) {
-            if (runState.isSliding) {
+            if (runState.bikeActive) {
+              playerBodyGroup.position.y = 0.34;
+              torsoMesh.rotation.x = 0.16;
+              armL.rotation.x = -0.55; armR.rotation.x = -0.55;
+              legL.rotation.x = -0.82; legR.rotation.x = -0.82;
+            } else if (runState.isSliding) {
               playerBodyGroup.position.y = -SLIDE_DROP_FALLBACK;
               torsoMesh.rotation.x = -0.45; legL.rotation.x = -0.75; legR.rotation.x = 0.15;
             } else {
-              playerBodyGroup.position.y = (runState.bikeActive ? 0.42 : 0) + bounce * 0.08;
+              playerBodyGroup.position.y = bounce * 0.08;
               torsoMesh.rotation.x = -0.08;
               armL.rotation.x = -stride * 0.85; armR.rotation.x = stride * 0.85;
               legL.rotation.x = stride * 0.85; legR.rotation.x = -stride * 0.85;
             }
           } else {
-            playerBodyGroup.position.y = runState.isSliding
-              ? -SLIDE_DROP_GLB
-              : ((runState.bikeActive ? 0.42 : 0) + (runState.isGrounded ? bounce * 0.02 : 0));
-            glbModelGroup.rotation.x = 0; glbModelGroup.rotation.y = 0;
+            if (runState.bikeActive) {
+              playerBodyGroup.position.y = 0.34;
+              glbModelGroup.rotation.x = 0.14;
+            } else {
+              playerBodyGroup.position.y = runState.isSliding
+                ? -SLIDE_DROP_GLB
+                : (runState.isGrounded ? bounce * 0.02 : 0);
+              glbModelGroup.rotation.x = 0;
+            }
+            glbModelGroup.rotation.y = 0;
           }
 
           laneStripes.forEach(function (st) { st.position.z += distDelta; if (st.position.z > 14) st.position.z -= 160; });
