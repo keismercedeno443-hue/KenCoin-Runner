@@ -176,7 +176,6 @@
     </div>
   </header>
 
-  <!-- Botón lateral izquierdo con ícono de moto durante la partida -->
   <button
     id="btn-use-bike-left"
     type="button"
@@ -211,7 +210,6 @@
     </div>
   </div>
 
-  <!-- SELECTOR DE PERSONAJES 3D -->
   <section id="char-picker-3d-bar" class="pointer-events-none fixed inset-x-0 bottom-20 z-20 hidden px-3 sm:px-5">
     <div class="pointer-events-auto mx-auto flex max-w-md flex-col items-center gap-2 rounded-3xl border border-sky-200/25 bg-slate-950/70 p-3 text-white shadow-2xl backdrop-blur-md">
       <div class="flex w-full items-center justify-between gap-2">
@@ -869,8 +867,6 @@
       }
 
       function createAbandonedPlan() {
-        // 8 edificios abandonados en césped: 1 por estación (Verano, Primavera, Otoño, Invierno)
-        // Repartidos en 4 de día y 4 de noche
         return [
           { season: 'Verano',    isNight: false, placed: false },
           { season: 'Verano',    isNight: true,  placed: false },
@@ -1717,7 +1713,6 @@
         houseMesh.visible = true;
         scene.add(houseMesh);
 
-        // Lámparas salteadas en césped: una antes y otra después de la casa (pocas, sin saturar)
         const lampOffsetX = sideSign * (roadWidth * 0.5 + 2.2);
         if (Math.random() < 0.75) {
           spawnLampAt(lampOffsetX, baseZ + 8.5, sideSign);
@@ -1757,7 +1752,6 @@
         });
         if (!slot) return;
 
-        // Aparece en algún punto de la estación correspondiente (1 por estación de día y 1 de noche)
         if (Math.random() > 0.018) return;
         slot.placed = true;
 
@@ -1807,15 +1801,35 @@
         }, undefined, function () {});
       }
 
-      function prepareCarTemplate(rawModel, isTank) {
-        const w = isTank ? 2.15 : 1.85;
-        const h = isTank ? 2.15 : 1.78;
-        const d = isTank ? 4.35 : 3.85;
+      function prepareCarTemplate(rawModel, kind) {
+        // Ajustes finos de tamaño en pista:
+        // - Camaro: más grande y bien visible
+        // - Antitanque: más compacto y proporcionado para que no se vea gigante
+        let w = 1.85, h = 1.75, d = 3.85;
+        if (kind === 'camaro') {
+          w = 2.05; h = 1.65; d = 4.25;
+        } else if (kind === 'tank') {
+          w = 1.82; h = 1.68; d = 3.65;
+        }
+
         const tpl = prepareNormalizedGlb(rawModel, w, h, d, true);
         if (!tpl) return null;
-        tpl.userData.hitWidth = Math.max(1.45, Math.min(2.25, tpl.userData.hitWidth || w));
-        tpl.userData.hitHeight = Math.max(1.25, Math.min(2.35, tpl.userData.hitHeight || h));
-        tpl.userData.hitDepth = Math.max(2.8, Math.min(4.6, tpl.userData.hitDepth || d));
+
+        if (kind === 'camaro') {
+          tpl.scale.setScalar(1.18);
+          tpl.userData.hitWidth = 1.85;
+          tpl.userData.hitHeight = 1.65;
+          tpl.userData.hitDepth = 4.1;
+        } else if (kind === 'tank') {
+          tpl.scale.setScalar(0.76);
+          tpl.userData.hitWidth = 1.68;
+          tpl.userData.hitHeight = 1.62;
+          tpl.userData.hitDepth = 3.45;
+        } else {
+          tpl.userData.hitWidth = Math.max(1.45, Math.min(2.1, tpl.userData.hitWidth || w));
+          tpl.userData.hitHeight = Math.max(1.25, Math.min(2.0, tpl.userData.hitHeight || h));
+          tpl.userData.hitDepth = Math.max(2.8, Math.min(4.3, tpl.userData.hitDepth || d));
+        }
         return tpl;
       }
 
@@ -1824,31 +1838,31 @@
 
         loader.load(CAR_MAIN_URL, function (gltf) {
           const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-          const tpl = raw && prepareCarTemplate(raw, false);
+          const tpl = raw && prepareCarTemplate(raw, 'mainCar');
           if (tpl) carTemplates.mainCar = tpl;
         }, undefined, function () {});
 
         loader.load(CAR_KIA_URL, function (gltf) {
           const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-          const tpl = raw && prepareCarTemplate(raw, false);
+          const tpl = raw && prepareCarTemplate(raw, 'kia');
           if (tpl) carTemplates.kia = tpl;
         }, undefined, function () {});
 
         loader.load(CAR_CAMARO_URL, function (gltf) {
           const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-          const tpl = raw && prepareCarTemplate(raw, false);
+          const tpl = raw && prepareCarTemplate(raw, 'camaro');
           if (tpl) {
             carTemplates.camaro = tpl;
-            showToast('🏎️ Camaro añadido al tráfico');
+            showToast('🏎️ Camaro ajustado al tráfico');
           }
         }, undefined, function () {});
 
         loader.load(CAR_TANK_URL, function (gltf) {
           const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-          const tpl = raw && prepareCarTemplate(raw, true);
+          const tpl = raw && prepareCarTemplate(raw, 'tank');
           if (tpl) {
             carTemplates.tank = tpl;
-            showToast('🛡️ Antitanque añadido al tráfico');
+            showToast('🛡️ Antitanque ajustado al tráfico');
           }
         }, undefined, function () {});
 
@@ -1867,14 +1881,20 @@
 
         loader.load(UP_OBS_URL, function (gltf) {
           const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-          const tpl = raw && prepareNormalizedGlb(raw, 1.75, 1.05, 1.35, false);
-          if (tpl) obstacleTemplates.up = tpl;
+          const tpl = raw && prepareNormalizedGlb(raw, 2.05, 1.25, 1.55, false);
+          if (tpl) {
+            tpl.scale.setScalar(1.22);
+            obstacleTemplates.up = tpl;
+          }
         }, undefined, function () {});
 
         loader.load(DOWN_OBS_URL, function (gltf) {
           const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-          const tpl = raw && prepareNormalizedGlb(raw, 1.85, 1.25, 1.25, false);
-          if (tpl) obstacleTemplates.down = tpl;
+          const tpl = raw && prepareNormalizedGlb(raw, 2.15, 1.45, 1.45, false);
+          if (tpl) {
+            tpl.scale.setScalar(1.25);
+            obstacleTemplates.down = tpl;
+          }
         }, undefined, function () {});
 
         loader.load(CITY_BUILDINGS_URL, function (gltf) {
@@ -2818,8 +2838,8 @@
         const roll = Math.random();
 
         if (roll < 0.35) {
-          // Obstáculo elevado (deslizarse por debajo) -> down_obstacle.glb
-          const w = 1.85, h = 1.15, d = 1.1, bottomGap = 0.92;
+          // Obstáculo elevado (deslizarse por debajo) -> down_obstacle.glb limpio (sin tubos amarillos)
+          const w = 2.05, h = 1.25, d = 1.25, bottomGap = 0.95;
           const mesh = new THREE.Group();
 
           if (obstacleTemplates.down) {
@@ -2832,19 +2852,7 @@
               new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0x3b0764, emissiveIntensity: 0.25, roughness: 0.35, metalness: 0.25 })
             );
             bar.position.y = bottomGap + h * 0.5; bar.castShadow = true; mesh.add(bar);
-
-            const trim = new THREE.Mesh(
-              new THREE.BoxGeometry(w * 0.96, 0.14, d + 0.04),
-              new THREE.MeshBasicMaterial({ color: 0xf0abfc })
-            );
-            trim.position.y = bottomGap + 0.1; mesh.add(trim);
           }
-
-          const postMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.5 });
-          [-w * 0.44, w * 0.44].forEach(function (px) {
-            const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, bottomGap + h, 0.22), postMat);
-            post.position.set(px, (bottomGap + h) * 0.5, 0); mesh.add(post);
-          });
 
           mesh.position.set(lane * LANE_WIDTH, 0, -120);
           scene.add(mesh);
@@ -2852,14 +2860,14 @@
           return;
         }
 
-        // Obstáculo de piso (saltar por encima) -> up_obstacle.glb
+        // Obstáculo de piso (saltar por encima) -> up_obstacle.glb más grande y claro
         const isMedium = roll >= 0.72;
-        const h = isMedium ? 1.55 : 0.95, w = 1.65, d = 1.45;
+        const h = isMedium ? 1.65 : 1.15, w = 1.95, d = 1.55;
         const group = new THREE.Group();
 
         if (obstacleTemplates.up) {
           const upMesh = obstacleTemplates.up.clone(true);
-          if (isMedium) upMesh.scale.y *= 1.35;
+          if (isMedium) upMesh.scale.y *= 1.25;
           group.add(upMesh);
         } else {
           const box = new THREE.Mesh(
@@ -2867,12 +2875,6 @@
             new THREE.MeshStandardMaterial({ color: isMedium ? 0xe11d48 : 0xf97316, roughness: 0.42, metalness: 0.15 })
           );
           box.position.y = h * 0.5; box.castShadow = true; group.add(box);
-
-          const topBand = new THREE.Mesh(
-            new THREE.BoxGeometry(w + 0.04, 0.12, d + 0.04),
-            new THREE.MeshBasicMaterial({ color: isMedium ? 0xfda4af : 0xfef08a })
-          );
-          topBand.position.y = h - 0.04; group.add(topBand);
         }
 
         group.position.set(lane * LANE_WIDTH, 0, -120);
@@ -2958,14 +2960,14 @@
 
         let carGroup = null;
         let hitWidth = 1.85;
-        let hitHeight = 1.78;
+        let hitHeight = 1.75;
         let hitDepth = 3.85;
 
         if (availableTemplates.length > 0) {
           const chosenTemplate = availableTemplates[Math.floor(Math.random() * availableTemplates.length)];
           carGroup = chosenTemplate.clone(true);
           hitWidth = chosenTemplate.userData.hitWidth || 1.85;
-          hitHeight = chosenTemplate.userData.hitHeight || 1.78;
+          hitHeight = chosenTemplate.userData.hitHeight || 1.75;
           hitDepth = chosenTemplate.userData.hitDepth || 3.85;
         } else {
           const bodyColors = [0x3b82f6, 0x10b981, 0xeab308, 0xa855f7, 0x06b6d4];
