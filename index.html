@@ -679,7 +679,7 @@
       const CYCLE_SPAN_METERS = 4000;
       const SEASON_SPAN_METERS = 1000;
       const CITY_START_METERS = 12000;
-      const HOUSE_INTERVAL_METERS = 500;
+      const HOUSE_INTERVAL_METERS = 250;
       const STORAGE_KEY = 'kencoin_runner_3d_save_v1';
       const ACCOUNTS_KEY = 'kencoin_runner_3d_accounts_v1';
       const SESSION_KEY = 'kencoin_runner_3d_session_v1';
@@ -1587,7 +1587,7 @@
         );
       }
 
-      function prepareHouseTemplate(rawModel, isLeftSide, heightOverride, widthOverride) {
+      function prepareHouseTemplate(rawModel, heightOverride, widthOverride) {
         const wrapper = new THREE.Group();
         const copy = rawModel.clone(true);
         copy.position.set(0, 0, 0);
@@ -1648,8 +1648,13 @@
         if (Number.isFinite(center.z)) copy.position.z = -center.z;
         if (Number.isFinite(scaledBox.min.y)) copy.position.y = -scaledBox.min.y;
 
-        wrapper.rotation.y = isLeftSide ? Math.PI * 0.5 : -Math.PI * 0.5;
         return wrapper;
+      }
+
+      function orientHouseTowardRoad(houseObj, sideSign, extraYaw) {
+        if (!houseObj) return;
+        const baseYaw = sideSign < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
+        houseObj.rotation.y = baseYaw + (extraYaw || 0);
       }
 
       function createFallbackHouse(sideSign, isLeftHouse) {
@@ -1671,7 +1676,7 @@
         roof.castShadow = true;
         g.add(roof);
 
-        g.rotation.y = sideSign < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
+        orientHouseTowardRoad(g, sideSign, 0);
         return g;
       }
 
@@ -1684,6 +1689,27 @@
         milestoneHouses = [];
       }
 
+      function buildSingleMilestoneHouse(useJapanese, sideSign, roadWidth, zOffset) {
+        const grassCenterX = roadWidth * 0.5 + SIDE_GRASS_WIDTH * 0.5 + 0.08;
+        const posX = sideSign * grassCenterX;
+
+        let houseMesh = null;
+        if (!useJapanese && houseTemplates.rightOpt) {
+          houseMesh = houseTemplates.rightOpt.clone(true);
+          orientHouseTowardRoad(houseMesh, sideSign, 0);
+        } else if (useJapanese && houseTemplates.leftJp) {
+          houseMesh = houseTemplates.leftJp.clone(true);
+          orientHouseTowardRoad(houseMesh, sideSign, Math.PI * 0.5);
+        } else {
+          houseMesh = createFallbackHouse(sideSign, useJapanese);
+        }
+
+        houseMesh.position.set(posX, 0.02, -118 + (zOffset || 0));
+        houseMesh.visible = true;
+        scene.add(houseMesh);
+        return houseMesh;
+      }
+
       function spawnMilestoneHouse(milestoneIndex) {
         if (runState.isCity || runState.distance >= CITY_START_METERS) return;
         const alreadySpawned = milestoneHouses.some(function (h) {
@@ -1691,34 +1717,25 @@
         });
         if (alreadySpawned) return;
 
-        const isOddMilestone = milestoneIndex % 2 === 1;
-        const sideSign = isOddMilestone ? 1 : -1;
         const roadWidth = LANE_WIDTH * 3 + 2.2;
-        const grassCenterX = roadWidth * 0.5 + SIDE_GRASS_WIDTH * 0.5 + 0.08;
-        const posX = sideSign * grassCenterX;
+        const jpOnRight = milestoneIndex % 2 === 1;
+        const rightIsJapanese = jpOnRight;
+        const leftIsJapanese = !jpOnRight;
 
-        let houseMesh = null;
-        if (isOddMilestone && houseTemplates.rightOpt) {
-          houseMesh = houseTemplates.rightOpt.clone(true);
-          houseMesh.rotation.y = sideSign < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
-        } else if (!isOddMilestone && houseTemplates.leftJp) {
-          houseMesh = houseTemplates.leftJp.clone(true);
-          houseMesh.rotation.y = sideSign < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
-        } else {
-          houseMesh = createFallbackHouse(sideSign, !isOddMilestone);
-        }
-
-        houseMesh.position.set(posX, 0.02, -118);
-        houseMesh.visible = true;
-        scene.add(houseMesh);
+        const rightHouse = buildSingleMilestoneHouse(rightIsJapanese, 1, roadWidth, 0);
+        const leftHouse = buildSingleMilestoneHouse(leftIsJapanese, -1, roadWidth, -6);
 
         milestoneHouses.push({
           milestoneIndex: milestoneIndex,
-          mesh: houseMesh
+          mesh: rightHouse
+        });
+        milestoneHouses.push({
+          milestoneIndex: milestoneIndex,
+          mesh: leftHouse
         });
 
         showToast(
-          '🏡 Casa en el césped (' + (milestoneIndex * HOUSE_INTERVAL_METERS) + 'm · ' + (sideSign > 0 ? 'Derecha' : 'Izquierda') + ')'
+          '🏡 Casas cada ' + HOUSE_INTERVAL_METERS + 'm (' + (milestoneIndex * HOUSE_INTERVAL_METERS) + 'm)'
         );
       }
 
@@ -1730,7 +1747,7 @@
           function (gltf) {
             const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
             if (!raw) return;
-            const tpl = prepareHouseTemplate(raw, false, 12.2, 13.8);
+            const tpl = prepareHouseTemplate(raw, 12.2, 13.8);
             if (tpl) {
               houseTemplates.rightOpt = tpl;
             }
@@ -1746,7 +1763,7 @@
           function (gltf) {
             const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
             if (!raw) return;
-            const tpl = prepareHouseTemplate(raw, true, 8.4, 9.8);
+            const tpl = prepareHouseTemplate(raw, 8.4, 9.8);
             if (tpl) {
               houseTemplates.leftJp = tpl;
             }
