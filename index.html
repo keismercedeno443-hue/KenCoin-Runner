@@ -176,6 +176,23 @@
     </div>
   </header>
 
+  <!-- Botón lateral izquierdo con ícono de moto durante la partida -->
+  <button
+    id="btn-use-bike-left"
+    type="button"
+    aria-label="Activar moto"
+    class="btn-bubble fixed left-3 top-1/2 z-30 hidden -translate-y-1/2 flex-col items-center justify-center gap-0.5 rounded-2xl border-2 border-amber-300/80 bg-slate-950/80 px-2.5 py-2.5 text-amber-300 shadow-2xl backdrop-blur-md"
+  >
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="5.5" cy="17.5" r="3.5"/>
+      <circle cx="18.5" cy="17.5" r="3.5"/>
+      <path d="M15 6h-5l-2 5h7l2-3"/>
+      <path d="M12 17.5V14l-3-3 4-3 2 3h2"/>
+    </svg>
+    <span id="bike-left-label" class="text-[10px] font-black tracking-wide">MOTO</span>
+    <span id="bike-left-count" class="font-mono text-[10px] font-bold text-white">0</span>
+  </button>
+
   <div
     id="toast-banner"
     class="glass-pill pointer-events-none fixed top-24 left-1/2 z-30 hidden -translate-x-1/2 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-xl whitespace-nowrap"
@@ -194,7 +211,7 @@
     </div>
   </div>
 
-  <!-- SELECTOR DE PERSONAJES 3D (flotante sobre el escenario en vivo) -->
+  <!-- SELECTOR DE PERSONAJES 3D -->
   <section id="char-picker-3d-bar" class="pointer-events-none fixed inset-x-0 bottom-20 z-20 hidden px-3 sm:px-5">
     <div class="pointer-events-auto mx-auto flex max-w-md flex-col items-center gap-2 rounded-3xl border border-sky-200/25 bg-slate-950/70 p-3 text-white shadow-2xl backdrop-blur-md">
       <div class="flex w-full items-center justify-between gap-2">
@@ -435,7 +452,7 @@
         <div class="flex items-center justify-between rounded-2xl bg-slate-950/75 p-3">
           <div>
             <div class="font-bold text-orange-200">🏍️ Moto Turbo (15s)</div>
-            <div class="text-[11px] text-slate-400">Va más rápido y si chocas solo pierdes la moto</div>
+            <div class="text-[11px] text-slate-400">Actívala con el botón izquierdo al jugar</div>
           </div>
           <button
             id="shop-buy-bike"
@@ -546,8 +563,8 @@
           <div class="font-bold text-sky-200">Controles y Reglas:</div>
           <div>• Teclado: <strong>A/D</strong> o <strong>←/→</strong> mover, <strong>W/↑/Espacio</strong> saltar, <strong>S/↓</strong> deslizar, <strong>P/Esc</strong> pausar.</div>
           <div>• Táctil/Ratón: Desliza sobre la pantalla para moverte, saltar o deslizarte.</div>
-          <div>• Nv.1–8: 4 estaciones de <strong>DÍA</strong> y 4 de <strong>NOCHE</strong>. Nv.9: Tormenta (8,000m), Nv.10: Día calmado, Nv.11: Tormenta severa, Nv.12: Cierre.</div>
-          <div>• Desde los <strong>12,000m</strong>: <strong>Ciudad</strong> con asfalto, aceras y edificios.</div>
+          <div>• Botón izquierdo: Activa la <strong>Moto</strong> cuando tengas disponibles.</div>
+          <div>• Desde los <strong>12,000m</strong>: <strong>Ciudad</strong> con edificios, apartamentos, predios y lámparas.</div>
         </div>
 
         <button
@@ -684,14 +701,26 @@
       const STORAGE_KEY = 'kencoin_runner_3d_save_v1';
       const ACCOUNTS_KEY = 'kencoin_runner_3d_accounts_v1';
       const SESSION_KEY = 'kencoin_runner_3d_session_v1';
+
       const MODEL_URL = './character-opt.glb';
-      const GRASS_MODEL_URL = './césped.glb';
+      const GRASS_MODEL_URL = './c%C3%A9sped.glb';
       const TREE_SINGLE_URL = './arbol_tree.glb';
       const TREE_GROUP_URL = './arboles.glb';
       const HOUSE_OPT_URL = './casa-opt.glb';
       const HOUSE_JP_URL = './casa_japonesa.glb';
       const CAR_KIA_URL = './carro_kia.glb';
       const CAR_MAIN_URL = './carro.glb';
+      const CAR_CAMARO_URL = './Camaro.glb';
+      const CAR_TANK_URL = './Antitanque.glb';
+      const MOTO_MODEL_URL = './moto-opt.glb';
+      const LAMP_MODEL_URL = './lampara.glb';
+      const UP_OBS_URL = './up_obstacle.glb';
+      const DOWN_OBS_URL = './down_obstacle.glb';
+      const CITY_BUILDINGS_URL = './edificios.glb';
+      const CITY_APARTMENT_URL = './apartamento_residencial.glb';
+      const CITY_LOT_URL = './predio.glb';
+      const ABANDONED_BUILDINGS_URL = './edificios_abandonados.glb';
+
       const SCENERY_COUNT = 6;
       const SCENERY_SPACING = 46.0;
       const SCENERY_LOOP_SPAN = SCENERY_COUNT * SCENERY_SPACING;
@@ -740,40 +769,19 @@
 
       const CHARACTERS = [
         {
-          id: 'ken',
-          name: 'Ken Clásico',
-          priceCoins: 0,
-          head: 0xf6d852,
-          torso: 0x25b7e8,
-          limbs: 0x1b4f9c,
-          accent: 0xf59e0b,
-          glbTint: 0xffffff,
-          glbEmissive: 0x000000,
-          glbEmissiveIntensity: 0
+          id: 'ken', name: 'Ken Clásico', priceCoins: 0,
+          head: 0xf6d852, torso: 0x25b7e8, limbs: 0x1b4f9c, accent: 0xf59e0b,
+          glbTint: 0xffffff, glbEmissive: 0x000000, glbEmissiveIntensity: 0
         },
         {
-          id: 'sol',
-          name: 'Sol Solar',
-          priceCoins: 60,
-          head: 0xfde047,
-          torso: 0xf97316,
-          limbs: 0x9a3412,
-          accent: 0xfef08a,
-          glbTint: 0xffd180,
-          glbEmissive: 0x5c1d00,
-          glbEmissiveIntensity: 0.22
+          id: 'sol', name: 'Sol Solar', priceCoins: 60,
+          head: 0xfde047, torso: 0xf97316, limbs: 0x9a3412, accent: 0xfef08a,
+          glbTint: 0xffd180, glbEmissive: 0x5c1d00, glbEmissiveIntensity: 0.22
         },
         {
-          id: 'cyber',
-          name: 'Neo Ken',
-          priceCoins: 120,
-          head: 0x67e8f9,
-          torso: 0x7c3aed,
-          limbs: 0x1e1b4b,
-          accent: 0x22d3ee,
-          glbTint: 0xc4b5fd,
-          glbEmissive: 0x2e1065,
-          glbEmissiveIntensity: 0.28
+          id: 'cyber', name: 'Neo Ken', priceCoins: 120,
+          head: 0x67e8f9, torso: 0x7c3aed, limbs: 0x1e1b4b, accent: 0x22d3ee,
+          glbTint: 0xc4b5fd, glbEmissive: 0x2e1065, glbEmissiveIntensity: 0.28
         }
       ];
 
@@ -860,6 +868,21 @@
         } catch (err) {}
       }
 
+      function createAbandonedPlan() {
+        // 8 edificios abandonados en césped: 1 por estación (Verano, Primavera, Otoño, Invierno)
+        // Repartidos en 4 de día y 4 de noche
+        return [
+          { season: 'Verano',    isNight: false, placed: false },
+          { season: 'Verano',    isNight: true,  placed: false },
+          { season: 'Primavera', isNight: false, placed: false },
+          { season: 'Primavera', isNight: true,  placed: false },
+          { season: 'Otoño',     isNight: false, placed: false },
+          { season: 'Otoño',     isNight: true,  placed: false },
+          { season: 'Invierno',  isNight: false, placed: false },
+          { season: 'Invierno',  isNight: true,  placed: false }
+        ];
+      }
+
       const runState = {
         mode: 'lobby', charPickerOpen: false, previewYawOffset: 0, spinBoostTimer: 0,
         pausedFromSettings: false, distance: 0, score: 0, runCoins: 0,
@@ -870,7 +893,8 @@
         isStorm: false, stormSeverity: 0, isCity: false, stormFlash: 0,
         lightningTimer: 5.5, lastThunderTime: 0, difficultyLevel: 1,
         lastHouseMilestone: 0, spawnTimer: 0.7, coinSpawnTimer: 0.45,
-        trafficSpawnTimer: 1.6, magnetSpawnTimer: 8.5, cameraShake: 0
+        trafficSpawnTimer: 1.6, magnetSpawnTimer: 8.5, cameraShake: 0,
+        abandonedPlan: createAbandonedPlan()
       };
 
       let previewIndex = Math.max(0, CHARACTERS.findIndex(function (c) { return c.id === saveData.selectedChar; }));
@@ -1136,15 +1160,21 @@
       let laneStripes = [], sceneryProps = [], cityBuildings = [];
       let customTreeTemplates = { single: null, group: null };
       let houseTemplates = { rightOpt: null, leftJp: null };
-      let carTemplates = { kia: null, mainCar: null };
+      let carTemplates = { kia: null, mainCar: null, camaro: null, tank: null };
+      let customMotoTemplate = null;
+      let lampTemplate = null;
+      let obstacleTemplates = { up: null, down: null };
+      let cityBuildingTemplates = { edificios: null, apartamento: null, predio: null };
+      let abandonedBuildingTemplate = null;
       let milestoneHouses = [];
+      let worldProps = [];
       let obstacles = [], coins = [], magnets = [], trafficCars = [], burstParticles = [];
       let weatherPoints, weatherGeo, lightningBoltMesh;
 
       let playerRoot, playerBodyGroup, fallbackBoxGroup, glbModelGroup, glbOrientGroup, activeGlbModel = null;
       let glbMaterialEntries = [];
       let headMesh, capVisorMesh, torsoMesh, armL, armR, legL, legR;
-      let bikeGroup, shieldBubbleMesh, magnetRingMesh, shadowDisc;
+      let bikeGroup, customMotoMesh, shieldBubbleMesh, magnetRingMesh, shadowDisc;
       let glbLoadedOk = false;
 
       let animMixer = null;
@@ -1206,10 +1236,96 @@
         return tex;
       }
 
-      function clearSideGrassTiles() {
-        sideGrassTiles.forEach(function (tile) {
-          scene.remove(tile);
+      function prepareNormalizedGlb(rawModel, desiredW, desiredH, desiredD, autoAlignXZ) {
+        const wrapper = new THREE.Group();
+        const copy = rawModel.clone(true);
+        copy.position.set(0, 0, 0);
+        copy.rotation.set(0, 0, 0);
+        copy.scale.set(1, 1, 1);
+
+        let hasMeshes = false;
+        copy.traverse(function (child) {
+          if (child.isMesh) {
+            hasMeshes = true;
+            child.visible = true;
+            child.castShadow = true;
+            child.receiveShadow = true;
+            child.frustumCulled = false;
+
+            if (child.geometry && child.geometry.boundingBox === null && typeof child.geometry.computeBoundingBox === 'function') {
+              child.geometry.computeBoundingBox();
+            }
+
+            if (child.material) {
+              const mats = Array.isArray(child.material) ? child.material : [child.material];
+              const cloned = mats.map(function (m) {
+                if (!m) return m;
+                const mc = m.clone();
+                mc.side = THREE.DoubleSide;
+                if (mc.transparent && mc.opacity < 0.15) {
+                  mc.transparent = false;
+                  mc.opacity = 1;
+                }
+                mc.needsUpdate = true;
+                return mc;
+              });
+              child.material = Array.isArray(child.material) ? cloned : cloned[0];
+            }
+          }
         });
+
+        if (!hasMeshes) return null;
+
+        wrapper.add(copy);
+        wrapper.updateMatrixWorld(true);
+
+        const rawBox = new THREE.Box3().setFromObject(copy);
+        const rawSize = new THREE.Vector3();
+        rawBox.getSize(rawSize);
+
+        const maxRaw = Math.max(rawSize.x || 0, rawSize.y || 0, rawSize.z || 0);
+        if (!Number.isFinite(maxRaw) || maxRaw <= 0.00001) return null;
+
+        if (autoAlignXZ && desiredD && (rawSize.x || 0) > (rawSize.z || 0) * 1.15) {
+          copy.rotation.y = Math.PI * 0.5;
+          copy.updateMatrixWorld(true);
+        }
+
+        const orientedBox = new THREE.Box3().setFromObject(copy);
+        const orientedSize = new THREE.Vector3();
+        orientedBox.getSize(orientedSize);
+
+        const sx = (desiredW && orientedSize.x > 0.0001) ? (desiredW / orientedSize.x) : 1;
+        const sy = (desiredH && orientedSize.y > 0.0001) ? (desiredH / orientedSize.y) : 1;
+        const sz = (desiredD && orientedSize.z > 0.0001) ? (desiredD / orientedSize.z) : 1;
+
+        const factors = [sx, sy, sz].filter(function (v) { return typeof v === 'number' && v > 0; });
+        const uniformScale = factors.length ? Math.min.apply(null, factors) : 1;
+        const finalScale = Math.max(0.002, Math.min(400, uniformScale));
+        copy.scale.setScalar(finalScale);
+        copy.updateMatrixWorld(true);
+
+        const scaledBox = new THREE.Box3().setFromObject(copy);
+        const center = new THREE.Vector3();
+        scaledBox.getCenter(center);
+
+        if (Number.isFinite(center.x)) copy.position.x = -center.x;
+        if (Number.isFinite(center.z)) copy.position.z = -center.z;
+        if (Number.isFinite(scaledBox.min.y)) copy.position.y = -scaledBox.min.y + 0.02;
+
+        wrapper.updateMatrixWorld(true);
+        const finalBox = new THREE.Box3().setFromObject(wrapper);
+        const finalSize = new THREE.Vector3();
+        finalBox.getSize(finalSize);
+
+        wrapper.userData.hitWidth = finalSize.x || desiredW || 1.6;
+        wrapper.userData.hitHeight = finalSize.y || desiredH || 1.6;
+        wrapper.userData.hitDepth = finalSize.z || desiredD || 1.6;
+        return wrapper;
+      }
+
+      function clearSideGrassTiles() {
+        sideGrassTiles.forEach(function (tile) { scene.remove(tile); });
         sideGrassTiles = [];
         sideGrassMaterials = [];
         sideGrassLoaded = false;
@@ -1291,13 +1407,9 @@
 
       function buildCespedFallbackGeometry(roadWidth) {
         clearSideGrassTiles();
-
         const fallbackGroup = new THREE.Group();
         const baseMat = new THREE.MeshStandardMaterial({
-          color: 0x226832,
-          roughness: 0.85,
-          metalness: 0.0,
-          side: THREE.DoubleSide
+          color: 0x226832, roughness: 0.85, metalness: 0.0, side: THREE.DoubleSide
         });
         const basePlane = new THREE.Mesh(
           new THREE.PlaneGeometry(SIDE_GRASS_WIDTH, SIDE_GRASS_LENGTH, 1, 1).rotateX(-Math.PI / 2),
@@ -1306,11 +1418,7 @@
         basePlane.receiveShadow = true;
         fallbackGroup.add(basePlane);
 
-        const tuftMat = new THREE.MeshStandardMaterial({
-          color: 0x2e853c,
-          roughness: 0.78,
-          metalness: 0.0
-        });
+        const tuftMat = new THREE.MeshStandardMaterial({ color: 0x2e853c, roughness: 0.78 });
         const tuftGeo = new THREE.ConeGeometry(0.24, 0.55, 5);
         tuftGeo.translate(0, 0.275, 0);
 
@@ -1338,44 +1446,29 @@
 
       function initSideGrassModel(roadWidth) {
         buildCespedFallbackGeometry(roadWidth);
-
         const loader = new GLTFLoader();
         loader.load(
           GRASS_MODEL_URL,
           function (gltf) {
             const rawModel = gltf.scene || (gltf.scenes && gltf.scenes[0]);
             if (!rawModel) return;
-
             let hasMeshes = false;
             rawModel.traverse(function (child) {
               if (child.isMesh) {
-                hasMeshes = true;
-                child.visible = true;
-                child.castShadow = true;
-                child.receiveShadow = true;
-                child.frustumCulled = false;
+                hasMeshes = true; child.visible = true; child.castShadow = true; child.receiveShadow = true; child.frustumCulled = false;
               }
             });
-
             if (!hasMeshes) return;
-
             clearSideGrassTiles();
             createGrassTileFromSource(rawModel, roadWidth, false);
             sideGrassLoaded = true;
             applyAtmosphereForCycle(
-              runState.currentSeasonIndex,
-              runState.isNight,
-              true,
-              runState.isStorm,
-              runState.stormSeverity,
-              runState.isCity
+              runState.currentSeasonIndex, runState.isNight, true,
+              runState.isStorm, runState.stormSeverity, runState.isCity
             );
-            showToast('✅ Césped 3D cargado');
           },
           undefined,
-          function (err) {
-            console.warn('No se pudo cargar césped.glb:', err);
-          }
+          function () {}
         );
       }
 
@@ -1386,9 +1479,7 @@
         }
         if (mat && mat.color) {
           const r = mat.color.r, g = mat.color.g, b = mat.color.b;
-          if (r > g * 1.18 && r > b * 1.35 && r < 0.65) {
-            return true;
-          }
+          if (r > g * 1.18 && r > b * 1.35 && r < 0.65) return true;
         }
         return false;
       }
@@ -1396,33 +1487,22 @@
       function prepareGlbTreeTemplate(rawModel, isGroupModel) {
         const wrapper = new THREE.Group();
         const copy = rawModel.clone(true);
-        copy.position.set(0, 0, 0);
-        copy.rotation.set(0, 0, 0);
-        copy.scale.set(1, 1, 1);
+        copy.position.set(0, 0, 0); copy.rotation.set(0, 0, 0); copy.scale.set(1, 1, 1);
 
         const foliageMats = [];
         let hasMeshes = false;
 
         copy.traverse(function (child) {
           if (child.isMesh) {
-            hasMeshes = true;
-            child.visible = true;
-            child.castShadow = true;
-            child.receiveShadow = true;
-            child.frustumCulled = false;
-
+            hasMeshes = true; child.visible = true; child.castShadow = true; child.receiveShadow = true; child.frustumCulled = false;
             if (child.material) {
               const mats = Array.isArray(child.material) ? child.material : [child.material];
               const clonedMats = mats.map(function (m) {
                 if (!m) return m;
                 const mc = m.clone();
-                mc.side = THREE.DoubleSide;
-                mc.needsUpdate = true;
+                mc.side = THREE.DoubleSide; mc.needsUpdate = true;
                 if (!isWoodOrTrunkMaterial(mc, child.name) && mc.color) {
-                  foliageMats.push({
-                    mat: mc,
-                    baseColor: mc.color.clone()
-                  });
+                  foliageMats.push({ mat: mc, baseColor: mc.color.clone() });
                 }
                 return mc;
               });
@@ -1432,7 +1512,6 @@
         });
 
         if (!hasMeshes) return null;
-
         wrapper.add(copy);
         wrapper.updateMatrixWorld(true);
 
@@ -1444,19 +1523,14 @@
         const heightY = Math.max(size.y || 0.1, 0.1);
         const desiredHeight = isGroupModel ? 4.2 : 1.55;
         const desiredMaxWidth = isGroupModel ? 6.2 : 1.35;
-        const scaleByH = desiredHeight / heightY;
-        const scaleByW = desiredMaxWidth / maxXZ;
-        const finalScale = Math.max(0.005, Math.min(25, Math.min(scaleByH, scaleByW)));
+        const finalScale = Math.max(0.005, Math.min(25, Math.min(desiredHeight / heightY, desiredMaxWidth / maxXZ)));
         copy.scale.setScalar(finalScale);
-        if (isGroupModel) {
-          copy.rotation.y = Math.PI * 0.5;
-        }
+        if (isGroupModel) copy.rotation.y = Math.PI * 0.5;
         copy.updateMatrixWorld(true);
 
         const scaledBox = new THREE.Box3().setFromObject(copy);
         const center = new THREE.Vector3();
         scaledBox.getCenter(center);
-
         if (Number.isFinite(center.x)) copy.position.x = -center.x;
         if (Number.isFinite(center.z)) copy.position.z = -center.z;
         if (Number.isFinite(scaledBox.min.y)) copy.position.y = -scaledBox.min.y;
@@ -1469,7 +1543,6 @@
       function applyGlbTreeSeasonTint(prop, seasonIndex, isNight, isStorm) {
         const entries = prop && prop.userData ? prop.userData.foliageEntries : null;
         if (!entries || !entries.length) return;
-
         const s = SEASONS[seasonIndex] || SEASONS[0];
         const targetHex = isStorm
           ? 0x475569
@@ -1495,9 +1568,7 @@
         const useGroup = (idx % 3 === 1) && customTreeTemplates.group;
         const useSingle = customTreeTemplates.single;
 
-        while (prop.children.length > 0) {
-          prop.remove(prop.children[0]);
-        }
+        while (prop.children.length > 0) prop.remove(prop.children[0]);
         prop.userData.foliageEntries = null;
         prop.userData.crownMat = null;
 
@@ -1541,115 +1612,25 @@
 
       function initCustomTrees(roadWidth) {
         const loader = new GLTFLoader();
-        let loadedAny = false;
-
         function onTreeTemplateReady() {
-          if (!loadedAny) {
-            loadedAny = true;
-            showToast('🌳 Árboles (arboles.glb) ajustados a buen tamaño');
-          }
           for (let i = 0; i < sceneryProps.length; i++) {
             populateSceneryPropAt(sceneryProps[i], i, roadWidth);
           }
         }
-
-        loader.load(
-          TREE_SINGLE_URL,
-          function (gltf) {
-            const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-            if (!raw) return;
-            const tpl = prepareGlbTreeTemplate(raw, false);
-            if (tpl) {
-              customTreeTemplates.single = tpl;
-              onTreeTemplateReady();
-            }
-          },
-          undefined,
-          function (err) {
-            console.warn('No se pudo cargar arbol_tree.glb:', err);
-          }
-        );
-
-        loader.load(
-          TREE_GROUP_URL,
-          function (gltf) {
-            const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-            if (!raw) return;
-            const tpl = prepareGlbTreeTemplate(raw, true);
-            if (tpl) {
-              customTreeTemplates.group = tpl;
-              onTreeTemplateReady();
-            }
-          },
-          undefined,
-          function (err) {
-            console.warn('No se pudo cargar arboles.glb:', err);
-          }
-        );
+        loader.load(TREE_SINGLE_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareGlbTreeTemplate(raw, false);
+          if (tpl) { customTreeTemplates.single = tpl; onTreeTemplateReady(); }
+        }, undefined, function () {});
+        loader.load(TREE_GROUP_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareGlbTreeTemplate(raw, true);
+          if (tpl) { customTreeTemplates.group = tpl; onTreeTemplateReady(); }
+        }, undefined, function () {});
       }
 
       function prepareHouseTemplate(rawModel, heightOverride, widthOverride) {
-        const wrapper = new THREE.Group();
-        const copy = rawModel.clone(true);
-        copy.position.set(0, 0, 0);
-        copy.rotation.set(0, 0, 0);
-        copy.scale.set(1, 1, 1);
-
-        let hasMeshes = false;
-        copy.traverse(function (child) {
-          if (child.isMesh) {
-            hasMeshes = true;
-            child.visible = true;
-            child.castShadow = true;
-            child.receiveShadow = true;
-            child.frustumCulled = false;
-
-            if (child.material) {
-              const mats = Array.isArray(child.material) ? child.material : [child.material];
-              const cloned = mats.map(function (m) {
-                if (!m) return m;
-                const mc = m.clone();
-                mc.side = THREE.DoubleSide;
-                if (mc.transparent && mc.opacity < 0.15) {
-                  mc.transparent = false;
-                  mc.opacity = 1;
-                }
-                mc.needsUpdate = true;
-                return mc;
-              });
-              child.material = Array.isArray(child.material) ? cloned : cloned[0];
-            }
-          }
-        });
-
-        if (!hasMeshes) return null;
-
-        wrapper.add(copy);
-        wrapper.updateMatrixWorld(true);
-
-        const box = new THREE.Box3().setFromObject(copy);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-
-        const maxXZ = Math.max(size.x || 0.1, size.z || 0.1);
-        const heightY = Math.max(size.y || 0.1, 0.1);
-        const desiredHeight = heightOverride || 8.4;
-        const desiredMaxWidth = widthOverride || 9.8;
-        const scaleByH = desiredHeight / heightY;
-        const scaleByW = desiredMaxWidth / maxXZ;
-        const finalScale = Math.max(0.01, Math.min(45, Math.min(scaleByH, scaleByW)));
-        copy.scale.setScalar(finalScale);
-        copy.updateMatrixWorld(true);
-
-        const scaledBox = new THREE.Box3().setFromObject(copy);
-        const center = new THREE.Vector3();
-        scaledBox.getCenter(center);
-
-        if (Number.isFinite(center.x)) copy.position.x = -center.x;
-        if (Number.isFinite(center.z)) copy.position.z = -center.z;
-        if (Number.isFinite(scaledBox.min.y)) copy.position.y = -scaledBox.min.y;
-
-        return wrapper;
+        return prepareNormalizedGlb(rawModel, widthOverride || 9.8, heightOverride || 8.4, widthOverride || 9.8, false);
       }
 
       function orientHouseTowardRoad(houseObj, sideSign, extraYaw) {
@@ -1664,28 +1645,45 @@
           new THREE.BoxGeometry(8.6, 6.6, 8.6),
           new THREE.MeshStandardMaterial({ color: isLeftHouse ? 0xf8fafc : 0xe2e8f0, roughness: 0.7 })
         );
-        wall.position.y = 3.3;
-        wall.castShadow = true;
-        g.add(wall);
+        wall.position.y = 3.3; wall.castShadow = true; g.add(wall);
 
         const roof = new THREE.Mesh(
           new THREE.ConeGeometry(6.8, 3.8, 4),
           new THREE.MeshStandardMaterial({ color: isLeftHouse ? 0x1e293b : 0xb45309, roughness: 0.65 })
         );
-        roof.rotation.y = Math.PI * 0.25;
-        roof.position.y = 8.4;
-        roof.castShadow = true;
-        g.add(roof);
-
+        roof.rotation.y = Math.PI * 0.25; roof.position.y = 8.4; roof.castShadow = true; g.add(roof);
         orientHouseTowardRoad(g, sideSign, 0);
         return g;
       }
 
+      function createFallbackLamp() {
+        const g = new THREE.Group();
+        const pole = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.08, 0.12, 4.4, 8),
+          new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.4 })
+        );
+        pole.position.y = 2.2; pole.castShadow = true; g.add(pole);
+
+        const bulb = new THREE.Mesh(
+          new THREE.SphereGeometry(0.24, 10, 10),
+          new THREE.MeshBasicMaterial({ color: 0xfef08a })
+        );
+        bulb.position.set(0, 4.45, 0.35); g.add(bulb);
+        return g;
+      }
+
+      function spawnLampAt(x, z, sideSign) {
+        const lamp = lampTemplate ? lampTemplate.clone(true) : createFallbackLamp();
+        lamp.position.set(x, 0.02, z);
+        lamp.rotation.y = sideSign < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
+        lamp.visible = true;
+        scene.add(lamp);
+        worldProps.push(lamp);
+      }
+
       function clearMilestoneHouses() {
         milestoneHouses.forEach(function (h) {
-          if (h && h.mesh && scene) {
-            scene.remove(h.mesh);
-          }
+          if (h && h.mesh && scene) scene.remove(h.mesh);
         });
         milestoneHouses = [];
       }
@@ -1702,6 +1700,7 @@
       function buildSingleMilestoneHouse(useJapanese, sideSign, roadWidth, zOffset) {
         const grassCenterX = roadWidth * 0.5 + SIDE_GRASS_WIDTH * 0.5 + 0.08;
         const posX = sideSign * grassCenterX;
+        const baseZ = -118 + (zOffset || 0);
 
         let houseMesh = null;
         if (!useJapanese && houseTemplates.rightOpt) {
@@ -1714,9 +1713,19 @@
           houseMesh = createFallbackHouse(sideSign, useJapanese);
         }
 
-        houseMesh.position.set(posX, 0.02, -118 + (zOffset || 0));
+        houseMesh.position.set(posX, 0.02, baseZ);
         houseMesh.visible = true;
         scene.add(houseMesh);
+
+        // Lámparas salteadas en césped: una antes y otra después de la casa (pocas, sin saturar)
+        const lampOffsetX = sideSign * (roadWidth * 0.5 + 2.2);
+        if (Math.random() < 0.75) {
+          spawnLampAt(lampOffsetX, baseZ + 8.5, sideSign);
+        }
+        if (Math.random() < 0.75) {
+          spawnLampAt(lampOffsetX, baseZ - 8.5, sideSign);
+        }
+
         return houseMesh;
       }
 
@@ -1733,182 +1742,158 @@
         const zOffset = sideSign < 0 ? -4 : 0;
 
         const houseMesh = buildSingleMilestoneHouse(isJapanese, sideSign, roadWidth, zOffset);
-        milestoneHouses.push({
-          milestoneIndex: milestoneIndex,
-          mesh: houseMesh
-        });
+        milestoneHouses.push({ milestoneIndex: milestoneIndex, mesh: houseMesh });
 
         const sideLabel = sideSign < 0 ? 'Izquierda' : 'Derecha';
         const houseLabel = isJapanese ? 'Casa Japonesa' : 'Casa Blanca';
-        showToast(
-          '🏡 ' + houseLabel + ' (' + sideLabel + ') · ' + (milestoneIndex * HOUSE_INTERVAL_METERS) + 'm'
-        );
+        showToast('🏡 ' + houseLabel + ' (' + sideLabel + ') · ' + (milestoneIndex * HOUSE_INTERVAL_METERS) + 'm');
+      }
+
+      function maybeSpawnAbandonedBuildingInGrass() {
+        if (runState.isCity || !isHouseZoneActive(runState.distance, runState.difficultyLevel)) return;
+        const s = SEASONS[runState.currentSeasonIndex] || SEASONS[0];
+        const slot = runState.abandonedPlan.find(function (item) {
+          return !item.placed && item.season === s.name && item.isNight === runState.isNight;
+        });
+        if (!slot) return;
+
+        // Aparece en algún punto de la estación correspondiente (1 por estación de día y 1 de noche)
+        if (Math.random() > 0.018) return;
+        slot.placed = true;
+
+        const roadWidth = LANE_WIDTH * 3 + 2.2;
+        const sideSign = Math.random() < 0.5 ? -1 : 1;
+        const grassCenterX = roadWidth * 0.5 + SIDE_GRASS_WIDTH * 0.5 + 0.08;
+
+        let ruinMesh = null;
+        if (abandonedBuildingTemplate) {
+          ruinMesh = abandonedBuildingTemplate.clone(true);
+          orientHouseTowardRoad(ruinMesh, sideSign, 0);
+        } else {
+          ruinMesh = createFallbackHouse(sideSign, false);
+        }
+
+        ruinMesh.position.set(sideSign * grassCenterX, 0.02, -118);
+        ruinMesh.visible = true;
+        scene.add(ruinMesh);
+        worldProps.push(ruinMesh);
+        showToast('🏚️ Edificio abandonado · ' + s.name + (runState.isNight ? ' (Noche)' : ' (Día)'));
       }
 
       function initHouseModels() {
         const loader = new GLTFLoader();
+        loader.load(HOUSE_OPT_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareHouseTemplate(raw, 12.2, 13.8);
+          if (tpl) houseTemplates.rightOpt = tpl;
+        }, undefined, function () {});
 
-        loader.load(
-          HOUSE_OPT_URL,
-          function (gltf) {
-            const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-            if (!raw) return;
-            const tpl = prepareHouseTemplate(raw, 12.2, 13.8);
-            if (tpl) {
-              houseTemplates.rightOpt = tpl;
-            }
-          },
-          undefined,
-          function (err) {
-            console.warn('No se pudo cargar casa-opt.glb:', err);
-          }
-        );
+        loader.load(HOUSE_JP_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareHouseTemplate(raw, 8.4, 9.8);
+          if (tpl) houseTemplates.leftJp = tpl;
+        }, undefined, function () {});
 
-        loader.load(
-          HOUSE_JP_URL,
-          function (gltf) {
-            const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-            if (!raw) return;
-            const tpl = prepareHouseTemplate(raw, 8.4, 9.8);
-            if (tpl) {
-              houseTemplates.leftJp = tpl;
-            }
-          },
-          undefined,
-          function (err) {
-            console.warn('No se pudo cargar casa_japonesa.glb:', err);
-          }
-        );
+        loader.load(LAMP_MODEL_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareNormalizedGlb(raw, 1.4, 4.6, 1.4, false);
+          if (tpl) lampTemplate = tpl;
+        }, undefined, function () {});
+
+        loader.load(ABANDONED_BUILDINGS_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareNormalizedGlb(raw, 11.5, 10.5, 11.5, false);
+          if (tpl) abandonedBuildingTemplate = tpl;
+        }, undefined, function () {});
       }
 
-      function prepareCarTemplate(rawModel) {
-        const wrapper = new THREE.Group();
-        const copy = rawModel.clone(true);
-        copy.position.set(0, 0, 0);
-        copy.rotation.set(0, 0, 0);
-        copy.scale.set(1, 1, 1);
-
-        let hasMeshes = false;
-        copy.traverse(function (child) {
-          if (child.isMesh) {
-            hasMeshes = true;
-            child.visible = true;
-            child.castShadow = true;
-            child.receiveShadow = false;
-            child.frustumCulled = false;
-
-            if (child.geometry && child.geometry.boundingBox === null && typeof child.geometry.computeBoundingBox === 'function') {
-              child.geometry.computeBoundingBox();
-            }
-
-            if (child.material) {
-              const mats = Array.isArray(child.material) ? child.material : [child.material];
-              const cloned = mats.map(function (m) {
-                if (!m) return m;
-                const mc = m.clone();
-                mc.side = THREE.DoubleSide;
-                if (mc.transparent && mc.opacity < 0.15) {
-                  mc.transparent = false;
-                  mc.opacity = 1;
-                }
-                mc.needsUpdate = true;
-                return mc;
-              });
-              child.material = Array.isArray(child.material) ? cloned : cloned[0];
-            }
-          }
-        });
-
-        if (!hasMeshes) return null;
-
-        wrapper.add(copy);
-        wrapper.updateMatrixWorld(true);
-
-        const rawBox = new THREE.Box3().setFromObject(copy);
-        const rawSize = new THREE.Vector3();
-        rawBox.getSize(rawSize);
-
-        const desiredWidth = 1.85;
-        const desiredLength = 3.85;
-        const desiredHeight = 1.78;
-        const maxRaw = Math.max(rawSize.x || 0, rawSize.y || 0, rawSize.z || 0);
-        if (!Number.isFinite(maxRaw) || maxRaw <= 0.00001) return null;
-
-        const isLengthAlongX = (rawSize.x || 0) > (rawSize.z || 0) * 1.12;
-        if (isLengthAlongX) {
-          copy.rotation.y = Math.PI * 0.5;
-          copy.updateMatrixWorld(true);
-        }
-
-        const orientedBox = new THREE.Box3().setFromObject(copy);
-        const orientedSize = new THREE.Vector3();
-        orientedBox.getSize(orientedSize);
-
-        const sx = orientedSize.x > 0.0001 ? (desiredWidth / orientedSize.x) : 1;
-        const sz = orientedSize.z > 0.0001 ? (desiredLength / orientedSize.z) : 1;
-        const sy = orientedSize.y > 0.0001 ? (desiredHeight / orientedSize.y) : 1;
-        const baseScale = Math.max(0.002, Math.min(400, Math.min(sx, sz)));
-        copy.scale.set(
-          baseScale,
-          Math.max(0.002, Math.min(400, Math.min(sy, baseScale * 1.25))),
-          baseScale
-        );
-        copy.updateMatrixWorld(true);
-
-        const scaledBox = new THREE.Box3().setFromObject(copy);
-        const center = new THREE.Vector3();
-        scaledBox.getCenter(center);
-
-        if (Number.isFinite(center.x)) copy.position.x = -center.x;
-        if (Number.isFinite(center.z)) copy.position.z = -center.z;
-        if (Number.isFinite(scaledBox.min.y)) copy.position.y = -scaledBox.min.y + 0.05;
-
-        wrapper.updateMatrixWorld(true);
-        const finalBox = new THREE.Box3().setFromObject(wrapper);
-        const finalSize = new THREE.Vector3();
-        finalBox.getSize(finalSize);
-
-        wrapper.userData.hitWidth = Math.max(1.45, Math.min(2.15, finalSize.x || desiredWidth));
-        wrapper.userData.hitHeight = Math.max(1.25, Math.min(2.25, finalSize.y || desiredHeight));
-        wrapper.userData.hitDepth = Math.max(2.8, Math.min(4.5, finalSize.z || desiredLength));
-        return wrapper;
+      function prepareCarTemplate(rawModel, isTank) {
+        const w = isTank ? 2.15 : 1.85;
+        const h = isTank ? 2.15 : 1.78;
+        const d = isTank ? 4.35 : 3.85;
+        const tpl = prepareNormalizedGlb(rawModel, w, h, d, true);
+        if (!tpl) return null;
+        tpl.userData.hitWidth = Math.max(1.45, Math.min(2.25, tpl.userData.hitWidth || w));
+        tpl.userData.hitHeight = Math.max(1.25, Math.min(2.35, tpl.userData.hitHeight || h));
+        tpl.userData.hitDepth = Math.max(2.8, Math.min(4.6, tpl.userData.hitDepth || d));
+        return tpl;
       }
 
-      function initCarModels() {
+      function initCarAndMotoModels() {
         const loader = new GLTFLoader();
 
-        loader.load(
-          CAR_MAIN_URL,
-          function (gltf) {
-            const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-            if (!raw) return;
-            const tpl = prepareCarTemplate(raw);
-            if (tpl) {
-              carTemplates.mainCar = tpl;
-              showToast('🚗 Carro (carro.glb) listo');
-            }
-          },
-          undefined,
-          function (err) {
-            console.warn('No se pudo cargar carro.glb:', err);
-          }
-        );
+        loader.load(CAR_MAIN_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareCarTemplate(raw, false);
+          if (tpl) carTemplates.mainCar = tpl;
+        }, undefined, function () {});
 
-        loader.load(
-          CAR_KIA_URL,
-          function (gltf) {
-            const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-            if (!raw) return;
-            const tpl = prepareCarTemplate(raw);
-            if (tpl) {
-              carTemplates.kia = tpl;
-            }
-          },
-          undefined,
-          function (err) {
-            console.warn('No se pudo cargar carro_kia.glb:', err);
+        loader.load(CAR_KIA_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareCarTemplate(raw, false);
+          if (tpl) carTemplates.kia = tpl;
+        }, undefined, function () {});
+
+        loader.load(CAR_CAMARO_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareCarTemplate(raw, false);
+          if (tpl) {
+            carTemplates.camaro = tpl;
+            showToast('🏎️ Camaro añadido al tráfico');
           }
-        );
+        }, undefined, function () {});
+
+        loader.load(CAR_TANK_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareCarTemplate(raw, true);
+          if (tpl) {
+            carTemplates.tank = tpl;
+            showToast('🛡️ Antitanque añadido al tráfico');
+          }
+        }, undefined, function () {});
+
+        loader.load(MOTO_MODEL_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareNormalizedGlb(raw, 1.15, 1.25, 2.25, true);
+          if (tpl && playerRoot) {
+            customMotoTemplate = tpl;
+            if (customMotoMesh) playerRoot.remove(customMotoMesh);
+            customMotoMesh = tpl.clone(true);
+            customMotoMesh.visible = runState.bikeActive;
+            playerRoot.add(customMotoMesh);
+            showToast('🏍️ Moto personalizada (moto-opt.glb) cargada');
+          }
+        }, undefined, function () {});
+
+        loader.load(UP_OBS_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareNormalizedGlb(raw, 1.75, 1.05, 1.35, false);
+          if (tpl) obstacleTemplates.up = tpl;
+        }, undefined, function () {});
+
+        loader.load(DOWN_OBS_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareNormalizedGlb(raw, 1.85, 1.25, 1.25, false);
+          if (tpl) obstacleTemplates.down = tpl;
+        }, undefined, function () {});
+
+        loader.load(CITY_BUILDINGS_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareNormalizedGlb(raw, 10.5, 22.0, 10.5, false);
+          if (tpl) cityBuildingTemplates.edificios = tpl;
+        }, undefined, function () {});
+
+        loader.load(CITY_APARTMENT_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareNormalizedGlb(raw, 11.0, 18.0, 11.0, false);
+          if (tpl) cityBuildingTemplates.apartamento = tpl;
+        }, undefined, function () {});
+
+        loader.load(CITY_LOT_URL, function (gltf) {
+          const raw = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const tpl = raw && prepareNormalizedGlb(raw, 10.0, 15.0, 10.0, false);
+          if (tpl) cityBuildingTemplates.predio = tpl;
+        }, undefined, function () {});
       }
 
       function initThree() {
@@ -1943,9 +1928,7 @@
         skyMesh = new THREE.Mesh(
           new THREE.SphereGeometry(280, 32, 24),
           new THREE.ShaderMaterial({
-            side: THREE.BackSide,
-            depthWrite: false,
-            uniforms: skyUniforms,
+            side: THREE.BackSide, depthWrite: false, uniforms: skyUniforms,
             vertexShader: `
               varying vec3 vWorldPos;
               void main() {
@@ -1983,8 +1966,7 @@
         sunHalo = new THREE.Sprite(
           new THREE.SpriteMaterial({ map: sunHaloTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
         );
-        sunHalo.scale.set(58, 58, 1);
-        sunHalo.position.copy(sunMesh.position);
+        sunHalo.scale.set(58, 58, 1); sunHalo.position.copy(sunMesh.position);
         scene.add(sunHalo);
 
         moonMesh = new THREE.Mesh(
@@ -2002,8 +1984,7 @@
         moonHalo = new THREE.Sprite(
           new THREE.SpriteMaterial({ map: moonHaloTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
         );
-        moonHalo.scale.set(50, 50, 1);
-        moonHalo.position.copy(moonMesh.position);
+        moonHalo.scale.set(50, 50, 1); moonHalo.position.copy(moonMesh.position);
         scene.add(moonHalo);
 
         const starCount = 440;
@@ -2102,14 +2083,12 @@
         const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.85, metalness: 0.05 });
         sidewalkLeftMesh = new THREE.Mesh(new THREE.BoxGeometry(sidewalkWidth, 0.18, 240), sidewalkMat);
         sidewalkLeftMesh.position.set(-roadWidth * 0.5 - sidewalkWidth * 0.5, 0.06, -90);
-        sidewalkLeftMesh.receiveShadow = true;
-        sidewalkLeftMesh.visible = false;
+        sidewalkLeftMesh.receiveShadow = true; sidewalkLeftMesh.visible = false;
         scene.add(sidewalkLeftMesh);
 
         sidewalkRightMesh = new THREE.Mesh(new THREE.BoxGeometry(sidewalkWidth, 0.18, 240), sidewalkMat);
         sidewalkRightMesh.position.set(roadWidth * 0.5 + sidewalkWidth * 0.5, 0.06, -90);
-        sidewalkRightMesh.receiveShadow = true;
-        sidewalkRightMesh.visible = false;
+        sidewalkRightMesh.receiveShadow = true; sidewalkRightMesh.visible = false;
         scene.add(sidewalkRightMesh);
 
         initSideGrassModel(roadWidth);
@@ -2119,30 +2098,26 @@
         [-LANE_WIDTH * 0.5, LANE_WIDTH * 0.5].forEach(function (lx) {
           for (let z = 6; z > -160; z -= 10) {
             const st = new THREE.Mesh(stripeGeo, stripeMat);
-            st.rotation.x = -Math.PI / 2;
-            st.position.set(lx, 0.015, z);
-            laneStripes.push(st);
-            scene.add(st);
+            st.rotation.x = -Math.PI / 2; st.position.set(lx, 0.015, z);
+            laneStripes.push(st); scene.add(st);
           }
         });
 
         for (let i = 0; i < SCENERY_COUNT; i++) {
           const prop = new THREE.Group();
           populateSceneryPropAt(prop, i, roadWidth);
-          sceneryProps.push(prop);
-          scene.add(prop);
+          sceneryProps.push(prop); scene.add(prop);
 
           const side = i % 2 === 0 ? -1 : 1;
           const building = createCityBuildingProp(i);
-          building.position.set(side * (roadWidth * 0.5 + 7.2 + (i % 2) * 2.4), 0, -i * SCENERY_SPACING);
+          building.position.set(side * (roadWidth * 0.5 + 8.5 + (i % 2) * 2.5), 0, -i * SCENERY_SPACING);
           building.visible = false;
-          cityBuildings.push(building);
-          scene.add(building);
+          cityBuildings.push(building); scene.add(building);
         }
 
         initCustomTrees(roadWidth);
         initHouseModels();
-        initCarModels();
+        initCarAndMotoModels();
 
         const pCount = 280;
         const pPos = new Float32Array(pCount * 3);
@@ -2160,10 +2135,8 @@
         scene.add(weatherPoints);
 
         const boltPoints = [
-          new THREE.Vector3(0, 42, -110),
-          new THREE.Vector3(-3.5, 29, -110),
-          new THREE.Vector3(2.8, 18, -110),
-          new THREE.Vector3(-1.5, 8, -110),
+          new THREE.Vector3(0, 42, -110), new THREE.Vector3(-3.5, 29, -110),
+          new THREE.Vector3(2.8, 18, -110), new THREE.Vector3(-1.5, 8, -110),
           new THREE.Vector3(1.2, 0.2, -110)
         ];
         lightningBoltMesh = new THREE.Line(
@@ -2183,21 +2156,13 @@
       function forceFallbackVisible(reason) {
         if (playerRoot) playerRoot.visible = true;
         if (playerBodyGroup) {
-          playerBodyGroup.visible = true;
-          playerBodyGroup.scale.set(1, 1, 1);
-          playerBodyGroup.position.set(0, 0, 0);
+          playerBodyGroup.visible = true; playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.set(0, 0, 0);
         }
         if (fallbackBoxGroup) {
-          fallbackBoxGroup.visible = true;
-          fallbackBoxGroup.scale.set(1, 1, 1);
-          fallbackBoxGroup.position.set(0, 0, 0);
-          fallbackBoxGroup.traverse(function (child) {
-            child.visible = true;
-          });
+          fallbackBoxGroup.visible = true; fallbackBoxGroup.scale.set(1, 1, 1); fallbackBoxGroup.position.set(0, 0, 0);
+          fallbackBoxGroup.traverse(function (child) { child.visible = true; });
         }
-        if (reason) {
-          console.log('[KenCoin] Respaldo visible:', reason);
-        }
+        if (reason) console.log('[KenCoin] Respaldo visible:', reason);
       }
 
       function createFallbackTreeMesh(idx) {
@@ -2219,6 +2184,17 @@
 
       function createCityBuildingProp(index) {
         const g = new THREE.Group();
+        const keys = ['edificios', 'apartamento', 'predio'];
+        const chosenKey = keys[index % keys.length];
+        const tpl = cityBuildingTemplates[chosenKey] || cityBuildingTemplates.edificios;
+
+        if (tpl) {
+          const inst = tpl.clone(true);
+          inst.rotation.y = index % 2 === 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
+          g.add(inst);
+          return g;
+        }
+
         const bH = 12 + (index % 5) * 5.5;
         const bW = 7.2 + (index % 3) * 2.2;
         const bD = 7.4;
@@ -2231,9 +2207,24 @@
         const wins = new THREE.Mesh(new THREE.BoxGeometry(bW * 0.72, bH * 0.62, bD + 0.14), winMat);
         wins.position.y = bH * 0.52; g.add(wins);
 
-        g.userData.wallMat = wallMat;
-        g.userData.winMat = winMat;
+        g.userData.wallMat = wallMat; g.userData.winMat = winMat;
         return g;
+      }
+
+      function rebuildCityBuildingsForZone() {
+        const roadWidth = LANE_WIDTH * 3 + 2.2;
+        for (let i = 0; i < cityBuildings.length; i++) {
+          const oldB = cityBuildings[i];
+          const prevZ = oldB ? oldB.position.z : -i * SCENERY_SPACING;
+          if (oldB) scene.remove(oldB);
+
+          const side = i % 2 === 0 ? -1 : 1;
+          const nextB = createCityBuildingProp(i);
+          nextB.position.set(side * (roadWidth * 0.5 + 8.5 + (i % 2) * 2.5), 0, prevZ);
+          nextB.visible = runState.isCity;
+          cityBuildings[i] = nextB;
+          scene.add(nextB);
+        }
       }
 
       function buildPlayerMesh() {
@@ -2259,8 +2250,7 @@
           new THREE.CircleGeometry(0.75, 20),
           new THREE.MeshBasicMaterial({ color: 0x020617, transparent: true, opacity: 0.36, depthWrite: false })
         );
-        shadowDisc.rotation.x = -Math.PI / 2;
-        shadowDisc.position.y = 0.02;
+        shadowDisc.rotation.x = -Math.PI / 2; shadowDisc.position.y = 0.02;
         playerRoot.add(shadowDisc);
 
         const headMat = new THREE.MeshStandardMaterial({ color: 0xf6d852, roughness: 0.48 });
@@ -2275,42 +2265,32 @@
         headMesh = new THREE.Group();
         headMesh.position.y = 1.92;
         const headBox = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.84, 0.82), headMat);
-        headBox.castShadow = true;
-        headMesh.add(headBox);
+        headBox.castShadow = true; headMesh.add(headBox);
 
         const capCrown = new THREE.Mesh(
           new THREE.BoxGeometry(0.86, 0.26, 0.86),
           new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.55 })
         );
-        capCrown.position.set(0, 0.36, 0.02);
-        headMesh.add(capCrown);
+        capCrown.position.set(0, 0.36, 0.02); headMesh.add(capCrown);
 
         capVisorMesh = new THREE.Mesh(
           new THREE.BoxGeometry(0.84, 0.07, 0.34),
           new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.35 })
         );
-        capVisorMesh.position.set(0, 0.25, -0.52);
-        headMesh.add(capVisorMesh);
+        capVisorMesh.position.set(0, 0.25, -0.52); headMesh.add(capVisorMesh);
 
-        const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.17, 0.06), eyeMat);
-        eyeL.position.set(0.2, 0.04, -0.42);
-        const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.17, 0.06), eyeMat);
-        eyeR.position.set(-0.2, 0.04, -0.42);
-        const smile = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.07, 0.06), smileMat);
-        smile.position.set(0, -0.18, -0.42);
+        const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.17, 0.06), eyeMat); eyeL.position.set(0.2, 0.04, -0.42);
+        const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.17, 0.06), eyeMat); eyeR.position.set(-0.2, 0.04, -0.42);
+        const smile = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.07, 0.06), smileMat); smile.position.set(0, -0.18, -0.42);
         headMesh.add(eyeL, eyeR, smile);
         fallbackBoxGroup.add(headMesh);
 
         torsoMesh = new THREE.Group();
         torsoMesh.position.y = 1.04;
-        const chest = new THREE.Mesh(new THREE.BoxGeometry(0.92, 1.06, 0.54), torsoMat);
-        chest.castShadow = true;
-        const hood = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.34, 0.24), torsoMat);
-        hood.position.set(0, 0.34, 0.34);
-        const collar = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.13, 0.58), trimMat);
-        collar.position.set(0, 0.49, 0);
-        const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.15, 0.57), trimMat);
-        stripe.position.set(0, -0.1, 0);
+        const chest = new THREE.Mesh(new THREE.BoxGeometry(0.92, 1.06, 0.54), torsoMat); chest.castShadow = true;
+        const hood = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.34, 0.24), torsoMat); hood.position.set(0, 0.34, 0.34);
+        const collar = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.13, 0.58), trimMat); collar.position.set(0, 0.49, 0);
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.15, 0.57), trimMat); stripe.position.set(0, -0.1, 0);
         const belt = new THREE.Mesh(
           new THREE.BoxGeometry(0.94, 0.13, 0.56),
           new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 })
@@ -2373,29 +2353,57 @@
         scene.add(playerRoot);
       }
 
+      function updateBikeVisuals() {
+        if (customMotoTemplate) {
+          if (!customMotoMesh && playerRoot) {
+            customMotoMesh = customMotoTemplate.clone(true);
+            playerRoot.add(customMotoMesh);
+          }
+          if (customMotoMesh) customMotoMesh.visible = Boolean(runState.bikeActive);
+          if (bikeGroup) bikeGroup.visible = false;
+        } else {
+          if (bikeGroup) bikeGroup.visible = Boolean(runState.bikeActive);
+        }
+        if (playerBodyGroup) {
+          playerBodyGroup.position.y = runState.bikeActive ? 0.42 : (runState.isSliding ? -SLIDE_DROP_GLB : 0);
+        }
+      }
+
+      function activateBikeFromInventory() {
+        if (runState.mode !== 'playing') return;
+        if (runState.bikeActive) {
+          showToast('🏍️ ¡Ya vas en moto!');
+          return;
+        }
+        if (saveData.bikes <= 0) {
+          showToast('No tienes motos disponibles. Cómpralas en la tienda 🛒');
+          return;
+        }
+        saveData.bikes -= 1;
+        runState.bikeActive = true;
+        runState.bikeTimer = 15.0;
+        runState.invulnTimer = Math.max(runState.invulnTimer, 1.0);
+        persistSaveData();
+        updateBikeVisuals();
+        sfxPowerup();
+        refreshAllUI();
+        showToast('🏍️ ¡Moto activada por 15s!');
+      }
+
       function normalizeGlbModelTransform() {
         if (!glbOrientGroup || !activeGlbModel) return false;
-        glbOrientGroup.position.set(0, 0, 0);
-        glbOrientGroup.rotation.set(0, 0, 0);
-        glbOrientGroup.scale.set(1, 1, 1);
-
-        activeGlbModel.position.set(0, 0, 0);
-        activeGlbModel.rotation.set(0, 0, 0);
-        activeGlbModel.scale.set(1, 1, 1);
+        glbOrientGroup.position.set(0, 0, 0); glbOrientGroup.rotation.set(0, 0, 0); glbOrientGroup.scale.set(1, 1, 1);
+        activeGlbModel.position.set(0, 0, 0); activeGlbModel.rotation.set(0, 0, 0); activeGlbModel.scale.set(1, 1, 1);
 
         glbMaterialEntries = [];
         activeGlbModel.traverse(function (child) {
           if (child.isMesh) {
-            child.visible = true;
-            child.frustumCulled = false;
+            child.visible = true; child.frustumCulled = false;
             if (child.material) {
               const mats = Array.isArray(child.material) ? child.material : [child.material];
               mats.forEach(function (m) {
                 if (!m) return;
-                if (m.transparent && m.opacity < 0.15) {
-                  m.opacity = 1;
-                  m.transparent = false;
-                }
+                if (m.transparent && m.opacity < 0.15) { m.opacity = 1; m.transparent = false; }
                 m.needsUpdate = true;
                 glbMaterialEntries.push({
                   mat: m,
@@ -2412,17 +2420,11 @@
         let box = new THREE.Box3().setFromObject(glbOrientGroup);
         const size = new THREE.Vector3();
         box.getSize(size);
-
         const maxDim = Math.max(size.x || 0, size.y || 0, size.z || 0);
-        if (!(maxDim > 0.001) || !Number.isFinite(maxDim)) {
-          return false;
-        }
+        if (!(maxDim > 0.001) || !Number.isFinite(maxDim)) return false;
 
-        if (size.z > size.y * 1.15 && size.z >= size.x) {
-          glbOrientGroup.rotation.x = -Math.PI / 2;
-        } else if (size.x > size.y * 1.15 && size.x > size.z) {
-          glbOrientGroup.rotation.z = Math.PI / 2;
-        }
+        if (size.z > size.y * 1.15 && size.z >= size.x) glbOrientGroup.rotation.x = -Math.PI / 2;
+        else if (size.x > size.y * 1.15 && size.x > size.z) glbOrientGroup.rotation.z = Math.PI / 2;
         glbOrientGroup.updateMatrixWorld(true);
 
         box = new THREE.Box3().setFromObject(glbOrientGroup);
@@ -2435,21 +2437,16 @@
         box = new THREE.Box3().setFromObject(glbOrientGroup);
         const center = new THREE.Vector3();
         box.getCenter(center);
-
         glbOrientGroup.position.x = Number.isFinite(center.x) ? -center.x : 0;
         glbOrientGroup.position.z = Number.isFinite(center.z) ? -center.z : 0;
         glbOrientGroup.position.y = Number.isFinite(box.min.y) ? (-box.min.y + 0.02) : 0.02;
-
         glbOrientGroup.rotation.y += Math.PI;
         glbOrientGroup.updateMatrixWorld(true);
 
         const finalBox = new THREE.Box3().setFromObject(glbOrientGroup);
         const finalSize = new THREE.Vector3();
         finalBox.getSize(finalSize);
-        if (!(finalSize.y > 0.25) || finalSize.y > 12) {
-          return false;
-        }
-        return true;
+        return (finalSize.y > 0.25 && finalSize.y <= 12);
       }
 
       function playGlbAnimation(name, fadeDuration, timeScaleOverride) {
@@ -2466,139 +2463,91 @@
         }
 
         Object.keys(animActions).forEach(function (key) {
-          if (key !== name && animActions[key]) {
-            animActions[key].fadeOut(fade);
-          }
+          if (key !== name && animActions[key]) animActions[key].fadeOut(fade);
         });
 
         nextAction.reset();
         if (name === 'jump' || name === 'slide') {
-          nextAction.setLoop(THREE.LoopOnce, 1);
-          nextAction.clampWhenFinished = true;
+          nextAction.setLoop(THREE.LoopOnce, 1); nextAction.clampWhenFinished = true;
         } else {
-          nextAction.setLoop(THREE.LoopRepeat, Infinity);
-          nextAction.clampWhenFinished = false;
+          nextAction.setLoop(THREE.LoopRepeat, Infinity); nextAction.clampWhenFinished = false;
         }
-        nextAction.setEffectiveTimeScale(scale);
-        nextAction.setEffectiveWeight(1);
-        nextAction.fadeIn(fade).play();
+        nextAction.setEffectiveTimeScale(scale); nextAction.setEffectiveWeight(1); nextAction.fadeIn(fade).play();
         currentAnimName = name;
       }
 
       function loadAnimationClips(loader, targetObject) {
         animMixer = new THREE.AnimationMixer(targetObject);
-        animActions = {};
-        currentAnimName = '';
-        loadedAnimCount = 0;
+        animActions = {}; currentAnimName = ''; loadedAnimCount = 0;
 
         Object.keys(ANIM_URLS).forEach(function (animKey) {
           const url = ANIM_URLS[animKey];
-          loader.load(
-            url,
-            function (animGltf) {
-              if (!animGltf || !animGltf.animations || !animGltf.animations.length || !animMixer) return;
-              const clip = animGltf.animations[0].clone();
-              clip.name = animKey;
-              clip.tracks = clip.tracks.filter(function (track) {
-                if (track.name.endsWith('.position') || track.name.endsWith('.scale')) return false;
-                const lower = track.name.toLowerCase();
-                if ((lower.includes('hips') || lower.includes('pelvis') || lower.includes('root')) && lower.endsWith('.quaternion')) {
-                  return false;
-                }
-                return true;
-              });
-              if (!clip.tracks.length) return;
+          loader.load(url, function (animGltf) {
+            if (!animGltf || !animGltf.animations || !animGltf.animations.length || !animMixer) return;
+            const clip = animGltf.animations[0].clone();
+            clip.name = animKey;
+            clip.tracks = clip.tracks.filter(function (track) {
+              if (track.name.endsWith('.position') || track.name.endsWith('.scale')) return false;
+              const lower = track.name.toLowerCase();
+              if ((lower.includes('hips') || lower.includes('pelvis') || lower.includes('root')) && lower.endsWith('.quaternion')) return false;
+              return true;
+            });
+            if (!clip.tracks.length) return;
 
-              const action = animMixer.clipAction(clip);
-              animActions[animKey] = action;
-              loadedAnimCount += 1;
+            const action = animMixer.clipAction(clip);
+            animActions[animKey] = action;
+            loadedAnimCount += 1;
 
-              if (activeGlbModel) {
-                if (normalizeGlbModelTransform()) {
-                  glbLoadedOk = true;
-                  if (fallbackBoxGroup) fallbackBoxGroup.visible = false;
-                  applyCharacterAppearance(getActivePreviewOrSelectedCharId());
-                } else {
-                  glbLoadedOk = false;
-                  forceFallbackVisible('animación alteró tamaño GLB');
-                }
+            if (activeGlbModel) {
+              if (normalizeGlbModelTransform()) {
+                glbLoadedOk = true;
+                if (fallbackBoxGroup) fallbackBoxGroup.visible = false;
+                applyCharacterAppearance(getActivePreviewOrSelectedCharId());
+              } else {
+                glbLoadedOk = false; forceFallbackVisible('animación alteró tamaño GLB');
               }
-
-              if (animKey === 'run' && glbLoadedOk) {
-                if (runState.mode === 'playing') {
-                  playGlbAnimation('run', 0.1, 1);
-                } else if (runState.mode === 'lobby') {
-                  playGlbAnimation('run', 0.15, runState.charPickerOpen ? 0.65 : 0.35);
-                }
-              }
-            },
-            undefined,
-            function (err) {
-              console.warn('No se pudo cargar animación ' + url + ':', err);
             }
-          );
+
+            if (animKey === 'run' && glbLoadedOk) {
+              if (runState.mode === 'playing') playGlbAnimation('run', 0.1, 1);
+              else if (runState.mode === 'lobby') playGlbAnimation('run', 0.15, runState.charPickerOpen ? 0.65 : 0.35);
+            }
+          }, undefined, function () {});
         });
       }
 
       function loadCharacterGlbModel() {
         const loader = new GLTFLoader();
-        loader.load(
-          MODEL_URL,
-          function (gltf) {
-            const model = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-            if (!model || !glbOrientGroup) {
-              glbLoadedOk = false;
-              forceFallbackVisible('sin escena GLB');
-              return;
-            }
+        loader.load(MODEL_URL, function (gltf) {
+          const model = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          if (!model || !glbOrientGroup) { glbLoadedOk = false; forceFallbackVisible('sin escena GLB'); return; }
 
-            model.position.set(0, 0, 0);
-            model.rotation.set(0, 0, 0);
-            model.scale.set(1, 1, 1);
+          model.position.set(0, 0, 0); model.rotation.set(0, 0, 0); model.scale.set(1, 1, 1);
+          model.traverse(function (child) {
+            child.visible = true;
+            if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; child.frustumCulled = false; }
+          });
 
-            model.traverse(function (child) {
-              child.visible = true;
-              if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-                child.frustumCulled = false;
-              }
-            });
+          while (glbOrientGroup.children.length > 0) glbOrientGroup.remove(glbOrientGroup.children[0]);
+          glbOrientGroup.add(model);
+          activeGlbModel = model;
 
-            while (glbOrientGroup.children.length > 0) {
-              glbOrientGroup.remove(glbOrientGroup.children[0]);
-            }
-            glbOrientGroup.add(model);
-            activeGlbModel = model;
-
-            const normalizedOk = normalizeGlbModelTransform();
-            if (!normalizedOk) {
-              glbLoadedOk = false;
-              forceFallbackVisible('GLB con escala/altura inválida');
-              return;
-            }
-
-            glbLoadedOk = true;
-            if (fallbackBoxGroup) fallbackBoxGroup.visible = false;
-            applyCharacterAppearance(getActivePreviewOrSelectedCharId());
-            loadAnimationClips(loader, model);
-            showToast('✅ Personaje GLB listo');
-          },
-          undefined,
-          function (err) {
-            console.warn('No se pudo cargar character-opt.glb:', err);
-            glbLoadedOk = false;
-            activeGlbModel = null;
-            forceFallbackVisible('error al cargar GLB');
-            showToast('⚠️ Usando personaje clásico');
+          if (!normalizeGlbModelTransform()) {
+            glbLoadedOk = false; forceFallbackVisible('GLB con escala/altura inválida'); return;
           }
-        );
+
+          glbLoadedOk = true;
+          if (fallbackBoxGroup) fallbackBoxGroup.visible = false;
+          applyCharacterAppearance(getActivePreviewOrSelectedCharId());
+          loadAnimationClips(loader, model);
+        }, undefined, function () {
+          glbLoadedOk = false; activeGlbModel = null; forceFallbackVisible('error al cargar GLB');
+        });
       }
 
       function getActivePreviewOrSelectedCharId() {
         if (runState.mode === 'lobby' && runState.charPickerOpen) {
-          const ch = CHARACTERS[previewIndex] || CHARACTERS[0];
-          return ch.id;
+          return (CHARACTERS[previewIndex] || CHARACTERS[0]).id;
         }
         return saveData.selectedChar;
       }
@@ -2621,9 +2570,7 @@
           const tintCol = new THREE.Color(ch.glbTint || 0xffffff);
           glbMaterialEntries.forEach(function (entry) {
             if (!entry.mat) return;
-            if (entry.baseColor && entry.mat.color) {
-              entry.mat.color.copy(entry.baseColor).multiply(tintCol);
-            }
+            if (entry.baseColor && entry.mat.color) entry.mat.color.copy(entry.baseColor).multiply(tintCol);
             if ('emissive' in entry.mat && entry.mat.emissive && entry.baseEmissive) {
               entry.mat.emissive.copy(entry.baseEmissive);
               if (ch.glbEmissiveIntensity && ch.glbEmissiveIntensity > 0) {
@@ -2654,8 +2601,7 @@
 
         if (nameEl) nameEl.textContent = ch.name;
         if (statusEl) {
-          statusEl.textContent = selected
-            ? 'Equipado actualmente'
+          statusEl.textContent = selected ? 'Equipado actualmente'
             : (unlocked ? 'Desbloqueado · Listo para equipar' : 'Costo: ' + ch.priceCoins + ' ¢');
         }
 
@@ -2671,26 +2617,19 @@
             actionBtn.className = 'btn-bubble flex-1 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 py-2 text-xs font-black text-slate-950';
           }
         }
-
         applyCharacterAppearance(getActivePreviewOrSelectedCharId());
       }
 
       function setCharPicker3DOpen(open) {
-        if (runState.mode !== 'lobby') {
-          runState.charPickerOpen = false;
-          syncCharPicker3DUI();
-          return;
-        }
+        if (runState.mode !== 'lobby') { runState.charPickerOpen = false; syncCharPicker3DUI(); return; }
         runState.charPickerOpen = Boolean(open);
         if (runState.charPickerOpen) {
           const idx = CHARACTERS.findIndex(function (c) { return c.id === saveData.selectedChar; });
           previewIndex = idx >= 0 ? idx : 0;
-          runState.previewYawOffset = 0.45;
-          runState.spinBoostTimer = 0.85;
+          runState.previewYawOffset = 0.45; runState.spinBoostTimer = 0.85;
           playGlbAnimation('run', 0.12, 0.7);
         } else {
-          runState.previewYawOffset = 0;
-          runState.spinBoostTimer = 0;
+          runState.previewYawOffset = 0; runState.spinBoostTimer = 0;
           applyCharacterAppearance(saveData.selectedChar);
           playGlbAnimation('run', 0.15, 0.35);
         }
@@ -2725,9 +2664,7 @@
           }
         }
 
-        return {
-          cycleIndex, isNight, isStorm, stormSeverity, isCity, seasonIndex, difficultyLevel
-        };
+        return { cycleIndex, isNight, isStorm, stormSeverity, isCity, seasonIndex, difficultyLevel };
       }
 
       function applyAtmosphereForCycle(seasonIndex, isNight, silentToast, isStorm, stormSeverity, isCity) {
@@ -2769,26 +2706,18 @@
 
         if (sidewalkLeftMesh) {
           sidewalkLeftMesh.visible = cityActive;
-          if (sidewalkLeftMesh.material) {
-            sidewalkLeftMesh.material.color.setHex((isNight || stormActive) ? 0x475569 : 0x94a3b8);
-          }
+          if (sidewalkLeftMesh.material) sidewalkLeftMesh.material.color.setHex((isNight || stormActive) ? 0x475569 : 0x94a3b8);
         }
         if (sidewalkRightMesh) {
           sidewalkRightMesh.visible = cityActive;
-          if (sidewalkRightMesh.material) {
-            sidewalkRightMesh.material.color.setHex((isNight || stormActive) ? 0x475569 : 0x94a3b8);
-          }
+          if (sidewalkRightMesh.material) sidewalkRightMesh.material.color.setHex((isNight || stormActive) ? 0x475569 : 0x94a3b8);
         }
 
         if (sideGrassTiles.length > 0) {
-          for (let i = 0; i < sideGrassTiles.length; i++) {
-            sideGrassTiles[i].visible = !cityActive;
-          }
+          for (let i = 0; i < sideGrassTiles.length; i++) sideGrassTiles[i].visible = !cityActive;
         }
 
-        if (!isHouseZoneActive(runState.distance, runState.difficultyLevel)) {
-          clearMilestoneHouses();
-        }
+        if (!isHouseZoneActive(runState.distance, runState.difficultyLevel)) clearMilestoneHouses();
 
         if (sunMesh) sunMesh.visible = !isNight && !stormActive;
         if (sunHalo) sunHalo.visible = !isNight && !stormActive;
@@ -2830,13 +2759,13 @@
           }
         }
 
+        if (cityActive) rebuildCityBuildingsForZone();
+
         sceneryProps.forEach(function (prop, idx) {
           prop.visible = !cityActive;
           applyGlbTreeSeasonTint(prop, seasonIndex, isNight, stormActive);
           if (prop.userData && prop.userData.crownMat) {
-            prop.userData.crownMat.color.setHex(
-              stormActive ? 0x334155 : (isNight ? s.foliageNight : s.foliageDay)
-            );
+            prop.userData.crownMat.color.setHex(stormActive ? 0x334155 : (isNight ? s.foliageNight : s.foliageDay));
           }
           const bGroup = cityBuildings[idx];
           if (bGroup) {
@@ -2864,6 +2793,7 @@
         magnets.forEach(function (m) { scene.remove(m.mesh); }); magnets = [];
         trafficCars.forEach(function (t) { scene.remove(t.mesh); }); trafficCars = [];
         burstParticles.forEach(function (p) { scene.remove(p.mesh); }); burstParticles = [];
+        worldProps.forEach(function (wp) { scene.remove(wp); }); worldProps = [];
         clearMilestoneHouses();
       }
 
@@ -2888,19 +2818,27 @@
         const roll = Math.random();
 
         if (roll < 0.35) {
+          // Obstáculo elevado (deslizarse por debajo) -> down_obstacle.glb
           const w = 1.85, h = 1.15, d = 1.1, bottomGap = 0.92;
           const mesh = new THREE.Group();
-          const bar = new THREE.Mesh(
-            new THREE.BoxGeometry(w, h, d),
-            new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0x3b0764, emissiveIntensity: 0.25, roughness: 0.35, metalness: 0.25 })
-          );
-          bar.position.y = bottomGap + h * 0.5; bar.castShadow = true; mesh.add(bar);
 
-          const trim = new THREE.Mesh(
-            new THREE.BoxGeometry(w * 0.96, 0.14, d + 0.04),
-            new THREE.MeshBasicMaterial({ color: 0xf0abfc })
-          );
-          trim.position.y = bottomGap + 0.1; mesh.add(trim);
+          if (obstacleTemplates.down) {
+            const downMesh = obstacleTemplates.down.clone(true);
+            downMesh.position.y = bottomGap;
+            mesh.add(downMesh);
+          } else {
+            const bar = new THREE.Mesh(
+              new THREE.BoxGeometry(w, h, d),
+              new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0x3b0764, emissiveIntensity: 0.25, roughness: 0.35, metalness: 0.25 })
+            );
+            bar.position.y = bottomGap + h * 0.5; bar.castShadow = true; mesh.add(bar);
+
+            const trim = new THREE.Mesh(
+              new THREE.BoxGeometry(w * 0.96, 0.14, d + 0.04),
+              new THREE.MeshBasicMaterial({ color: 0xf0abfc })
+            );
+            trim.position.y = bottomGap + 0.1; mesh.add(trim);
+          }
 
           const postMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.5 });
           [-w * 0.44, w * 0.44].forEach(function (px) {
@@ -2914,20 +2852,28 @@
           return;
         }
 
+        // Obstáculo de piso (saltar por encima) -> up_obstacle.glb
         const isMedium = roll >= 0.72;
         const h = isMedium ? 1.55 : 0.95, w = 1.65, d = 1.45;
         const group = new THREE.Group();
-        const box = new THREE.Mesh(
-          new THREE.BoxGeometry(w, h, d),
-          new THREE.MeshStandardMaterial({ color: isMedium ? 0xe11d48 : 0xf97316, roughness: 0.42, metalness: 0.15 })
-        );
-        box.position.y = h * 0.5; box.castShadow = true; group.add(box);
 
-        const topBand = new THREE.Mesh(
-          new THREE.BoxGeometry(w + 0.04, 0.12, d + 0.04),
-          new THREE.MeshBasicMaterial({ color: isMedium ? 0xfda4af : 0xfef08a })
-        );
-        topBand.position.y = h - 0.04; group.add(topBand);
+        if (obstacleTemplates.up) {
+          const upMesh = obstacleTemplates.up.clone(true);
+          if (isMedium) upMesh.scale.y *= 1.35;
+          group.add(upMesh);
+        } else {
+          const box = new THREE.Mesh(
+            new THREE.BoxGeometry(w, h, d),
+            new THREE.MeshStandardMaterial({ color: isMedium ? 0xe11d48 : 0xf97316, roughness: 0.42, metalness: 0.15 })
+          );
+          box.position.y = h * 0.5; box.castShadow = true; group.add(box);
+
+          const topBand = new THREE.Mesh(
+            new THREE.BoxGeometry(w + 0.04, 0.12, d + 0.04),
+            new THREE.MeshBasicMaterial({ color: isMedium ? 0xfda4af : 0xfef08a })
+          );
+          topBand.position.y = h - 0.04; group.add(topBand);
+        }
 
         group.position.set(lane * LANE_WIDTH, 0, -120);
         scene.add(group);
@@ -2943,7 +2889,6 @@
             new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xca8a04, emissiveIntensity: 0.4, roughness: 0.25, metalness: 0.72 })
           );
           coinMesh.rotation.z = Math.PI / 2;
-          coinMesh.scale.set(1, 1, 1);
           coinMesh.position.set(lane * LANE_WIDTH, baseY, -115 - i * 2.6);
           scene.add(coinMesh);
           coins.push({ mesh: coinMesh, collected: false });
@@ -3004,16 +2949,20 @@
         });
         if (nearObs) return;
 
+        const availableTemplates = [
+          carTemplates.mainCar,
+          carTemplates.kia,
+          carTemplates.camaro,
+          carTemplates.tank
+        ].filter(Boolean);
+
         let carGroup = null;
         let hitWidth = 1.85;
         let hitHeight = 1.78;
         let hitDepth = 3.85;
 
-        const chosenTemplate = (carTemplates.mainCar && carTemplates.kia)
-          ? (Math.random() < 0.65 ? carTemplates.mainCar : carTemplates.kia)
-          : (carTemplates.mainCar || carTemplates.kia);
-
-        if (chosenTemplate) {
+        if (availableTemplates.length > 0) {
+          const chosenTemplate = availableTemplates[Math.floor(Math.random() * availableTemplates.length)];
           carGroup = chosenTemplate.clone(true);
           hitWidth = chosenTemplate.userData.hitWidth || 1.85;
           hitHeight = chosenTemplate.userData.hitHeight || 1.78;
@@ -3026,11 +2975,8 @@
         carGroup.position.set(lane * LANE_WIDTH, 0.04, -115);
         scene.add(carGroup);
         trafficCars.push({
-          mesh: carGroup,
-          laneX: lane * LANE_WIDTH,
-          width: hitWidth,
-          height: hitHeight,
-          depth: hitDepth,
+          mesh: carGroup, laneX: lane * LANE_WIDTH,
+          width: hitWidth, height: hitHeight, depth: hitDepth,
           extraSpeed: 11 + Math.random() * 7
         });
       }
@@ -3051,27 +2997,20 @@
           isStorm: false, stormSeverity: 0, isCity: false, stormFlash: 0,
           lightningTimer: 5.5, lastThunderTime: 0, difficultyLevel: 1,
           lastHouseMilestone: 0, spawnTimer: 0.7, coinSpawnTimer: 0.45,
-          trafficSpawnTimer: 1.6, magnetSpawnTimer: 8.5, cameraShake: 0
+          trafficSpawnTimer: 1.6, magnetSpawnTimer: 8.5, cameraShake: 0,
+          abandonedPlan: createAbandonedPlan()
         });
 
         applyCharacterAppearance(saveData.selectedChar);
-        if (bikeGroup) bikeGroup.visible = false;
+        updateBikeVisuals();
         if (lightningBoltMesh) lightningBoltMesh.visible = false;
-        shieldBubbleMesh.visible = false;
-        magnetRingMesh.visible = false;
-        playerRoot.visible = true;
-        playerBodyGroup.visible = true;
-        playerBodyGroup.scale.set(1, 1, 1);
-        playerBodyGroup.position.set(0, 0, 0);
-        playerRoot.position.set(0, 0, 0);
+        shieldBubbleMesh.visible = false; magnetRingMesh.visible = false;
+        playerRoot.visible = true; playerBodyGroup.visible = true;
+        playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.set(0, 0, 0); playerRoot.position.set(0, 0, 0);
 
         if (glbLoadedOk && activeGlbModel) {
-          if (!normalizeGlbModelTransform()) {
-            glbLoadedOk = false;
-            forceFallbackVisible('startRun sin tamaño GLB');
-          } else if (fallbackBoxGroup) {
-            fallbackBoxGroup.visible = false;
-          }
+          if (!normalizeGlbModelTransform()) { glbLoadedOk = false; forceFallbackVisible('startRun sin tamaño GLB'); }
+          else if (fallbackBoxGroup) fallbackBoxGroup.visible = false;
           applyCharacterAppearance(saveData.selectedChar);
         } else {
           forceFallbackVisible('startRun sin GLB');
@@ -3112,30 +3051,21 @@
       function jumpPlayer() {
         if (runState.mode !== 'playing') return;
         if (runState.isGrounded || runState.onObstacleTop) {
-          runState.velocityY = 13.5;
-          runState.isGrounded = false;
-          runState.onObstacleTop = false;
+          runState.velocityY = 13.5; runState.isGrounded = false; runState.onObstacleTop = false;
           if (runState.isSliding) {
             runState.isSliding = false; runState.slideTimer = 0;
-            playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = 0;
-            if (!glbLoadedOk && torsoMesh && legL && legR) {
-              torsoMesh.rotation.x = 0; legL.rotation.x = 0; legR.rotation.x = 0;
-            }
+            playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = runState.bikeActive ? 0.42 : 0;
+            if (!glbLoadedOk && torsoMesh && legL && legR) { torsoMesh.rotation.x = 0; legL.rotation.x = 0; legR.rotation.x = 0; }
           }
-          playGlbAnimation('jump', 0.08, 1);
-          sfxJump();
+          playGlbAnimation('jump', 0.08, 1); sfxJump();
         }
       }
 
       function slidePlayer() {
         if (runState.mode !== 'playing') return;
-        if (!runState.isGrounded && !runState.onObstacleTop) {
-          runState.velocityY = Math.min(runState.velocityY, -14);
-        }
-        runState.isSliding = true;
-        runState.slideTimer = 0.65;
-        playGlbAnimation('slide', 0.08, 1);
-        sfxSlide();
+        if (!runState.isGrounded && !runState.onObstacleTop) runState.velocityY = Math.min(runState.velocityY, -14);
+        runState.isSliding = true; runState.slideTimer = 0.65;
+        playGlbAnimation('slide', 0.08, 1); sfxSlide();
       }
 
       function triggerCrash() {
@@ -3145,7 +3075,7 @@
 
         if (runState.bikeActive) {
           runState.bikeActive = false; runState.bikeTimer = 0; runState.invulnTimer = 1.35;
-          if (bikeGroup) bikeGroup.visible = false;
+          updateBikeVisuals();
           sfxCrash(); showToast('🏍️ ¡Chocaste y perdiste la moto! Sigues en carrera.'); refreshAllUI(); return;
         }
         if (runState.shieldActive) {
@@ -3175,8 +3105,7 @@
         document.getElementById('go-coins').textContent = '+' + runState.runCoins;
         document.getElementById('go-ckn').textContent = '+' + earnedCkn;
 
-        setScreenMode('gameover');
-        refreshAllUI();
+        setScreenMode('gameover'); refreshAllUI();
       }
 
       function reviveWithKey() {
@@ -3205,6 +3134,27 @@
         el.classList.add('combo-anim');
       }
 
+      function syncLeftBikeButton() {
+        const btn = document.getElementById('btn-use-bike-left');
+        const label = document.getElementById('bike-left-label');
+        const countEl = document.getElementById('bike-left-count');
+        const showBtn = runState.mode === 'playing';
+        if (btn) {
+          btn.classList.toggle('hidden', !showBtn);
+          btn.classList.toggle('flex', showBtn);
+          btn.classList.toggle('bg-amber-400', runState.bikeActive);
+          btn.classList.toggle('text-slate-950', runState.bikeActive);
+          btn.classList.toggle('bg-slate-950/80', !runState.bikeActive);
+          btn.classList.toggle('text-amber-300', !runState.bikeActive);
+        }
+        if (label) {
+          label.textContent = runState.bikeActive ? `${Math.ceil(runState.bikeTimer)}s` : 'MOTO';
+        }
+        if (countEl) {
+          countEl.textContent = saveData.bikes;
+        }
+      }
+
       function setScreenMode(mode) {
         const lobbyEl = document.getElementById('lobby-overlay');
         const ingameEl = document.getElementById('ingame-controls');
@@ -3217,9 +3167,7 @@
         const isActiveRun = mode === 'playing' || mode === 'paused';
 
         if (mode !== 'lobby') {
-          runState.charPickerOpen = false;
-          runState.previewYawOffset = 0;
-          runState.spinBoostTimer = 0;
+          runState.charPickerOpen = false; runState.previewYawOffset = 0; runState.spinBoostTimer = 0;
           applyCharacterAppearance(saveData.selectedChar);
         }
 
@@ -3232,6 +3180,7 @@
         runStatsEl.classList.toggle('hidden', !isActiveRun); runStatsEl.classList.toggle('flex', isActiveRun);
         if (pauseBtnEl) { pauseBtnEl.classList.toggle('hidden', !isActiveRun); pauseBtnEl.classList.toggle('flex', isActiveRun); }
         if (buffsEl) { buffsEl.classList.toggle('hidden', !isActiveRun); buffsEl.classList.toggle('flex', isActiveRun); }
+        syncLeftBikeButton();
         syncCharPicker3DUI();
       }
 
@@ -3311,6 +3260,7 @@
 
         updateHudBadges();
         updateBuffBadges();
+        syncLeftBikeButton();
         renderShopCharacters();
         syncCharPicker3DUI();
       }
@@ -3341,11 +3291,8 @@
             btn.textContent = 'Equipar';
             btn.className += 'bg-sky-400 text-slate-950';
             btn.addEventListener('click', function () {
-              saveData.selectedChar = ch.id;
-              previewIndex = idx;
-              applyCharacterAppearance(ch.id);
-              persistSaveData();
-              refreshAllUI();
+              saveData.selectedChar = ch.id; previewIndex = idx;
+              applyCharacterAppearance(ch.id); persistSaveData(); refreshAllUI();
               showToast('Personaje ' + ch.name + ' equipado');
             });
           } else {
@@ -3353,21 +3300,13 @@
             btn.className += 'bg-amber-400 text-slate-950';
             btn.addEventListener('click', function () {
               if (saveData.coins < ch.priceCoins) { showToast('No tienes suficientes monedas ¢'); return; }
-              saveData.coins -= ch.priceCoins;
-              saveData.unlockedChars.push(ch.id);
-              saveData.selectedChar = ch.id;
-              previewIndex = idx;
-              applyCharacterAppearance(ch.id);
-              persistSaveData();
-              sfxCoin(0);
-              refreshAllUI();
+              saveData.coins -= ch.priceCoins; saveData.unlockedChars.push(ch.id); saveData.selectedChar = ch.id; previewIndex = idx;
+              applyCharacterAppearance(ch.id); persistSaveData(); sfxCoin(0); refreshAllUI();
               showToast('¡Compraste y equipaste a ' + ch.name + '!');
             });
           }
 
-          row.appendChild(info);
-          row.appendChild(btn);
-          container.appendChild(row);
+          row.appendChild(info); row.appendChild(btn); container.appendChild(row);
         });
       }
 
@@ -3386,88 +3325,58 @@
           }, { passive: true });
         });
 
+        const leftBikeBtn = document.getElementById('btn-use-bike-left');
+        if (leftBikeBtn) {
+          leftBikeBtn.addEventListener('pointerdown', function (e) {
+            e.stopPropagation();
+            activateBikeFromInventory();
+          });
+        }
+
         let touchStartX = 0, touchStartY = 0, lastDragX = 0, trackingSwipe = false;
         viewportEl.addEventListener('pointerdown', function (e) {
-          if (runState.mode === 'lobby' && runState.charPickerOpen) {
-            lastDragX = e.clientX;
-            trackingSwipe = true;
-            return;
-          }
+          if (runState.mode === 'lobby' && runState.charPickerOpen) { lastDragX = e.clientX; trackingSwipe = true; return; }
           if (runState.mode !== 'playing') return;
           touchStartX = e.clientX; touchStartY = e.clientY; trackingSwipe = true;
         });
         viewportEl.addEventListener('pointermove', function (e) {
           if (!trackingSwipe) return;
           if (runState.mode === 'lobby' && runState.charPickerOpen) {
-            const moveDx = e.clientX - lastDragX;
-            lastDragX = e.clientX;
-            runState.previewYawOffset += moveDx * 0.014;
+            const moveDx = e.clientX - lastDragX; lastDragX = e.clientX; runState.previewYawOffset += moveDx * 0.014;
           }
         });
         viewportEl.addEventListener('pointerup', function (e) {
-          if (!trackingSwipe) return;
-          trackingSwipe = false;
+          if (!trackingSwipe) return; trackingSwipe = false;
           if (runState.mode === 'lobby' && runState.charPickerOpen) return;
           if (runState.mode !== 'playing') return;
           const dx = e.clientX - touchStartX, dy = e.clientY - touchStartY;
           if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 28) moveLane(dx > 0 ? 1 : -1);
-          else if (Math.abs(dy) > 28) {
-            if (dy < 0) jumpPlayer();
-            else slidePlayer();
-          }
+          else if (Math.abs(dy) > 28) { if (dy < 0) jumpPlayer(); else slidePlayer(); }
         });
 
-        document.getElementById('btn-open-char-3d').addEventListener('click', function () {
-          setCharPicker3DOpen(!runState.charPickerOpen);
-        });
-        document.getElementById('btn-char-close').addEventListener('click', function () {
-          setCharPicker3DOpen(false);
-        });
+        document.getElementById('btn-open-char-3d').addEventListener('click', function () { setCharPicker3DOpen(!runState.charPickerOpen); });
+        document.getElementById('btn-char-close').addEventListener('click', function () { setCharPicker3DOpen(false); });
         document.getElementById('btn-char-prev').addEventListener('click', function () {
           previewIndex = (previewIndex - 1 + CHARACTERS.length) % CHARACTERS.length;
-          runState.previewYawOffset += 0.55;
-          sfxJump();
-          syncCharPicker3DUI();
+          runState.previewYawOffset += 0.55; sfxJump(); syncCharPicker3DUI();
         });
         document.getElementById('btn-char-next').addEventListener('click', function () {
           previewIndex = (previewIndex + 1) % CHARACTERS.length;
-          runState.previewYawOffset -= 0.55;
-          sfxJump();
-          syncCharPicker3DUI();
+          runState.previewYawOffset -= 0.55; sfxJump(); syncCharPicker3DUI();
         });
-        document.getElementById('btn-char-spin').addEventListener('click', function () {
-          runState.spinBoostTimer = 0.9;
-          sfxCoin(1);
-        });
+        document.getElementById('btn-char-spin').addEventListener('click', function () { runState.spinBoostTimer = 0.9; sfxCoin(1); });
         document.getElementById('btn-char-action').addEventListener('click', function () {
           const ch = CHARACTERS[previewIndex] || CHARACTERS[0];
           const unlocked = saveData.unlockedChars.indexOf(ch.id) !== -1;
           const selected = saveData.selectedChar === ch.id;
-
-          if (selected) {
-            showToast(ch.name + ' ya está equipado');
-            return;
-          }
+          if (selected) { showToast(ch.name + ' ya está equipado'); return; }
           if (unlocked) {
-            saveData.selectedChar = ch.id;
-            applyCharacterAppearance(ch.id);
-            persistSaveData();
-            sfxPowerup();
-            refreshAllUI();
-            showToast('✅ ¡Equipaste a ' + ch.name + '!');
-            return;
+            saveData.selectedChar = ch.id; applyCharacterAppearance(ch.id); persistSaveData(); sfxPowerup(); refreshAllUI();
+            showToast('✅ ¡Equipaste a ' + ch.name + '!'); return;
           }
-          if (saveData.coins < ch.priceCoins) {
-            showToast('Necesitas ' + ch.priceCoins + ' ¢ para comprar a ' + ch.name);
-            return;
-          }
-          saveData.coins -= ch.priceCoins;
-          saveData.unlockedChars.push(ch.id);
-          saveData.selectedChar = ch.id;
-          applyCharacterAppearance(ch.id);
-          persistSaveData();
-          sfxPowerup();
-          refreshAllUI();
+          if (saveData.coins < ch.priceCoins) { showToast('Necesitas ' + ch.priceCoins + ' ¢ para comprar a ' + ch.name); return; }
+          saveData.coins -= ch.priceCoins; saveData.unlockedChars.push(ch.id); saveData.selectedChar = ch.id;
+          applyCharacterAppearance(ch.id); persistSaveData(); sfxPowerup(); refreshAllUI();
           showToast('🎉 ¡Compraste y equipaste a ' + ch.name + '!');
         });
 
@@ -3495,24 +3404,17 @@
             speed: 25, lane: 0, laneX: 0, playerY: 0, velocityY: 0, isGrounded: true,
             onObstacleTop: false, isSliding: false, shieldActive: false, bikeActive: false,
             bikeTimer: 0, isStorm: false, stormSeverity: 0, isCity: false, stormFlash: 0,
-            lastHouseMilestone: 0
+            lastHouseMilestone: 0, abandonedPlan: createAbandonedPlan()
           });
           applyCharacterAppearance(saveData.selectedChar);
-          if (bikeGroup) bikeGroup.visible = false;
+          updateBikeVisuals();
           if (lightningBoltMesh) lightningBoltMesh.visible = false;
           shieldBubbleMesh.visible = false; magnetRingMesh.visible = false;
-          playerRoot.visible = true;
-          playerBodyGroup.visible = true;
-          playerBodyGroup.scale.set(1, 1, 1);
+          playerRoot.visible = true; playerBodyGroup.visible = true; playerBodyGroup.scale.set(1, 1, 1);
           if (glbLoadedOk && activeGlbModel) {
-            if (!normalizeGlbModelTransform()) {
-              glbLoadedOk = false;
-              forceFallbackVisible('returnToLobby sin tamaño GLB');
-            }
+            if (!normalizeGlbModelTransform()) { glbLoadedOk = false; forceFallbackVisible('returnToLobby sin tamaño GLB'); }
             applyCharacterAppearance(saveData.selectedChar);
-          } else {
-            forceFallbackVisible('returnToLobby');
-          }
+          } else { forceFallbackVisible('returnToLobby'); }
           playGlbAnimation('run', 0.15, 0.35);
           applyAtmosphereForCycle(0, false, true, false, 0, false);
           setScreenMode('lobby'); refreshAllUI();
@@ -3535,7 +3437,7 @@
         });
         document.getElementById('shop-buy-bike').addEventListener('click', function () {
           if (saveData.coins < 45) { showToast('Necesitas 45 ¢ para una moto'); return; }
-          saveData.coins -= 45; saveData.bikes += 1; persistSaveData(); sfxCoin(0); refreshAllUI(); showToast('🏍️ ¡Moto comprada! Úsala en partida (15s)');
+          saveData.coins -= 45; saveData.bikes += 1; persistSaveData(); sfxCoin(0); refreshAllUI(); showToast('🏍️ ¡Moto comprada! Úsala con el botón izquierdo al jugar');
         });
         document.getElementById('shop-buy-key').addEventListener('click', function () {
           if (saveData.ckn < 35) { showToast('Necesitas 35 CKN para una llave'); return; }
@@ -3683,8 +3585,7 @@
               previewIndex = idx >= 0 ? idx : 0;
               applyCharacterAppearance(saveData.selectedChar); refreshAllUI();
               authModal.classList.add('hidden'); authModal.classList.remove('flex');
-              showToast('¡Bienvenido, ' + saveData.username + '!');
-              return;
+              showToast('¡Bienvenido, ' + saveData.username + '!'); return;
             }
 
             const account = accounts[email];
@@ -3702,10 +3603,7 @@
 
         window.addEventListener('keydown', function (e) {
           if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
-            if (runState.mode === 'lobby' && runState.charPickerOpen && e.key === 'Escape') {
-              setCharPicker3DOpen(false);
-              return;
-            }
+            if (runState.mode === 'lobby' && runState.charPickerOpen && e.key === 'Escape') { setCharPicker3DOpen(false); return; }
             if (runState.mode === 'playing') pauseRun(false);
             else if (runState.mode === 'paused' && !runState.pausedFromSettings) resumeRun();
             return;
@@ -3725,13 +3623,9 @@
 
         if (playerRoot) playerRoot.visible = true;
         if (playerBodyGroup) playerBodyGroup.visible = true;
-        if (!glbLoadedOk && fallbackBoxGroup && !fallbackBoxGroup.visible) {
-          fallbackBoxGroup.visible = true;
-        }
+        if (!glbLoadedOk && fallbackBoxGroup && !fallbackBoxGroup.visible) fallbackBoxGroup.visible = true;
 
-        if (animMixer && runState.mode !== 'paused') {
-          animMixer.update(dt);
-        }
+        if (animMixer && runState.mode !== 'paused') animMixer.update(dt);
 
         if (runState.mode !== 'paused') {
           cloudBanks.forEach(function (bank) {
@@ -3751,6 +3645,17 @@
           runState.distance += distDelta;
           runState.score += distDelta * 0.65 * (1 + (runState.difficultyLevel - 1) * 0.15) * (runState.bikeActive ? 1.25 : 1);
 
+          if (runState.bikeActive) {
+            runState.bikeTimer = Math.max(0, runState.bikeTimer - dt);
+            syncLeftBikeButton();
+            if (runState.bikeTimer <= 0) {
+              runState.bikeActive = false;
+              updateBikeVisuals();
+              refreshAllUI();
+              showToast('🏍️ Se acabó el tiempo de la moto');
+            }
+          }
+
           const houseZoneNow = isHouseZoneActive(runState.distance, runState.difficultyLevel);
           if (houseZoneNow) {
             const currentMilestone = Math.floor(runState.distance / HOUSE_INTERVAL_METERS);
@@ -3760,19 +3665,24 @@
             }
           }
 
+          maybeSpawnAbandonedBuildingInGrass();
+
           if (milestoneHouses.length > 0) {
             for (let hIdx = milestoneHouses.length - 1; hIdx >= 0; hIdx--) {
               const hItem = milestoneHouses[hIdx];
               if (!isHouseZoneActive(runState.distance, runState.difficultyLevel)) {
-                scene.remove(hItem.mesh);
-                milestoneHouses.splice(hIdx, 1);
-                continue;
+                scene.remove(hItem.mesh); milestoneHouses.splice(hIdx, 1); continue;
               }
               hItem.mesh.position.z += distDelta;
-              if (hItem.mesh.position.z > 24) {
-                scene.remove(hItem.mesh);
-                milestoneHouses.splice(hIdx, 1);
-              }
+              if (hItem.mesh.position.z > 24) { scene.remove(hItem.mesh); milestoneHouses.splice(hIdx, 1); }
+            }
+          }
+
+          if (worldProps.length > 0) {
+            for (let wIdx = worldProps.length - 1; wIdx >= 0; wIdx--) {
+              const wp = worldProps[wIdx];
+              wp.position.z += distDelta;
+              if (wp.position.z > 24) { scene.remove(wp); worldProps.splice(wIdx, 1); }
             }
           }
 
@@ -3781,9 +3691,7 @@
             for (let g = 0; g < sideGrassTiles.length; g++) {
               const tile = sideGrassTiles[g];
               tile.position.z += distDelta;
-              if (tile.position.z > 24) {
-                tile.position.z -= totalGrassLoop;
-              }
+              if (tile.position.z > 24) tile.position.z -= totalGrassLoop;
             }
           }
 
@@ -3792,9 +3700,7 @@
             if (runState.comboTimer === 0) runState.comboCount = 0;
           }
 
-          if (runState.magnetTimer > 0) {
-            runState.magnetTimer = Math.max(0, runState.magnetTimer - dt);
-          }
+          if (runState.magnetTimer > 0) runState.magnetTimer = Math.max(0, runState.magnetTimer - dt);
           if (magnetRingMesh) {
             magnetRingMesh.visible = runState.magnetTimer > 0;
             if (magnetRingMesh.visible) magnetRingMesh.rotation.z += dt * 4;
@@ -3848,13 +3754,9 @@
             runState.slideTimer -= dt;
             if (runState.slideTimer <= 0) {
               runState.isSliding = false; runState.slideTimer = 0;
-              playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = 0;
-              if (!glbLoadedOk && torsoMesh && legL && legR) {
-                torsoMesh.rotation.x = 0; legL.rotation.x = 0; legR.rotation.x = 0;
-              }
-              if (glbLoadedOk && (runState.isGrounded || runState.onObstacleTop)) {
-                playGlbAnimation('run', 0.14, 1);
-              }
+              playerBodyGroup.scale.set(1, 1, 1); playerBodyGroup.position.y = runState.bikeActive ? 0.42 : 0;
+              if (!glbLoadedOk && torsoMesh && legL && legR) { torsoMesh.rotation.x = 0; legL.rotation.x = 0; legR.rotation.x = 0; }
+              if (glbLoadedOk && (runState.isGrounded || runState.onObstacleTop)) playGlbAnimation('run', 0.14, 1);
             }
           }
 
@@ -3868,19 +3770,14 @@
             const obs = obstacles[i];
             if (obs.kind !== 'ground') continue;
             if (Math.abs(obs.mesh.position.z) < obs.depth * 0.5 + 0.35 && Math.abs(runState.laneX - obs.laneX) < obs.width * 0.5 + 0.32) {
-              if (runState.playerY >= obs.height - 0.35 && runState.velocityY <= 0) {
-                supportTopY = Math.max(supportTopY, obs.height);
-              }
+              if (runState.playerY >= obs.height - 0.35 && runState.velocityY <= 0) supportTopY = Math.max(supportTopY, obs.height);
             }
           }
 
           if (runState.playerY <= supportTopY) {
             runState.playerY = supportTopY; runState.velocityY = 0;
-            runState.onObstacleTop = supportTopY > 0;
-            runState.isGrounded = supportTopY === 0;
-            if (wasAirborne && !runState.isSliding && glbLoadedOk) {
-              playGlbAnimation('run', 0.12, 1);
-            }
+            runState.onObstacleTop = supportTopY > 0; runState.isGrounded = supportTopY === 0;
+            if (wasAirborne && !runState.isSliding && glbLoadedOk) playGlbAnimation('run', 0.12, 1);
           } else {
             runState.isGrounded = false;
           }
@@ -3888,9 +3785,7 @@
           playerRoot.position.set(runState.laneX, runState.playerY, 0);
           playerRoot.rotation.set(0, 0, 0);
 
-          const slideDropOffset = runState.isSliding
-            ? (glbLoadedOk ? -SLIDE_DROP_GLB : -SLIDE_DROP_FALLBACK)
-            : 0;
+          const slideDropOffset = runState.isSliding ? (glbLoadedOk ? -SLIDE_DROP_GLB : -SLIDE_DROP_FALLBACK) : 0;
 
           if (shadowDisc) {
             shadowDisc.position.y = 0.02 - runState.playerY - slideDropOffset;
@@ -3905,11 +3800,9 @@
           if (!glbLoadedOk) {
             if (runState.isSliding) {
               playerBodyGroup.position.y = -SLIDE_DROP_FALLBACK;
-              torsoMesh.rotation.x = -0.45;
-              legL.rotation.x = -0.75;
-              legR.rotation.x = 0.15;
+              torsoMesh.rotation.x = -0.45; legL.rotation.x = -0.75; legR.rotation.x = 0.15;
             } else {
-              playerBodyGroup.position.y = bounce * 0.08;
+              playerBodyGroup.position.y = (runState.bikeActive ? 0.42 : 0) + bounce * 0.08;
               torsoMesh.rotation.x = -0.08;
               armL.rotation.x = -stride * 0.85; armR.rotation.x = stride * 0.85;
               legL.rotation.x = stride * 0.85; legR.rotation.x = -stride * 0.85;
@@ -3917,9 +3810,8 @@
           } else {
             playerBodyGroup.position.y = runState.isSliding
               ? -SLIDE_DROP_GLB
-              : (runState.isGrounded ? bounce * 0.02 : 0);
-            glbModelGroup.rotation.x = 0;
-            glbModelGroup.rotation.y = 0;
+              : ((runState.bikeActive ? 0.42 : 0) + (runState.isGrounded ? bounce * 0.02 : 0));
+            glbModelGroup.rotation.x = 0; glbModelGroup.rotation.y = 0;
           }
 
           laneStripes.forEach(function (st) { st.position.z += distDelta; if (st.position.z > 14) st.position.z -= 160; });
@@ -3973,8 +3865,7 @@
 
           for (let i = coins.length - 1; i >= 0; i--) {
             const c = coins[i];
-            c.mesh.position.z += distDelta;
-            c.mesh.rotation.y += dt * 4;
+            c.mesh.position.z += distDelta; c.mesh.rotation.y += dt * 4;
             if (!c.collected && runState.magnetTimer > 0 && c.mesh.position.z > -34 && c.mesh.position.z < 12) {
               const pf = Math.min(1, dt * 14);
               c.mesh.position.x += (runState.laneX - c.mesh.position.x) * pf;
@@ -4018,9 +3909,7 @@
             for (let g = 0; g < sideGrassTiles.length; g++) {
               const tile = sideGrassTiles[g];
               tile.position.z += lobbyGrassSpeed;
-              if (tile.position.z > 24) {
-                tile.position.z -= totalGrassLoop;
-              }
+              if (tile.position.z > 24) tile.position.z -= totalGrassLoop;
             }
           }
 
@@ -4029,8 +3918,7 @@
             runState.previewYawOffset += dt * 7.5;
           }
 
-          playerRoot.position.set(0, 0, 0);
-          playerRoot.rotation.set(0, 0, 0);
+          playerRoot.position.set(0, 0, 0); playerRoot.rotation.set(0, 0, 0);
           if (glbLoadedOk && animActions.run && currentAnimName !== 'run') {
             playGlbAnimation('run', 0.15, runState.charPickerOpen ? 0.65 : 0.35);
           }
@@ -4042,10 +3930,8 @@
             torsoMesh.rotation.y = (runState.charPickerOpen ? runState.previewYawOffset : Math.sin(elapsed * 2) * 0.12);
             headMesh.rotation.x = Math.sin(elapsed * 2.5) * 0.08;
             headMesh.rotation.y = Math.sin(elapsed * 1.7) * 0.25;
-            armL.rotation.x = Math.sin(elapsed * 3) * 0.32;
-            armR.rotation.x = -Math.sin(elapsed * 3) * 0.32;
-            legL.rotation.x = Math.sin(elapsed * 2) * 0.1;
-            legR.rotation.x = -Math.sin(elapsed * 2) * 0.1;
+            armL.rotation.x = Math.sin(elapsed * 3) * 0.32; armR.rotation.x = -Math.sin(elapsed * 3) * 0.32;
+            legL.rotation.x = Math.sin(elapsed * 2) * 0.1; legR.rotation.x = -Math.sin(elapsed * 2) * 0.1;
           } else {
             glbModelGroup.rotation.x = 0;
             glbModelGroup.rotation.y = runState.charPickerOpen ? runState.previewYawOffset : 0;
