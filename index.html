@@ -679,6 +679,7 @@
       const CYCLE_SPAN_METERS = 4000;
       const SEASON_SPAN_METERS = 1000;
       const CITY_START_METERS = 12000;
+      const CITY_END_METERS = 23000;
       const HOUSE_INTERVAL_METERS = 250;
       const STORAGE_KEY = 'kencoin_runner_3d_save_v1';
       const ACCOUNTS_KEY = 'kencoin_runner_3d_accounts_v1';
@@ -1689,6 +1690,15 @@
         milestoneHouses = [];
       }
 
+      function isHouseZoneActive(dist, diffLevel) {
+        const safeDist = Math.max(0, Number(dist) || 0);
+        const lvl = Number(diffLevel) || 1;
+        if (lvl >= 24) return true;
+        if (safeDist < CITY_START_METERS) return true;
+        if (safeDist >= CITY_END_METERS) return true;
+        return false;
+      }
+
       function buildSingleMilestoneHouse(useJapanese, sideSign, roadWidth, zOffset) {
         const grassCenterX = roadWidth * 0.5 + SIDE_GRASS_WIDTH * 0.5 + 0.08;
         const posX = sideSign * grassCenterX;
@@ -1711,31 +1721,27 @@
       }
 
       function spawnMilestoneHouse(milestoneIndex) {
-        if (runState.isCity || runState.distance >= CITY_START_METERS) return;
+        if (!isHouseZoneActive(runState.distance, runState.difficultyLevel)) return;
         const alreadySpawned = milestoneHouses.some(function (h) {
           return h.milestoneIndex === milestoneIndex;
         });
         if (alreadySpawned) return;
 
         const roadWidth = LANE_WIDTH * 3 + 2.2;
-        const jpOnRight = milestoneIndex % 2 === 1;
-        const rightIsJapanese = jpOnRight;
-        const leftIsJapanese = !jpOnRight;
+        const sideSign = milestoneIndex % 2 === 1 ? -1 : 1;
+        const isJapanese = milestoneIndex % 2 === 1;
+        const zOffset = sideSign < 0 ? -4 : 0;
 
-        const rightHouse = buildSingleMilestoneHouse(rightIsJapanese, 1, roadWidth, 0);
-        const leftHouse = buildSingleMilestoneHouse(leftIsJapanese, -1, roadWidth, -6);
-
+        const houseMesh = buildSingleMilestoneHouse(isJapanese, sideSign, roadWidth, zOffset);
         milestoneHouses.push({
           milestoneIndex: milestoneIndex,
-          mesh: rightHouse
-        });
-        milestoneHouses.push({
-          milestoneIndex: milestoneIndex,
-          mesh: leftHouse
+          mesh: houseMesh
         });
 
+        const sideLabel = sideSign < 0 ? 'Izquierda' : 'Derecha';
+        const houseLabel = isJapanese ? 'Casa Japonesa' : 'Casa Blanca';
         showToast(
-          '🏡 Casas cada ' + HOUSE_INTERVAL_METERS + 'm (' + (milestoneIndex * HOUSE_INTERVAL_METERS) + 'm)'
+          '🏡 ' + houseLabel + ' (' + sideLabel + ') · ' + (milestoneIndex * HOUSE_INTERVAL_METERS) + 'm'
         );
       }
 
@@ -2780,7 +2786,7 @@
           }
         }
 
-        if (cityActive) {
+        if (!isHouseZoneActive(runState.distance, runState.difficultyLevel)) {
           clearMilestoneHouses();
         }
 
@@ -3745,7 +3751,8 @@
           runState.distance += distDelta;
           runState.score += distDelta * 0.65 * (1 + (runState.difficultyLevel - 1) * 0.15) * (runState.bikeActive ? 1.25 : 1);
 
-          if (!runState.isCity && runState.distance < CITY_START_METERS) {
+          const houseZoneNow = isHouseZoneActive(runState.distance, runState.difficultyLevel);
+          if (houseZoneNow) {
             const currentMilestone = Math.floor(runState.distance / HOUSE_INTERVAL_METERS);
             if (currentMilestone > runState.lastHouseMilestone) {
               runState.lastHouseMilestone = currentMilestone;
@@ -3756,7 +3763,7 @@
           if (milestoneHouses.length > 0) {
             for (let hIdx = milestoneHouses.length - 1; hIdx >= 0; hIdx--) {
               const hItem = milestoneHouses[hIdx];
-              if (runState.isCity || runState.distance >= CITY_START_METERS) {
+              if (!isHouseZoneActive(runState.distance, runState.difficultyLevel)) {
                 scene.remove(hItem.mesh);
                 milestoneHouses.splice(hIdx, 1);
                 continue;
